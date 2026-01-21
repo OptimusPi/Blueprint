@@ -1,5 +1,5 @@
-import {SeedResultsContainer} from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
-import {useCardStore} from "../../../modules/state/store.ts";
+import { SeedResultsContainer } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
+import { useCardStore } from "../../../modules/state/store.ts";
 import {
     AppShell,
     Badge,
@@ -16,13 +16,13 @@ import {
     Title,
     useMantineTheme
 } from "@mantine/core";
-import {IconCalendarEvent, IconCards, IconCheck, IconShoppingCart} from "@tabler/icons-react";
+import { IconCalendarEvent, IconCards, IconCheck, IconShoppingCart } from "@tabler/icons-react";
 import SearchSeedInput from "../../searchInput.tsx";
 import MiscCardSourcesDisplay from "../../miscSourcesDisplay.tsx";
 import PurchaseTimeline from "../../purchaseTimeline.tsx";
-import {useMediaQuery} from "@mantine/hooks";
-import {useState} from "react";
-import {EVENT_UNLOCKS} from "../../../modules/const.ts";
+import { useMediaQuery } from "@mantine/hooks";
+import { useState } from "react";
+import { EVENT_UNLOCKS } from "../../../modules/const.ts";
 
 
 export function EventsPanel() {
@@ -32,30 +32,30 @@ export function EventsPanel() {
     const clearEvents = useCardStore(state => state.clearEvents);
 
     const blindOptions = [
-        {value: "smallBlind", label: "Small Blind"},
-        {value: "bigBlind", label: "Big Blind"},
-        {value: "bossBlind", label: "Boss Blind"}
+        { value: "smallBlind", label: "Small Blind" },
+        { value: "bigBlind", label: "Big Blind" },
+        { value: "bossBlind", label: "Boss Blind" }
     ];
 
     // Track local state for each card's ante and blind selection
     const [selections, setSelections] = useState<{ [key: string]: { ante: string, blind: string } }>(
         EVENT_UNLOCKS.reduce((acc, event) => ({
             ...acc,
-            [event.name]: {ante: "1", blind: "bigBlind"}
+            [event.name]: { ante: "1", blind: "bigBlind" }
         }), {})
     );
 
     const handleAnteChange = (cardName: string, value: string) => {
         setSelections(prev => ({
             ...prev,
-            [cardName]: {...prev[cardName], ante: value}
+            [cardName]: { ...prev[cardName], ante: value }
         }));
     };
 
     const handleBlindChange = (cardName: string, value: string) => {
         setSelections(prev => ({
             ...prev,
-            [cardName]: {...prev[cardName], blind: value}
+            [cardName]: { ...prev[cardName], blind: value }
         }));
     };
 
@@ -68,7 +68,7 @@ export function EventsPanel() {
     };
 
     const toggleEvent = (cardName: string) => {
-        const {ante, blind} = selections[cardName];
+        const { ante, blind } = selections[cardName];
         const isAlreadyTracked = isEventTracked(cardName, ante, blind);
 
         if (isAlreadyTracked) {
@@ -104,7 +104,7 @@ export function EventsPanel() {
 
             <Grid>
                 {EVENT_UNLOCKS.map((event) => {
-                    const {ante, blind} = selections[event.name];
+                    const { ante, blind } = selections[event.name];
                     const isTracked = isEventTracked(event.name, ante, blind);
 
                     return (
@@ -112,7 +112,7 @@ export function EventsPanel() {
                             <Card withBorder p="md" radius="md">
                                 <Group justify="space-between" mb="xs">
                                     <Group>
-                                        <IconCalendarEvent size={20}/>
+                                        <IconCalendarEvent size={20} />
                                         <Text fw={700}>{event.name}</Text>
                                     </Group>
                                     {isTracked && (
@@ -145,7 +145,7 @@ export function EventsPanel() {
                                         color={isTracked ? "red" : "blue"}
                                         ml="auto"
                                         onClick={() => toggleEvent(event.name)}
-                                        leftSection={isTracked ? undefined : <IconCheck size={16}/>}
+                                        leftSection={isTracked ? undefined : <IconCheck size={16} />}
                                     >
                                         {isTracked ? "Remove" : "Activate"}
                                     </Button>
@@ -160,7 +160,7 @@ export function EventsPanel() {
 }
 
 
-export function Aside({SeedResults}: { SeedResults: SeedResultsContainer | null }) {
+export function Aside({ SeedResults }: { SeedResults: SeedResultsContainer | null }) {
     const selectedAnte = useCardStore(state => state.applicationState.selectedAnte);
     const anteData = SeedResults?.antes[selectedAnte];
     const miscSources = anteData?.miscCardSources;
@@ -182,7 +182,7 @@ export function Aside({SeedResults}: { SeedResults: SeedResultsContainer | null 
         <AppShell.Aside p="md">
             {!media && (
                 <AppShell.Section hiddenFrom={'sm'} mb="md">
-                    <SearchSeedInput SeedResults={SeedResults}/>
+                    <SearchSeedInput SeedResults={SeedResults} />
                 </AppShell.Section>
             )}
             <AppShell.Section>
@@ -190,13 +190,13 @@ export function Aside({SeedResults}: { SeedResults: SeedResultsContainer | null 
                     <Tabs.List grow mb="md">
                         <Tabs.Tab
                             value="sources"
-                            leftSection={<IconCards size={16}/>}
+                            leftSection={<IconCards size={16} />}
                         >
                             Card Sources
                         </Tabs.Tab>
                         <Tabs.Tab
                             value="purchases"
-                            leftSection={<IconShoppingCart size={16}/>}
+                            leftSection={<IconShoppingCart size={16} />}
                             rightSection={
                                 <Badge size="xs" circle variant="filled" color={theme.colors.blue[7]}>
                                     {transactionsCount}
@@ -225,6 +225,7 @@ export function Aside({SeedResults}: { SeedResults: SeedResultsContainer | null 
                                 wheelQueue={wheelQueue}
                                 auraQueue={auraQueue}
                                 boosterQueue={boosterQueue}
+                                deckDraws={anteData?.deckDraws}
                             />
                         ) : (
                             <Center h={200}>
@@ -233,10 +234,10 @@ export function Aside({SeedResults}: { SeedResults: SeedResultsContainer | null 
                         )}
                     </Tabs.Panel>
                     <Tabs.Panel value="purchases">
-                        <PurchaseTimeline buys={buys} sells={sells}/>
+                        <PurchaseTimeline buys={buys} sells={sells} />
                     </Tabs.Panel>
                     <Tabs.Panel value="events">
-                        <EventsPanel/>
+                        <EventsPanel />
                     </Tabs.Panel>
                 </Tabs>
             </AppShell.Section>

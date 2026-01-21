@@ -104,4 +104,6 @@
 //
 // console.log("Analysis Result:", JSON.parse(JSON.stringify(analyzer.result.getResult)));
 //
-// export { };
+export * from './RunSimulator';
+export * from './SimulationTypes';
+export * from './utils/CardTranslator';
