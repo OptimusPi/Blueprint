@@ -23,6 +23,7 @@ function getAnte2BossArcanaSpoilerJokers(cardsPerAnte: number): string[] {
   ) as any;
 
   const packs = results?.antes?.[2]?.blinds?.bossBlind?.packs ?? [];
+  console.log("DEBUG PACKS:", JSON.stringify(packs, null, 2));
   const arcanaPacks = packs.filter((p: any) => p?.name === "Arcana");
   const jokerNames = arcanaPacks.flatMap((p: any) =>
     (p?.cards ?? [])

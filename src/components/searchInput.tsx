@@ -1,11 +1,10 @@
-import {Ante, SeedResultsContainer} from "../modules/ImmolateWrapper/CardEngines/Cards.ts";
-import {useCardStore} from "../modules/state/store.ts";
-import {useCallback, useMemo, useState} from "react";
-import {closeSpotlight, openSpotlight, Spotlight} from "@mantine/spotlight";
-import {BuyMetaData} from "../modules/classes/BuyMetaData.ts";
-import {LOCATIONS} from "../modules/const.ts";
-import {getMiscCardSources, MiscCardSource} from "../modules/ImmolateWrapper";
-import {toHeaderCase} from "js-convert-case";
+import { SimulatedRun, SimulatedAnte } from "../modules/simulation";
+import { useCardStore } from "../modules/state/store.ts";
+import { useCallback, useMemo, useState } from "react";
+import { closeSpotlight, openSpotlight, Spotlight } from "@mantine/spotlight";
+import { BuyMetaData } from "../modules/classes/BuyMetaData.ts";
+import { LOCATIONS } from "../modules/const.ts";
+import { toHeaderCase } from "js-convert-case";
 import {
     ActionIcon,
     Checkbox,
@@ -18,12 +17,12 @@ import {
     SimpleGrid,
     TextInput
 } from "@mantine/core";
-import {IconSearch, IconSettings} from "@tabler/icons-react";
-import {useSetState} from "@mantine/hooks";
-import {useGA} from "../modules/useGA.ts";
+import { IconSearch, IconSettings } from "@tabler/icons-react";
+import { useSetState } from "@mantine/hooks";
+import { useGA } from "../modules/useGA.ts";
 
-const registeredMiscSources = getMiscCardSources(15).map(source => source.name)
-export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResultsContainer | null }) {
+const registeredMiscSources = ["riffRaff", "arcanaPack", "spectralPack", "buffoonPack"].map((name: string) => name);
+export default function SearchSeedInput({ SeedResults }: { SeedResults: SimulatedRun | null }) {
     const searchString = useCardStore(state => state.searchState.searchTerm);
     const setSearchString = useCardStore(state => state.setSearchString);
     const goToResults = useCardStore(state => state.setSelectedSearchResult);
@@ -46,7 +45,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
         },
         misc: {
             enabled: true,
-            children: registeredMiscSources.reduce((acc, curr) => ({...acc, [curr]: {enabled: true}}), {} as {
+            children: registeredMiscSources.reduce((acc, curr) => ({ ...acc, [curr]: { enabled: true } }), {} as {
                 [key: string]: filterConfig
             })
         }
@@ -55,7 +54,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
     const updateSourceFilter = useCallback((parent: string, enabled?: boolean, child?: string, childEnabled?: boolean) => {
         if (!child) {
             let current = sourceFilterConfig[parent as sources];
-            setSourceFilterConfig({[parent]: {...current, enabled: enabled ?? true}});
+            setSourceFilterConfig({ [parent]: { ...current, enabled: enabled ?? true } });
         } else {
             let current = sourceFilterConfig[parent as sources];
             if (current && current.children) {
@@ -64,7 +63,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                         enabled: current.enabled,
                         children: {
                             ...current.children,
-                            [child]: {enabled: childEnabled ?? true}
+                            [child]: { enabled: childEnabled ?? true }
                         }
                     }
                 })
@@ -76,8 +75,8 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
     const searchResults = useMemo(() => {
         if (searchString === '' || !searchActive) return [];
         const cards: BuyMetaData[] = [];
-        let antes: Ante[] = Object?.values(SeedResults?.antes ?? {});
-        antes.forEach((ante: Ante) => {
+        let antes: SimulatedAnte[] = Object?.values(SeedResults?.antes ?? {});
+        antes.forEach((ante: SimulatedAnte) => {
             ante.queue.forEach((card, index) => {
                 const cardString = `${(card?.edition && card.edition !== 'No Edition') ? card.edition : ''} ${card.name}`.trim();
                 if (cardString.toLowerCase().includes(searchString.toLowerCase())) {
@@ -114,7 +113,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                     })
                 })
             })
-            Object.values(ante.miscCardSources).forEach((source: MiscCardSource) => {
+            Object.values(ante.miscCardSources).forEach((source: any) => {
                 source.cards.forEach((card: any, index) => {
                     const cardString = `${card?.edition ?? ''} ${card.name}`.trim();
                     if (cardString.toLowerCase().includes(searchString.toLowerCase())) {
@@ -193,7 +192,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                                 }
                             }
                         }
-                    )
+                        )
                 }
                 searchProps={{
                     value: searchString,
@@ -208,7 +207,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                 <TextInput
                     flex={1}
                     placeholder={'Search for cards'}
-                    onClick={()=>{
+                    onClick={() => {
                         useGA('search_bar_clicked')
                         openSpotlight()
                     }}
@@ -216,7 +215,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                         // <ActionIcon>
                         <HoverCard>
                             <HoverCardTarget>
-                                <IconSettings/>
+                                <IconSettings />
                             </HoverCardTarget>
                             <HoverCardDropdown>
                                 <CheckboxGroup
@@ -224,12 +223,12 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                                     description={'Select which sources to include in search'}
                                     mb={'sm'}
                                     value={
-                                    ['shop', 'packs', 'misc'].filter(source => sourceFilterConfig?.[source as sources]?.enabled)
+                                        ['shop', 'packs', 'misc'].filter(source => sourceFilterConfig?.[source as sources]?.enabled)
                                     }
-                                    onChange={(e:string[]) => {
+                                    onChange={(e: string[]) => {
                                         const sources = Object.keys(sourceFilterConfig) as sources[];
-                                        for ( const source of sources ) {
-                                            if(e.includes(source) && !sourceFilterConfig[source].enabled) {
+                                        for (const source of sources) {
+                                            if (e.includes(source) && !sourceFilterConfig[source].enabled) {
                                                 updateSourceFilter(source, true);
                                                 return;
                                             } else if (!e.includes(source) && sourceFilterConfig[source].enabled) {
@@ -241,13 +240,13 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                                     }}
                                 >
                                     <Group mt={'sm'}>
-                                        <Checkbox value="shop" label='shop'/>
+                                        <Checkbox value="shop" label='shop' />
                                         <Checkbox value='packs' label='packs' />
                                         <Checkbox value='misc' label='misc' />
                                     </Group>
                                 </CheckboxGroup>
                                 <Divider my={'md'} label={'misc sources'} />
-                                <SimpleGrid cols={{ sm: 2, md: 3}}>
+                                <SimpleGrid cols={{ sm: 2, md: 3 }}>
                                     {sourceFilterConfig.misc.enabled &&
                                         Object.keys(sourceFilterConfig.misc.children || {}).map((child) => (
                                             <Checkbox
@@ -269,7 +268,7 @@ export default function SearchSeedInput({SeedResults}: { SeedResults: SeedResult
                     }
                     rightSection={
                         <ActionIcon onClick={handleSearch}>
-                            <IconSearch/>
+                            <IconSearch />
                         </ActionIcon>
                     }
                 />

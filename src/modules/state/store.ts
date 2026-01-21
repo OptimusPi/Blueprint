@@ -3,8 +3,7 @@ import { create } from "zustand/index";
 import { combine, createJSONStorage, devtools, persist, StateStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { BuyMetaData } from "../classes/BuyMetaData.ts";
-import { analyzeSeed } from "../ImmolateWrapper";
-import { SeedResultsContainer } from "../ImmolateWrapper/CardEngines/Cards.ts";
+import { SimulatedRun, analyzeSeed } from "../simulation";
 
 
 export interface InitialState {
@@ -37,7 +36,7 @@ export interface InitialState {
         selectedAnte: number;
         selectedBlind: string;
         hasSettingsChanged: boolean;
-        analyzedResults: SeedResultsContainer | null | undefined;
+        analyzedResults: SimulatedRun | null | undefined;
         maxMiscCardSource: number;
         rerollStartIndex: number;
     };

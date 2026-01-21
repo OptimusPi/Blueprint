@@ -44,7 +44,7 @@ suite("Accuracy Panel", () => {
             },
             options
         ) as SeedResultsContainer;
-        if(!verifiedResults.antes[0]){
+        if (!verifiedResults.antes[0]) {
             delete results.antes[0];
         }
 
@@ -71,7 +71,7 @@ suite("Accuracy Panel", () => {
                     test("Packs should match", () => {
                         expect(generated.blinds).toMatchObject(verified.blinds);
                     })
-                    const miscQueues = verified?.miscCardSources.map((source, index) => ({ v: source, g: generated.miscCardSources[index] }));
+                    const miscQueues = verified?.miscCardSources?.map((source, index) => ({ v: source, g: generated?.miscCardSources?.[index] })) || [];
                     describe.each(miscQueues)
                         ("Misc Queue $v.name should match", ({ v, g }) => {
                             test("cards should match", () => {
