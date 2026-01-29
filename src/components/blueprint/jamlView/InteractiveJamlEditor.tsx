@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Stack, Paper, Text, Box, Group, Popover, Divider, Tooltip, ActionIcon } from '@mantine/core';
-import { useHover } from '@mantine/hooks';
-import { IconPlus } from '@tabler/icons-react';
+import { useHover, useViewportSize } from '@mantine/hooks';
+import { IconPlus, IconMinus } from '@tabler/icons-react';
 import yaml from 'js-yaml';
 import {
   getValidValuesFor,
@@ -72,6 +72,33 @@ const METADATA_KEYS = ['name', 'author', 'description', 'deck', 'stake', 'label'
 
 // Required keys that MUST have a value
 const REQUIRED_KEYS = ['joker', 'soulJoker', 'voucher', 'tarotCard', 'planetCard', 'spectralCard', 'standardCard', 'tag', 'boss'];
+
+// Smart popover position: above unless would clip at top, then right
+type PopoverPosition = 'top' | 'top-start' | 'right' | 'right-start';
+
+function useSmartPopoverPosition(
+  targetRef: React.RefObject<HTMLElement | null>,
+  isOpen: boolean
+): PopoverPosition {
+  const { height: viewportHeight } = useViewportSize();
+  const [position, setPosition] = useState<PopoverPosition>('top-start');
+
+  useEffect(() => {
+    if (!isOpen || !targetRef.current) return;
+
+    const rect = targetRef.current.getBoundingClientRect();
+    // If target is in top 180px of viewport, popover might clip - use right position
+    const topThreshold = 180;
+    
+    if (rect.top < topThreshold) {
+      setPosition('right-start');
+    } else {
+      setPosition('top-start');
+    }
+  }, [isOpen, targetRef, viewportHeight]);
+
+  return position;
+}
 
 export function InteractiveJamlEditor({ initialJaml, onJamlChange }: InteractiveJamlEditorProps) {
   const [lines, setLines] = useState<ParsedLine[]>([]);
@@ -483,7 +510,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
     <Paper 
       ref={editorRef}
       withBorder 
-      p="sm" 
+      p="md" 
       radius="md" 
       tabIndex={0}
       style={{ 
@@ -491,13 +518,13 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
         minWidth: 0, 
         backgroundColor: COLORS.editorBg,
         fontFamily: '"Fira Code", "JetBrains Mono", Consolas, monospace',
-        fontSize: '15px',
-        fontWeight: 600,
+        fontSize: '14px',
+        fontWeight: 500,
         lineHeight: 2,
         outline: 'none',
       }}
     >
-      <Stack gap={0}>
+      <Stack gap={4}>
         {lines.map((line, index) => (
           <JamlLine
             key={line.id}
@@ -527,27 +554,27 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
         ))}
       </Stack>
 
-      <Box mt="md" p="sm" style={{ backgroundColor: COLORS.editorBgAlt, borderRadius: '6px', border: `1px solid ${COLORS.gold}33` }}>
-        <Group gap="lg" wrap="wrap">
-          <Text size="sm" fw={600} style={{ color: COLORS.darkRed }}>
-            🔴 Required
+      <Box mt="lg" p="md" style={{ backgroundColor: COLORS.editorBgAlt, borderRadius: '8px', border: `2px solid ${COLORS.gold}50` }}>
+        <Group gap="lg" wrap="wrap" mb="xs">
+          <Text size="sm" fw={600} c="dark">
+            <span style={{ color: COLORS.red, fontSize: '16px' }}>●</span> Required
           </Text>
-          <Text size="sm" fw={600} style={{ color: COLORS.darkBlue }}>
-            🔵 Optional
+          <Text size="sm" fw={600} c="dark">
+            <span style={{ color: COLORS.blue, fontSize: '16px' }}>●</span> Optional
           </Text>
-          <Text size="sm" fw={600} style={{ color: COLORS.darkGreen }}>
-            🟢 Done!
+          <Text size="sm" fw={600} c="dark">
+            <span style={{ color: COLORS.green, fontSize: '16px' }}>●</span> Complete
           </Text>
-          <Text size="sm" fw={600} style={{ color: COLORS.darkPurple }}>
-            🟣 Info
+          <Text size="sm" fw={600} c="dark">
+            <span style={{ color: COLORS.purple, fontSize: '16px' }}>●</span> Metadata
           </Text>
-          <Text size="sm" fw={600} style={{ color: COLORS.darkOrange }}>
-            🟠 Delete
+          <Text size="sm" fw={600} c="dark">
+            <span style={{ color: COLORS.orange, fontWeight: 700, fontSize: '18px' }}>−</span> Delete
           </Text>
         </Group>
         <Divider my="sm" color={COLORS.gold} opacity={0.4} />
         <Text size="sm" fw={500} style={{ color: '#555' }}>
-          👆 Tap any block to edit • ⌨️ Tab moves forward • ↵ Enter confirms • ↑↓ Pick from list
+          <strong>Tab</strong> to navigate • <strong>Enter</strong> to confirm & advance • Click any value to edit • Arrow keys in suggestions
         </Text>
       </Box>
     </Paper>
@@ -593,7 +620,31 @@ function JamlLine({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [localValue, setLocalValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const keyTargetRef = useRef<HTMLSpanElement>(null);
+  const valueTargetRef = useRef<HTMLDivElement>(null);
   const isClickingSuggestion = useRef(false);
+  
+  // Long-form array editing: expand to vertical list when editing
+  const [isArrayExpanded, setIsArrayExpanded] = useState(false);
+  
+  // Smart popover positioning
+  const keyPopoverPosition = useSmartPopoverPosition(keyTargetRef, isEditing && editingPart === 'key' && showSuggestions);
+  const valuePopoverPosition = useSmartPopoverPosition(valueTargetRef, isEditing && editingPart === 'value' && showSuggestions);
+  
+  // Expand array when we start editing it
+  useEffect(() => {
+    if (isEditing && editingPart === 'arrayItem' && line.isArrayValue) {
+      setIsArrayExpanded(true);
+    }
+  }, [isEditing, editingPart, line.isArrayValue]);
+  
+  // Collapse when done editing (with delay to allow transitions)
+  useEffect(() => {
+    if (!isEditing && isArrayExpanded) {
+      const timer = setTimeout(() => setIsArrayExpanded(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isEditing, isArrayExpanded]);
 
   // Get validation color (for light background, use darker variants as base)
   const getColor = () => {
@@ -774,17 +825,17 @@ function JamlLine({
     });
   };
 
-  // Comment lines - friendly notes!
+  // Comment lines
   if (line.isComment) {
     return (
       <Box style={{ 
-        padding: '4px 12px 4px 32px', 
-        color: '#888', 
+        padding: '2px 8px 2px 32px', 
+        color: '#7a8599', 
         fontStyle: 'italic',
-        fontSize: '14px',
+        fontSize: '12px',
         fontWeight: 500,
       }}>
-        💬 {line.raw.replace(/^#\s*/, '')}
+        {line.raw}
       </Box>
     );
   }
@@ -794,28 +845,19 @@ function JamlLine({
     return <Box style={{ height: '20px' }} />;
   }
 
-  // Section headers - BIG BOLD BLOCKS
+  // Section headers
   if ((line.key === 'must' || line.key === 'should' || line.key === 'mustNot') && !line.value) {
-    const sectionColor = line.key === 'must' ? COLORS.red : COLORS.blue;
-    const sectionDarkColor = line.key === 'must' ? COLORS.darkRed : COLORS.darkBlue;
+    const sectionColor = line.key === 'must' ? COLORS.darkRed : COLORS.darkBlue;
     return (
       <Box style={{ 
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '6px 16px',
-        marginTop: '12px',
-        marginBottom: '4px',
-        marginLeft: '24px',
-        backgroundColor: `${sectionColor}15`,
-        border: `3px solid ${sectionColor}`,
-        borderRadius: '8px',
-        color: sectionDarkColor, 
-        fontWeight: 800,
-        fontSize: '16px',
-        textTransform: 'uppercase',
-        letterSpacing: '1px',
+        padding: '4px 8px 4px 32px', 
+        color: sectionColor, 
+        fontWeight: 700,
+        fontSize: '13px',
+        borderBottom: `1px solid ${sectionColor}33`,
+        marginTop: '8px',
       }}>
-        {line.key === 'must' ? '🎯 MUST HAVE' : line.key === 'should' ? '⭐ NICE TO HAVE' : '🚫 MUST NOT'}
+        {line.raw}
       </Box>
     );
   }
@@ -841,11 +883,12 @@ function JamlLine({
       wrap="nowrap"
       onClick={handleLineClick}
       style={{ 
-        padding: '1px 0', 
+        padding: '4px 0', 
         position: 'relative',
         backgroundColor: lineHovered && line.isArrayItem ? `${COLORS.orange}08` : 'transparent',
         transition: 'background-color 0.15s',
         cursor: lineHovered && line.isArrayItem ? 'pointer' : 'default',
+        borderRadius: '4px',
       }}
     >
       {/* Delete zone indicator */}
@@ -878,24 +921,26 @@ function JamlLine({
       {line.key && (
         <Popover 
           opened={isEditing && editingPart === 'key' && showSuggestions}
-          position="top-start"
+          position={keyPopoverPosition}
           offset={4}
           withArrow
           shadow="md"
         >
           <Popover.Target>
             <Text
+              ref={keyTargetRef}
               span
               onClick={(e) => { e.stopPropagation(); onStartEdit('key'); }}
               style={{
                 color: lineHovered || (isEditing && editingPart === 'key') ? getBrightColor() : getColor(),
-                backgroundColor: (lineHovered || (isEditing && editingPart === 'key')) ? `${getBrightColor()}20` : 'transparent',
-                padding: '2px 8px',
+                backgroundColor: (lineHovered || (isEditing && editingPart === 'key')) ? `${getBrightColor()}18` : 'transparent',
+                padding: '4px 8px',
                 borderRadius: '4px',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
-                fontWeight: 700,
-                fontSize: '15px',
+                fontWeight: 600,
+                fontSize: '14px',
+                border: `1px solid ${(lineHovered || (isEditing && editingPart === 'key')) ? getBrightColor() : 'transparent'}`,
               }}
             >
               {isEditing && editingPart === 'key' ? (
@@ -933,67 +978,136 @@ function JamlLine({
       )}
 
       {/* Colon */}
-      {line.key && <Text span style={{ color: '#999', fontWeight: 700, fontSize: '16px', margin: '0 4px' }}>→</Text>}
+      {line.key && <Text span style={{ color: '#888' }}>: </Text>}
 
       {/* Value - Array or Single */}
       {line.key && (
         line.isArrayValue && line.arrayValues ? (
-          // Render each array item as chunky clickable blocks
-          <Group gap={6} wrap="wrap" onClick={(e) => e.stopPropagation()} style={{ marginLeft: '4px' }}>
-            {line.arrayValues.map((item, idx) => (
-              <ArrayItem
-                key={idx}
-                value={item}
-                index={idx}
-                isEditing={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx}
-                lineHovered={lineHovered}
-                color={getBrightColor()}
-                darkColor={getColor()}
-                onStartEdit={() => onStartEdit('arrayItem', idx)}
-                onEndEdit={onEndEdit}
-                onChange={(newValue) => onArrayItemChange(idx, newValue)}
-                onRemove={() => onArrayItemRemove(idx)}
-                onEnter={onEnter}
-                suggestions={suggestions}
-                selectedIndex={selectedIndex}
-                onSuggestionSelect={handleSuggestionClick}
-                onSuggestionHover={setSelectedIndex}
-                showSuggestions={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx && showSuggestions}
-              />
-            ))}
-            {/* Add button - big chunky + block */}
-            <Tooltip label="Add" position="top">
-              <Box
-                onClick={(e) => { e.stopPropagation(); onStartEdit('arrayItem', line.arrayValues!.length); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '32px',
-                  height: '32px',
-                  backgroundColor: lineHovered ? `${COLORS.green}25` : `${COLORS.green}12`,
-                  border: `2px dashed ${COLORS.green}`,
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  opacity: lineHovered ? 1 : 0.6,
-                }}
-              >
-                <IconPlus size={16} color={COLORS.darkGreen} />
-              </Box>
-            </Tooltip>
-          </Group>
+          // Array values - long-form (vertical) when editing, inline when not
+          isArrayExpanded ? (
+            // Long-form YAML style: vertical list with dashes
+            <Stack gap={2} onClick={(e) => e.stopPropagation()} style={{ marginLeft: '4px', marginTop: '4px' }}>
+              {line.arrayValues.map((item, idx) => (
+                <LongFormArrayItem
+                  key={idx}
+                  value={item}
+                  index={idx}
+                  isEditing={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx}
+                  lineHovered={lineHovered}
+                  color={getBrightColor()}
+                  darkColor={getColor()}
+                  onStartEdit={() => onStartEdit('arrayItem', idx)}
+                  onEndEdit={onEndEdit}
+                  onChange={(newValue) => onArrayItemChange(idx, newValue)}
+                  onRemove={() => onArrayItemRemove(idx)}
+                  onEnter={onEnter}
+                  suggestions={suggestions}
+                  selectedIndex={selectedIndex}
+                  onSuggestionSelect={handleSuggestionClick}
+                  onSuggestionHover={setSelectedIndex}
+                  showSuggestions={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx && showSuggestions}
+                />
+              ))}
+              {/* Add new item row */}
+              <Group gap={4} style={{ paddingLeft: `${line.indent + 2}ch` }}>
+                <Text span style={{ color: COLORS.green, fontWeight: 600 }}>-</Text>
+                <Box
+                  onClick={(e) => { e.stopPropagation(); onStartEdit('arrayItem', line.arrayValues!.length); }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minWidth: '60px',
+                    height: '22px',
+                    backgroundColor: lineHovered ? `${COLORS.green}15` : `${COLORS.green}08`,
+                    border: `1px dashed ${COLORS.green}`,
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    padding: '0 8px',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {isEditing && editingPart === 'arrayItem' && editingArrayIndex === line.arrayValues!.length ? (
+                    <input
+                      ref={inputRef}
+                      value={localValue}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
+                      onBlur={handleBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: COLORS.darkGreen,
+                        fontFamily: 'inherit',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        width: `${Math.max(localValue.length, 4)}ch`,
+                        padding: 0,
+                      }}
+                    />
+                  ) : (
+                    <Group gap={4}>
+                      <IconPlus size={12} color={COLORS.green} />
+                      <Text size="xs" fw={500} c={COLORS.green}>add</Text>
+                    </Group>
+                  )}
+                </Box>
+              </Group>
+            </Stack>
+          ) : (
+            // Inline pill style when not editing
+            <Group gap={4} wrap="wrap" onClick={(e) => e.stopPropagation()} style={{ marginLeft: '4px' }}>
+              <Text span style={{ color: '#666' }}>[</Text>
+              {line.arrayValues.map((item, idx) => (
+                <React.Fragment key={idx}>
+                  <ArrayItem
+                    value={item}
+                    index={idx}
+                    isEditing={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx}
+                    lineHovered={lineHovered}
+                    color={getBrightColor()}
+                    darkColor={getColor()}
+                    onStartEdit={() => { setIsArrayExpanded(true); onStartEdit('arrayItem', idx); }}
+                    onEndEdit={onEndEdit}
+                    onChange={(newValue) => onArrayItemChange(idx, newValue)}
+                    onRemove={() => onArrayItemRemove(idx)}
+                    onEnter={onEnter}
+                    suggestions={suggestions}
+                    selectedIndex={selectedIndex}
+                    onSuggestionSelect={handleSuggestionClick}
+                    onSuggestionHover={setSelectedIndex}
+                    showSuggestions={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx && showSuggestions}
+                  />
+                  {idx < line.arrayValues!.length - 1 && <Text span style={{ color: '#666' }}>,</Text>}
+                </React.Fragment>
+              ))}
+              <Tooltip label="Add item" position="top">
+                <ActionIcon 
+                  size="xs" 
+                  variant="subtle" 
+                  color="green"
+                  onClick={(e) => { e.stopPropagation(); setIsArrayExpanded(true); onStartEdit('arrayItem', line.arrayValues!.length); }}
+                  style={{ opacity: lineHovered ? 1 : 0.4 }}
+                >
+                  <IconPlus size={12} />
+                </ActionIcon>
+              </Tooltip>
+              <Text span style={{ color: '#666' }}>]</Text>
+            </Group>
+          )
         ) : (
           // Single value
           <Popover 
             opened={isEditing && editingPart === 'value' && showSuggestions}
-            position="top-start"
+            position={valuePopoverPosition}
             offset={4}
             withArrow
             shadow="md"
           >
             <Popover.Target>
               <Box
+                ref={valueTargetRef}
                 onClick={(e) => { e.stopPropagation(); onStartEdit('value'); }}
                 style={{
                   display: 'inline-flex',
@@ -1005,16 +1119,16 @@ function JamlLine({
                     : (lineHovered || (isEditing && editingPart === 'value'))
                       ? (line.value ? `${getBrightColor()}18` : `${COLORS.red}15`)
                       : (!line.value ? `${COLORS.red}08` : `${getColor()}08`),
-                  padding: '4px 12px',
+                  padding: '6px 12px',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
                   textDecoration: line.isInvalidValue ? 'line-through' : 'none',
                   minWidth: line.value ? undefined : '100px',
-                  border: `2px solid ${line.isInvalidValue ? COLORS.red : (line.value ? getColor() : COLORS.darkRed)}${lineHovered || isEditing ? '' : '60'}`,
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  boxShadow: (lineHovered || isEditing) ? `0 2px 6px ${getBrightColor()}30` : 'none',
+                  border: `1px solid ${line.isInvalidValue ? COLORS.red : (line.value ? getColor() : COLORS.darkRed)}${lineHovered || isEditing ? '' : '40'}`,
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  boxShadow: (lineHovered || isEditing) ? `0 0 0 2px ${getBrightColor()}30` : 'none',
                 }}
               >
                 {isEditing && editingPart === 'value' ? (
@@ -1031,8 +1145,8 @@ function JamlLine({
                       outline: 'none',
                       color: getColor(),
                       fontFamily: 'inherit',
-                      fontSize: '15px',
-                      fontWeight: 700,
+                      fontSize: '14px',
+                      fontWeight: 600,
                       width: `${Math.max(localValue.length, 8)}ch`,
                       padding: 0,
                     }}
@@ -1100,7 +1214,10 @@ function ArrayItem({
   const { hovered, ref } = useHover();
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+  const targetRef = useRef<HTMLDivElement>(null);
   const isClickingSuggestion = useRef(false);
+  
+  const popoverPosition = useSmartPopoverPosition(targetRef, showSuggestions);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -1143,24 +1260,28 @@ function ArrayItem({
   };
 
   return (
-    <Popover opened={showSuggestions} position="top" offset={8} withArrow shadow="lg">
+    <Popover opened={showSuggestions} position={popoverPosition} offset={8} withArrow shadow="lg">
       <Popover.Target>
         <Box
-          ref={ref}
+          ref={(node) => {
+            // Merge refs
+            (ref as any).current = node;
+            (targetRef as any).current = node;
+          }}
           onClick={onStartEdit}
           style={{
             position: 'relative',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '36px',
-            height: '32px',
-            backgroundColor: isEditing ? `${color}30` : (hovered ? `${color}25` : `${color}15`),
-            border: `2px solid ${hovered || isEditing ? color : darkColor}`,
-            borderRadius: '6px',
+            minWidth: '20px',
+            height: '22px',
+            backgroundColor: isEditing ? `${color}20` : (hovered ? `${color}18` : 'transparent'),
+            border: `1px solid ${hovered || isEditing ? color : `${darkColor}55`}`,
+            borderRadius: '4px',
             cursor: 'pointer',
             transition: 'all 0.15s',
-            boxShadow: hovered || isEditing ? `0 2px 8px ${color}40` : 'none',
+            boxShadow: 'none',
           }}
         >
           {/* Delete X on hover - top right corner */}
@@ -1169,20 +1290,20 @@ function ArrayItem({
               onClick={(e) => { e.stopPropagation(); onRemove(); }}
               style={{
                 position: 'absolute',
-                top: '-8px',
-                right: '-8px',
-                width: '18px',
-                height: '18px',
-                backgroundColor: COLORS.orange,
+                top: '-6px',
+                right: '-6px',
+                width: '14px',
+                height: '14px',
+                backgroundColor: COLORS.darkOrange,
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontSize: '12px',
-                fontWeight: 700,
+                fontSize: '10px',
+                fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                boxShadow: 'none',
               }}
             >
               ×
@@ -1203,15 +1324,15 @@ function ArrayItem({
                 outline: 'none',
                 color: darkColor,
                 fontFamily: 'inherit',
-                fontSize: '15px',
-                fontWeight: 700,
+                fontSize: '12px',
+                fontWeight: 600,
                 width: `${Math.max(localValue.length, 2)}ch`,
-                padding: '0 4px',
+                padding: '0 2px',
                 textAlign: 'center',
               }}
             />
           ) : (
-            <Text fw={700} style={{ color: darkColor, fontSize: '15px' }}>
+            <Text fw={600} style={{ color: darkColor, fontSize: '12px' }}>
               {value}
             </Text>
           )}
@@ -1230,6 +1351,179 @@ function ArrayItem({
         />
       </Popover.Dropdown>
     </Popover>
+  );
+}
+
+// Long-form array item component (vertical YAML style with dashes)
+interface LongFormArrayItemProps {
+  value: string;
+  index: number;
+  isEditing: boolean;
+  lineHovered: boolean;
+  color: string;
+  darkColor: string;
+  onStartEdit: () => void;
+  onEndEdit: () => void;
+  onChange: (newValue: string) => void;
+  onRemove: () => void;
+  onEnter: () => void;
+  suggestions: string[];
+  selectedIndex: number;
+  onSuggestionSelect: (suggestion: string) => void;
+  onSuggestionHover: (index: number) => void;
+  showSuggestions: boolean;
+}
+
+function LongFormArrayItem({
+  value,
+  index,
+  isEditing,
+  lineHovered,
+  color,
+  darkColor,
+  onStartEdit,
+  onEndEdit,
+  onChange,
+  onRemove,
+  onEnter,
+  suggestions,
+  selectedIndex,
+  onSuggestionSelect,
+  onSuggestionHover,
+  showSuggestions,
+}: LongFormArrayItemProps) {
+  const { hovered, ref } = useHover();
+  const [localValue, setLocalValue] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const targetRef = useRef<HTMLDivElement>(null);
+  const isClickingSuggestion = useRef(false);
+  
+  const popoverPosition = useSmartPopoverPosition(targetRef, showSuggestions);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+      setLocalValue(value);
+    }
+  }, [isEditing, value]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const finalValue = suggestions.length === 1 ? suggestions[0]
+        : (selectedIndex >= 0 && selectedIndex < suggestions.length) ? suggestions[selectedIndex]
+        : localValue;
+      onChange(finalValue);
+      onEndEdit();
+      onEnter();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      onSuggestionHover(Math.min(selectedIndex + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      onSuggestionHover(Math.max(selectedIndex - 1, 0));
+    } else if (e.key === 'Escape') {
+      onEndEdit();
+    } else if (e.key === 'Backspace' && localValue === '') {
+      e.preventDefault();
+      onRemove();
+      onEndEdit();
+    }
+  };
+
+  const handleBlur = () => {
+    requestAnimationFrame(() => {
+      if (!isClickingSuggestion.current) {
+        onEndEdit();
+      }
+    });
+  };
+
+  return (
+    <Group ref={ref} gap={4} wrap="nowrap" style={{ paddingLeft: '2ch' }}>
+      {/* Dash prefix */}
+      <Text span style={{ color: darkColor, fontWeight: 600, width: '12px' }}>-</Text>
+      
+      {/* Delete button on hover */}
+      <Box
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        style={{
+          width: '16px',
+          height: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: (hovered || lineHovered) ? `${COLORS.darkOrange}20` : 'transparent',
+          borderRadius: '3px',
+          cursor: 'pointer',
+          opacity: (hovered || lineHovered) ? 1 : 0,
+          transition: 'all 0.15s',
+        }}
+      >
+        <IconMinus size={12} color={COLORS.orange} />
+      </Box>
+      
+      {/* Value */}
+      <Popover opened={showSuggestions} position={popoverPosition} offset={4} withArrow shadow="md">
+        <Popover.Target>
+          <Box
+            ref={targetRef}
+            onClick={onStartEdit}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              minWidth: '40px',
+              height: '24px',
+              backgroundColor: isEditing ? `${color}20` : (hovered ? `${color}15` : `${darkColor}08`),
+              border: `2px solid ${hovered || isEditing ? color : `${darkColor}50`}`,
+              borderRadius: '4px',
+              cursor: 'pointer',
+              padding: '0 8px',
+              transition: 'all 0.15s',
+            }}
+          >
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                value={localValue}
+                onChange={(e) => setLocalValue(e.currentTarget.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: darkColor,
+                  fontFamily: 'inherit',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  width: `${Math.max(localValue.length, 3)}ch`,
+                  padding: 0,
+                }}
+              />
+            ) : (
+              <Text fw={600} style={{ color: darkColor, fontSize: '13px' }}>
+                {value}
+              </Text>
+            )}
+          </Box>
+        </Popover.Target>
+        <Popover.Dropdown p={4} style={{ minWidth: '120px' }}>
+          <SuggestionList
+            suggestions={suggestions}
+            selectedIndex={selectedIndex}
+            onSelect={(s) => {
+              isClickingSuggestion.current = true;
+              onSuggestionSelect(s);
+              requestAnimationFrame(() => { isClickingSuggestion.current = false; });
+            }}
+            onHover={onSuggestionHover}
+          />
+        </Popover.Dropdown>
+      </Popover>
+    </Group>
   );
 }
 

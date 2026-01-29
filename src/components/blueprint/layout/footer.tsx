@@ -35,8 +35,7 @@ export default function Footer() {
             component="footer"
             p={0}
             style={{
-                backgroundColor: 'var(--mantine-color-body)',
-                borderTop: '1px solid var(--mantine-color-default-border)'
+                backgroundColor: 'var(--mantine-color-body)'
             }}
         >
             <Center w={'100%'} py={4}>

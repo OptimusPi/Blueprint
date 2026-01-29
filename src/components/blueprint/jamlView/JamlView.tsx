@@ -237,9 +237,20 @@ const AnteSection = React.memo(({
     selectedBlind: string;
     jamlConfig: any;
 }) => {
+    const [collapsed, setCollapsed] = useState(false);
     const shopQueue = anteData.queue || [];
-    const blindData = anteData.blinds?.[selectedBlind as keyof typeof anteData.blinds];
-    const packs = blindData?.packs || [];
+    
+    // Get packs from each blind separately (keys are smallBlind, bigBlind, bossBlind)
+    // Ante 0: No packs
+    // Ante 1: Big Blind + Boss Blind only (no Small Blind)
+    // Ante 2+: All three blinds have packs
+    const hasSmallBlind = anteNum >= 2;
+    const hasBigBlind = anteNum >= 1;
+    const hasBossBlind = anteNum >= 1;
+    
+    const smallBlindPacks = hasSmallBlind ? (anteData.blinds?.smallBlind?.packs || []) : [];
+    const bigBlindPacks = hasBigBlind ? (anteData.blinds?.bigBlind?.packs || []) : [];
+    const bossBlindPacks = hasBossBlind ? (anteData.blinds?.bossBlind?.packs || []) : [];
     
     // Show ALL shop cards (full shop), but filter displayed ones
     const allShop = anteData.queue || [];
@@ -247,49 +258,48 @@ const AnteSection = React.memo(({
         ? Math.max(...sourcesConfig.shopSlots) 
         : 3; // Default to slots 0-3 (first 4)
     
-    // Show first 15 shop items, or all if less than 15
-    const displayShop = allShop.slice(0, 15);
+    // Ante 1 shows 10 shop cards, others show 15
+    const shopLimit = anteNum === 1 ? 10 : 15;
+    const displayShop = allShop.slice(0, shopLimit);
     
-    // Organize packs by blind - depends on ante number
-    // Antes 0-1: Only 4 packs (Small, Big only - no Boss)
-    // Antes 2+: 6 packs (Small, Big, Boss)
-    const totalPacks = packs.length;
-    const isBossPresentAnte = anteNum >= 2;
-    
-    const blindPacks = {
-        'Small Blind': packs.slice(0, 2),
-        'Big Blind': packs.slice(2, 4),
-        'Boss Blind': isBossPresentAnte ? packs.slice(4, 6) : []
-    };
+    // Total packs for hasContent check
+    const totalPacks = smallBlindPacks.length + bigBlindPacks.length + bossBlindPacks.length;
     
     // Don't render if nothing to show
-    const hasContent = displayShop.length > 0 || packs.length > 0 || sourcesConfig.showVoucher || sourcesConfig.miscSources.length > 0;
+    const hasContent = displayShop.length > 0 || totalPacks > 0 || sourcesConfig.showVoucher || sourcesConfig.miscSources.length > 0;
     if (!hasContent) return null;
     
     return (
         <Paper withBorder p="xs" radius="md">
-            {/* Grid layout: Fixed left column | Flex right column */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px' }}>
-                {/* LEFT COLUMN: Fixed width - Ante label + Tags + Boss (stacked) | Voucher (separate row) */}
-                <Stack gap="xs" style={{ minWidth: '100px' }}>
-                    {/* Ante label */}
-                    <Text fw={800} size="xl" lh={1} style={{ fontSize: '32px' }}>
-                        Ante {anteNum}
-                    </Text>
-                    
-                    {/* Voucher - HUGE, same size as joker cards */}
+            {/* Collapsible header */}
+            <Group 
+                justify="space-between" 
+                mb={collapsed ? 0 : 'xs'}
+                onClick={() => setCollapsed(!collapsed)}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+            >
+            <Group gap="xs" align="center">
+                <Text fw={800} size="xl" lh={1} style={{ fontSize: '32px' }}>
+                    Ante {anteNum}
+                </Text>
+            </Group>
+                <ActionIcon variant="subtle" size="lg">
+                    {collapsed ? <IconChevronDown size={20} /> : <IconChevronUp size={20} />}
+                </ActionIcon>
+            </Group>
+            
+            {/* Collapsible content */}
+            <Collapse in={!collapsed}>
+                {/* Grid layout: Fixed left column | Flex right column */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px' }}>
+                    {/* LEFT COLUMN: Fixed width - Voucher (centered, bottom-aligned) */}
+                    <Stack gap="xs" justify="flex-end" align="center" style={{ minWidth: '80px' }}>
+                    {/* Voucher - centered horizontally, bottom-aligned vertically */}
                     {sourcesConfig.showVoucher && anteData.voucher && (
-                        <Box style={{ height: '150px', width: '71px' }}>
+                        <Box style={{ height: '96px', width: '71px', marginTop: 'auto' }}>
                             <Voucher voucherName={anteData.voucher} />
                         </Box>
                     )}
-                    
-                    {/* Tags + Boss below voucher, bottom aligned */}
-                    <Group gap={4} wrap="nowrap" style={{ marginTop: 'auto' }}>
-                        {anteData.tags?.[0] && <RenderTag tagName={anteData.tags[0]} />}
-                        {anteData.tags?.[1] && <RenderTag tagName={anteData.tags[1]} />}
-                        {anteData.boss && <Boss bossName={anteData.boss} />}
-                    </Group>
                 </Stack>
                 
                 {/* RIGHT COLUMN: Shop + Blind columns */}
@@ -323,76 +333,87 @@ const AnteSection = React.memo(({
                     )}
                     
                     {/* BOTTOM: 3 columns for Small Blind | Big Blind | Boss Blind */}
-                    {sourcesConfig.showPacks && packs.length > 0 && (
+                    {sourcesConfig.showPacks && totalPacks > 0 && (
                         <Group gap="md" wrap="nowrap" align="flex-start" style={{ width: '100%' }}>
                             {/* SMALL BLIND COLUMN */}
-                            <Stack gap="xs">
-                                <Text size="xs" fw={600}>Small Blind</Text>
-                                <Stack gap="xs">
-                                    {blindPacks['Small Blind'].map((pack: Pack, idx: number) => {
-                                        // Check if pack is within JAML specified packSlots
-                                        const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx);
-                                        
-                                        return (
-                                            <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-                                                <Group gap={4} mb={4} wrap="nowrap">
-                                                    <Badge size="xs" variant="light">{pack.name}</Badge>
-                                                    <Badge size="xs" color="blue">Cards: {pack.size}</Badge>
-                                                    <Badge size="xs" color={pack.choices > 1 ? "green" : "gray"}>Pick: {pack.choices}</Badge>
-                                                </Group>
-                                                <Group wrap="nowrap" gap={2}>
-                                                    {pack.cards.map((card, cardIdx) => {
-                                                        const glow = getCardGlow(card, jamlConfig, anteNum, 0, 'pack');
-                                                        return (
-                                                            <Box key={cardIdx}>
-                                                                <GameCard card={card!} glow={glow} />
-                                                            </Box>
-                                                        );
-                                                    })}
-                                                </Group>
-                                            </Box>
-                                        );
-                                    })}
+                            {smallBlindPacks.length > 0 && (
+                                <Stack gap="xs" justify="space-between">
+                                    <Stack gap="xs">
+                                        {smallBlindPacks.map((pack: Pack, idx: number) => {
+                                            // Check if pack is within JAML specified packSlots
+                                            const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx);
+                                            
+                                            return (
+                                                <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
+                                                    <Group gap={4} mb={4} wrap="nowrap">
+                                                        <Badge size="xs" variant="light">{pack.name}</Badge>
+                                                        <Badge size="xs" color="blue">Cards: {pack.size}</Badge>
+                                                        <Badge size="xs" color={pack.choices > 1 ? "green" : "gray"}>Pick: {pack.choices}</Badge>
+                                                    </Group>
+                                                    <Group wrap="nowrap" gap={2}>
+                                                        {pack.cards.map((card, cardIdx) => {
+                                                            const glow = getCardGlow(card, jamlConfig, anteNum, 0, 'pack');
+                                                            return (
+                                                                <Box key={cardIdx}>
+                                                                    <GameCard card={card!} glow={glow} />
+                                                                </Box>
+                                                            );
+                                                        })}
+                                                    </Group>
+                                                </Box>
+                                            );
+                                        })}
+                                    </Stack>
+                                    {/* Label + Tag at bottom */}
+                                    <Group gap={4} mt="xs" align="center" style={{ justifyContent: 'center', width: '100%' }}>
+                                        <Text size="xs" fw={600} c="dimmed" style={{ textAlign: 'center' }}>Small Blind</Text>
+                                        {anteData.tags?.[0] && <RenderTag tagName={anteData.tags[0]} />}
+                                    </Group>
                                 </Stack>
-                            </Stack>
+                            )}
                             
                             {/* BIG BLIND COLUMN */}
-                            <Stack gap="xs">
-                                <Text size="xs" fw={600}>Big Blind</Text>
-                                <Stack gap="xs">
-                                    {blindPacks['Big Blind'].map((pack: Pack, idx: number) => {
-                                        // Check if pack is within JAML specified packSlots
-                                        const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx + 2);
-                                        
-                                        return (
-                                            <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-                                                <Group gap={4} mb={4} wrap="nowrap">
-                                                    <Badge size="xs" variant="light">{pack.name}</Badge>
-                                                    <Badge size="xs" color="blue">Cards: {pack.size}</Badge>
-                                                    <Badge size="xs" color={pack.choices > 1 ? "green" : "gray"}>Pick: {pack.choices}</Badge>
-                                                </Group>
-                                                <Group wrap="nowrap" gap={2}>
-                                                    {pack.cards.map((card, cardIdx) => {
-                                                        const glow = getCardGlow(card, jamlConfig, anteNum, 1, 'pack');
-                                                        return (
-                                                            <Box key={cardIdx}>
-                                                                <GameCard card={card!} glow={glow} />
-                                                            </Box>
-                                                        );
-                                                    })}
-                                                </Group>
-                                            </Box>
-                                        );
-                                    })}
-                                </Stack>
-                            </Stack>
-                            
-                            {/* BOSS BLIND COLUMN - Only show for Ante 2+ */}
-                            {isBossPresentAnte && (
-                                <Stack gap="xs">
-                                    <Text size="xs" fw={600}>Boss Blind</Text>
+                            {bigBlindPacks.length > 0 && (
+                                <Stack gap="xs" justify="space-between">
                                     <Stack gap="xs">
-                                        {blindPacks['Boss Blind'].map((pack: Pack, idx: number) => {
+                                        {bigBlindPacks.map((pack: Pack, idx: number) => {
+                                            // Check if pack is within JAML specified packSlots
+                                            const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx + 2);
+                                            
+                                            return (
+                                                <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
+                                                    <Group gap={4} mb={4} wrap="nowrap">
+                                                        <Badge size="xs" variant="light">{pack.name}</Badge>
+                                                        <Badge size="xs" color="blue">Cards: {pack.size}</Badge>
+                                                        <Badge size="xs" color={pack.choices > 1 ? "green" : "gray"}>Pick: {pack.choices}</Badge>
+                                                    </Group>
+                                                    <Group wrap="nowrap" gap={2}>
+                                                        {pack.cards.map((card, cardIdx) => {
+                                                            const glow = getCardGlow(card, jamlConfig, anteNum, 1, 'pack');
+                                                            return (
+                                                                <Box key={cardIdx}>
+                                                                    <GameCard card={card!} glow={glow} />
+                                                                </Box>
+                                                            );
+                                                        })}
+                                                    </Group>
+                                                </Box>
+                                            );
+                                        })}
+                                    </Stack>
+                                    {/* Tag + Label at bottom (swapped, larger font) */}
+                                    <Group gap={4} mt="xs">
+                                        {anteData.tags?.[1] && <RenderTag tagName={anteData.tags[1]} />}
+                                        <Text size="sm" fw={700} c="dimmed">Big Blind</Text>
+                                    </Group>
+                                </Stack>
+                            )}
+                            
+                            {/* BOSS BLIND COLUMN - Only show for Ante 1+ */}
+                            {hasBossBlind && bossBlindPacks.length > 0 && (
+                                <Stack gap="xs" justify="space-between">
+                                    <Stack gap="xs">
+                                        {bossBlindPacks.map((pack: Pack, idx: number) => {
                                             // Check if pack is within JAML specified packSlots
                                             const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx + 4);
                                             
@@ -417,6 +438,11 @@ const AnteSection = React.memo(({
                                             );
                                         })}
                                     </Stack>
+                                    {/* Label + Boss icon at bottom */}
+                                    <Group gap={4} mt="xs" align="center">
+                                        {anteData.boss && <Boss bossName={anteData.boss} />}
+                                        <Text size="xs" fw={600} c="dimmed">Boss Blind</Text>
+                                    </Group>
                                 </Stack>
                             )}
                         </Group>
@@ -432,6 +458,7 @@ const AnteSection = React.memo(({
                     )}
                 </Stack>
             </div>
+            </Collapse>
         </Paper>
     );
 });
@@ -737,19 +764,23 @@ function JamlView() {
                         style={{ 
                             textAlign: 'center', 
                             cursor: 'pointer',
-                            backgroundColor: 'var(--mantine-color-gray-0)',
-                            borderStyle: 'dashed'
+                            backgroundColor: 'var(--mantine-color-dark-6)',
+                            borderStyle: 'dashed',
+                            borderColor: 'var(--mantine-color-dark-4)'
                         }}
                         onDragOver={(e) => {
                             e.preventDefault();
-                            e.currentTarget.style.backgroundColor = 'var(--mantine-color-blue-1)';
+                            e.currentTarget.style.backgroundColor = 'var(--mantine-color-blue-9)';
+                            e.currentTarget.style.borderColor = 'var(--mantine-color-blue-5)';
                         }}
                         onDragLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
+                            e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-6)';
+                            e.currentTarget.style.borderColor = 'var(--mantine-color-dark-4)';
                         }}
                         onDrop={(e) => {
                             e.preventDefault();
-                            e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-0)';
+                            e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-6)';
+                            e.currentTarget.style.borderColor = 'var(--mantine-color-dark-4)';
                             const files = e.dataTransfer.files;
                             if (files[0]) {
                                 const reader = new FileReader();
@@ -763,15 +794,15 @@ function JamlView() {
                         component="label"
                     >
                         <Group justify="center" gap="xs">
-                            <IconUpload size={20} />
+                            <IconUpload size={20} color="var(--mantine-color-dimmed)" />
                             <div>
                                 <Text fw={500} size="sm">Drop files here or click to upload</Text>
-                                <Text size="xs" c="dimmed">.txt, .csv, or .jaml</Text>
+                                <Text size="xs" c="dimmed">.txt or .csv</Text>
                             </div>
                         </Group>
                         <input
                             type="file"
-                            accept=".txt,.csv,.jaml"
+                            accept=".txt,.csv"
                             onChange={(e) => {
                                 const file = e.currentTarget.files?.[0];
                                 if (file) {
@@ -787,7 +818,7 @@ function JamlView() {
                         />
                     </Paper>
 
-                    {/* Paste Area */}
+                    {/* Paste Area - also accepts file drop */}
                     <Textarea
                         placeholder="KDBX2SMH&#10;3BCUYMCI&#10;11KH17QI&#10;..."
                         value={bulkSeedsText}
@@ -795,7 +826,28 @@ function JamlView() {
                         minRows={8}
                         maxRows={15}
                         autosize
-                        styles={{ input: { fontFamily: 'monospace' } }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const files = e.dataTransfer.files;
+                            if (files[0]) {
+                                const reader = new FileReader();
+                                reader.onload = (evt) => {
+                                    const content = evt.target?.result as string;
+                                    setBulkSeedsText(content);
+                                };
+                                reader.readAsText(files[0]);
+                            }
+                        }}
+                        styles={{ 
+                            input: { 
+                                fontFamily: 'monospace',
+                                backgroundColor: 'var(--mantine-color-dark-7)',
+                                color: 'var(--mantine-color-gray-3)',
+                                fontSize: '14px',
+                                letterSpacing: '0.5px'
+                            } 
+                        }}
                     />
                     
                     <Group justify="space-between">

@@ -554,7 +554,7 @@ export function Blueprint() {
     return (
         <AppShell
             header={{ height: { base: 45, md: 50, lg: 55 } }}
-            footer={{ height: { base: 50, sm: 45 } }}
+            footer={{ height: 'fit-content' }}
             aside={{
                 width: { base: 380, sm: 380 },
                 breakpoint: 'sm',

@@ -206,7 +206,7 @@ export default function SeedInputAutoComplete({seed, setSeed, onBulkImport}: { s
             <Modal opened={bulkOpened} onClose={closeBulk} title="Bulk Import Seeds" size="md">
                 <Stack gap="md">
                     <Text size="sm" c="dimmed">
-                        Paste seeds (one per line, comma-separated, or space-separated)
+                        Paste seeds or drop a .txt/.csv file (one per line, comma-separated, or space-separated)
                     </Text>
                     <Textarea
                         placeholder="KDBX2SMH&#10;3BCUYMCI&#10;11KH17QI&#10;..."
@@ -215,7 +215,28 @@ export default function SeedInputAutoComplete({seed, setSeed, onBulkImport}: { s
                         minRows={8}
                         maxRows={15}
                         autosize
-                        styles={{ input: { fontFamily: 'monospace' } }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const files = e.dataTransfer.files;
+                            if (files[0]) {
+                                const reader = new FileReader();
+                                reader.onload = (evt) => {
+                                    const content = evt.target?.result as string;
+                                    setBulkText(content);
+                                };
+                                reader.readAsText(files[0]);
+                            }
+                        }}
+                        styles={{ 
+                            input: { 
+                                fontFamily: 'monospace',
+                                backgroundColor: 'var(--mantine-color-dark-7)',
+                                color: 'var(--mantine-color-gray-3)',
+                                fontSize: '14px',
+                                letterSpacing: '0.5px'
+                            } 
+                        }}
                     />
                     <Group justify="space-between">
                         <Text size="xs" c="dimmed">
