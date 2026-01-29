@@ -61,8 +61,9 @@ export function renderImage(
         // Don't set style.width/height here - let CSS handle scaling
     }
 
-    canvas.style.imageRendering = 'pixelated';
-    context.imageSmoothingEnabled = false;
+    canvas.style.imageRendering = 'auto';
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
 
     // Save context state before modifying
     context.save();
@@ -102,7 +103,7 @@ export function renderImage(
 }
 
 interface SimpleRenderProps {
-    layers: Layer[],
+    layers: Array<Layer>,
     invert?: boolean,
 }
 
@@ -167,6 +168,7 @@ export const SimpleRenderCanvas = React.forwardRef<HTMLCanvasElement, SimpleRend
     );
 });
 
+SimpleRenderCanvas.displayName = 'SimpleRenderCanvas';
 
 // Advanced card rendering with canvas
 export function RenderImagesWithCanvas({layers, invert = false, spacing = false}: RenderCanvasProps) {
