@@ -11,7 +11,8 @@ import {
     Paper,
     Stack,
     Text,
-    Textarea
+    Textarea,
+    useMantineTheme
 } from "@mantine/core";
 import {useDisclosure} from "@mantine/hooks";
 import {IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconCode, IconList, IconUpload} from "@tabler/icons-react";
@@ -514,6 +515,7 @@ const AnteSection = React.memo(({
 AnteSection.displayName = 'AnteSection';
 
 function JamlView() {
+    const theme = useMantineTheme();
     const SeedResults = useSeedResultsContainer();
     const seed = useCardStore(state => state.immolateState.seed);
     const setSeed = useCardStore(state => state.setSeed);
@@ -886,8 +888,8 @@ function JamlView() {
                         // Highlight the textarea when dragging anywhere in the modal
                         const textarea = e.currentTarget.querySelector('textarea');
                         if (textarea) {
-                            textarea.style.backgroundColor = 'var(--mantine-color-blue-9)';
-                            textarea.style.borderColor = 'var(--mantine-color-blue-5)';
+                            textarea.style.backgroundColor = theme.colors.blue[9];
+                            textarea.style.borderColor = theme.colors.blue[5];
                         }
                     }}
                     onDragLeave={(e) => {
@@ -895,7 +897,7 @@ function JamlView() {
                         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                             const textarea = e.currentTarget.querySelector('textarea');
                             if (textarea) {
-                                textarea.style.backgroundColor = 'var(--mantine-color-dark-7)';
+                                textarea.style.backgroundColor = theme.colors.dark[7];
                                 textarea.style.borderColor = '';
                             }
                         }
@@ -904,7 +906,7 @@ function JamlView() {
                         e.preventDefault();
                         const textarea = e.currentTarget.querySelector('textarea');
                         if (textarea) {
-                            textarea.style.backgroundColor = 'var(--mantine-color-dark-7)';
+                            textarea.style.backgroundColor = theme.colors.dark[7];
                             textarea.style.borderColor = '';
                         }
                         const files = e.dataTransfer.files;
@@ -929,12 +931,12 @@ function JamlView() {
                         style={{ 
                             textAlign: 'center', 
                             cursor: 'pointer',
-                            backgroundColor: 'var(--mantine-color-dark-6)',
+                            backgroundColor: theme.colors.dark[6],
                         }}
                         component="label"
                     >
                         <Group justify="center" gap="xs">
-                            <IconUpload size={16} color="var(--mantine-color-dimmed)" />
+                            <IconUpload size={16} color={theme.colors.dark[2]} />
                             <Text fw={500} size="sm">Click to browse files (.txt, .csv)</Text>
                         </Group>
                         <input
@@ -966,8 +968,8 @@ function JamlView() {
                         styles={{ 
                             input: { 
                                 fontFamily: 'monospace',
-                                backgroundColor: 'var(--mantine-color-dark-7)',
-                                color: 'var(--mantine-color-gray-3)',
+                                backgroundColor: theme.colors.dark[7],
+                                color: theme.colors.gray[3],
                                 fontSize: '14px',
                                 letterSpacing: '0.5px',
                                 transition: 'background-color 0.15s, border-color 0.15s',

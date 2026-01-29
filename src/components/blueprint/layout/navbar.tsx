@@ -12,7 +12,6 @@ import {
     Switch,
     Text,
     Tooltip,
-    useMantineColorScheme,
     useMantineTheme
 } from "@mantine/core";
 import {DeckBackIcon} from "../../Rendering/deckStakeIcons.tsx";
@@ -23,9 +22,7 @@ import {
     IconJoker,
     IconLayout,
     IconListSearch,
-    IconMoon,
-    IconPlayCard,
-    IconSun
+    IconPlayCard
 } from "@tabler/icons-react";
 import {useCardStore} from "../../../modules/state/store.ts";
 import UnlocksModal from "../../unlocksModal.tsx";
@@ -33,15 +30,10 @@ import FeaturesModal from "../../FeaturesModal.tsx";
 import {RerollCalculatorModal} from "../../RerollCalculatorModal.tsx";
 import {GaEvent} from "../../../modules/useGA.ts";
 import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
-import { useBlueprintTheme} from "../../../modules/state/themeProvider.tsx";
-import type {KnownThemes} from "../../../modules/state/themeProvider.tsx";
 
 
 export default function NavBar() {
     const theme = useMantineTheme();
-    const {theme: themeName, setTheme, themes} = useBlueprintTheme()
-    const themeNames = Object.keys(themes);
-    const colorScheme = useMantineColorScheme()
     const viewMode = useCardStore(state => state.applicationState.viewMode);
     const setViewMode = useCardStore(state => state.setViewMode);
     const settingsOpen = useCardStore(state => state.applicationState.settingsOpen);
@@ -306,7 +298,7 @@ export default function NavBar() {
                 <Button.Group w={'100%'} mb="xs">
                     <Button variant="default" c={'blue'} size="sm" onClick={() => setCardsPerAnte(50)}>50</Button>
                     <Button variant="default" c={'red'} size="sm" onClick={() => setCardsPerAnte(Math.max(cardsPerAnte - 50, 0))}>-50</Button>
-                    <Button.GroupSection flex={1} variant="default" bg="var(--mantine-color-body)" miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px' }}>
+                    <Button.GroupSection flex={1} variant="default" bg={theme.colors.dark[0]} miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px' }}>
                         {cardsPerAnte}
                     </Button.GroupSection>
                     <Button variant="default" c={'green'} size="sm"
@@ -320,9 +312,9 @@ export default function NavBar() {
                 <Button.Group w={'100%'} mb="xs">
                     <Button variant="default" c={'blue'} size="sm" onClick={() => setMiscMaxSource(15)}>15</Button>
                     <Button variant="default" c={'red'} size="sm" onClick={() => setMiscMaxSource(Math.max(maxMiscCardSource - 5, 0))}>-5</Button>
-                    <Button.GroupSection flex={1} variant="default" bg="var(--mantine-color-body)" miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px' }}>
-                        {maxMiscCardSource}
-                    </Button.GroupSection>
+<Button.GroupSection flex={1} variant="default" bg={theme.colors.dark[0]} miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px' }}>
+                    {maxMiscCardSource}
+                </Button.GroupSection>
                     <Button variant="default" c={'green'} size="sm"
                         onClick={() => setMiscMaxSource(Math.min(maxMiscCardSource + 5, 100))}>+5</Button>
                     <Button variant="default" c={'blue'} size="sm" onClick={() => setMiscMaxSource(100)}>100</Button>
@@ -347,37 +339,6 @@ export default function NavBar() {
                         <option value="10103">1.0.1c</option>
                         <option value="10014">1.0.0n</option>
                     </NativeSelect>
-                    <Select
-                        label={'Theme'}
-                        value={themeName}
-                        onChange={(t)=>{
-                            if(!t)return
-                            setTheme(t as KnownThemes)
-                        }}
-                        data={themeNames}
-                        size="sm"
-                        styles={{
-                            input: {
-                                height: 'calc(var(--input-height-sm) + 4px)',
-                                fontSize: 'var(--mantine-font-size-sm)'
-                            },
-                            label: {
-                                fontSize: 'var(--mantine-font-size-sm)'
-                            },
-                            option: {
-                                fontSize: 'var(--mantine-font-size-sm)'
-                            }
-                        }}
-                    />
-                    <Box>
-                        <Text mb={4} fz={'sm'}>Dark Mode</Text>
-                        <Switch
-                            size={'sm'}
-                            checked={colorScheme.colorScheme === 'dark'}
-                            thumbIcon={colorScheme.colorScheme === 'dark' ? (<IconMoon size={12} color={'var(--mantine-color-gray-0)'} />) : (<IconSun size={12} color={'var(--mantine-color-teal-6)'} />)}
-                            onChange={colorScheme.toggleColorScheme}
-                        />
-                    </Box>
                 </Group>
                 <Group grow gap="xs" mb="xs">
                     <Box>

@@ -43,19 +43,19 @@ export const CLAUSE_TYPES = [
 export const PROPERTY_KEYS = {
   // Metadata (Purple)
   metadata: ['label'] as const,
-  
+
   // Stickers/Modifiers (Purple)
   stickers: ['stickers'] as const,
-  
+
   // Card Modifiers (varies)
   modifiers: ['edition', 'seal', 'enhancement'] as const,
-  
+
   // Playing Card Specific
   playingCard: ['rank', 'suit'] as const,
-  
+
   // Source/Location Properties (Blue - informational)
   sources: ['sources', 'antes'] as const,
-  
+
   // Scoring (Blue - optional)
   scoring: ['score'] as const,
 } as const;
@@ -214,48 +214,48 @@ export function getValidValuesFor(clauseType: string, propertyKey?: string): str
         return [...STANDARD_CARD_EDITIONS];
       }
       return [...ALL_EDITIONS];
-    
+
     case 'rank':
       return [...ALL_RANKS];
-    
+
     case 'suit':
       return [...ALL_SUITS];
-    
+
     case 'seal':
       return [...ALL_SEALS];
-    
+
     case 'enhancement':
       return [...ALL_ENHANCEMENTS];
-    
+
     case 'stickers':
       return ['Eternal', 'Perishable', 'Rental'];
-    
+
     case 'antes':
       // Return range 0-12 as common values (can type more)
       return Array.from({ length: 13 }, (_, i) => i.toString());
-    
+
     case 'score':
       // Common score values
       return ['1', '2', '3', '4', '5', '10', '15', '20'];
-    
+
     case 'shopSlots':
     case 'packSlots':
       // Common slot indices
       return ['0', '1', '2', '3', '4', '5'];
-    
+
     case 'source':
       // Layout source options
       return [...LAYOUT_SOURCES];
-    
+
     case 'colspan':
       return ['1', '2', '3'];
-    
+
     case 'deck':
       return ALL_DECKS;
-    
+
     case 'stake':
       return ALL_STAKES;
-    
+
     default:
       return [];
   }
@@ -266,16 +266,25 @@ export function getValidValuesFor(clauseType: string, propertyKey?: string): str
  */
 function generateStandardCardSuggestions(): string[] {
   const suggestions: string[] = [];
-  
-  // Add simple rank suggestions first
+
+  // Basic formatted cards
   for (const rank of ALL_RANKS) {
-    suggestions.push(`${rank} of ...`);
+    // suggestions.push(`${rank} of ...`); // user can type suit if they want
+    for (const suit of ALL_SUITS) {
+      suggestions.push(`${rank} of ${suit}`);
+    }
   }
-  
-  // Add face card suggestions
-  suggestions.push('King of ...', 'Ace of ...');
-  
-  return suggestions;
+
+  // Add some fancy variants for inspiration
+  const fancyVariants = [
+    'Polychrome King of Hearts',
+    'Glass Ace of Spades',
+    'Red Seal Steel King of Diamonds',
+    'Foil Queen of Clubs',
+    'Holographic Jack of Spades'
+  ];
+
+  return [...fancyVariants, ...suggestions];
 }
 
 /**
@@ -297,13 +306,14 @@ export function isPropertyValidForClauseType(clauseType: string, propertyKey: st
  * Get properties that should appear first for a clause type
  * Returns in order of most likely to be used (bottom of popover = most likely)
  */
-export function getSuggestedPropertiesFor(clauseType: string): Array<{key: string; category: 'metadata' | 'modifier' | 'source' | 'scoring'}> {
+export function getSuggestedPropertiesFor(clauseType: string): Array<{ key: string; category: 'metadata' | 'modifier' | 'source' | 'scoring' }> {
   // Most likely props at the END (they appear at bottom of popover, closest to cursor)
-  const props: Array<{key: string; category: 'metadata' | 'modifier' | 'source' | 'scoring'}> = [];
+  // This stack order determines visual order in a list that grows UPWARDS from cursor
+  const props: Array<{ key: string; category: 'metadata' | 'modifier' | 'source' | 'scoring' }> = [];
 
-  // Metadata first (least likely to add after the type)
+  // Metadata first (least likely to add after the type - appears at TOP of popover)
   props.push({ key: 'label', category: 'metadata' });
-  
+
   // Stickers (jokers only)
   if (['joker', 'soulJoker'].includes(clauseType)) {
     props.push({ key: 'stickers', category: 'modifier' });
@@ -331,11 +341,11 @@ export function getSuggestedPropertiesFor(clauseType: string): Array<{key: strin
     { key: 'sources', category: 'source' }
   );
 
+  // Score (only in should: section, but we don't know section here easily. Assume both)
+  props.push({ key: 'score', category: 'scoring' });
+
   // Antes (MOST COMMON - appears at bottom, closest to cursor!)
   props.push({ key: 'antes', category: 'source' });
-
-  // Score (only in should: section)
-  props.push({ key: 'score', category: 'scoring' });
 
   // Filter out invalid properties
   return props.filter(prop => isPropertyValidForClauseType(clauseType, prop.key));
@@ -355,7 +365,7 @@ export interface LayoutRow {
  */
 export const LAYOUT_SOURCES = [
   'shopSlots',
-  'voucher', 
+  'voucher',
   'packSlots',
   'smallBlind',
   'bigBlind',
@@ -378,7 +388,7 @@ export function getTopLevelKeys(): string[] {
 export function getClauseTypeKeys(): string[] {
   return [
     'joker',
-    'soulJoker', 
+    'soulJoker',
     'voucher',
     'tarotCard',
     'planetCard',

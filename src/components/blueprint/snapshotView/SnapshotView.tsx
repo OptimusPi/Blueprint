@@ -191,7 +191,7 @@ export default function SnapshotModal() {
     return (
         <Modal opened={opened} onClose={close} title="Seed Snapshot" size="xl" centered maw={600}>
             <Stack p="md" gap="xl">
-                <Paper p="md" withBorder>
+                <Paper p="md">
                     <Title order={3} mb="md">Bosses</Title>
                     <ScrollArea>
                         <Group wrap="nowrap">
@@ -227,7 +227,7 @@ export default function SnapshotModal() {
                     </ScrollArea>
                 </Paper>
 
-                <Paper p="md" withBorder>
+                <Paper p="md">
                     <Title order={3} mb="md">Jokers</Title>
                     <SimpleGrid cols={{ base: 2, sm: 4, lg: 6 }}>
                         {sortedUniqueJokers.map((data, index) => (

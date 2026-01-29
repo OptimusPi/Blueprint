@@ -296,7 +296,7 @@ function ClauseCard({
     };
 
     return (
-        <Paper withBorder p="xs" radius="sm">
+        <Paper p="xs" radius="sm">
             <Group justify="space-between" wrap="nowrap">
                 <Group gap="xs" wrap="nowrap">
                     <Badge size="sm" color={categoryColors[category]} variant="light">
@@ -460,7 +460,7 @@ export function JamlBuilder({ onJamlGenerated, initialJaml }: JamlBuilderProps) 
     }, [generatedJaml, filterName]);
 
     return (
-        <Paper withBorder p="md" radius="md">
+        <Paper p="md" radius="md">
             <Stack gap="md">
                 {/* Header */}
                 <Group justify="space-between">

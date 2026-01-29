@@ -237,7 +237,7 @@ export function BuyWrapper({ children, bottomOffset, metaData, horizontal = fals
                                             borderTopLeftRadius: 0,
                                             borderBottomLeftRadius: 0,
                                             border: 0,
-                                            borderLeft: '1px solid var(--mantine-color-body)'
+                                            borderLeft: `1px solid ${theme.colors.dark[0]}`
                                         }}
                                     >
                                         <IconChevronDown size={16} stroke={1.5} />

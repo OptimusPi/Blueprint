@@ -29,6 +29,7 @@ import {useSeedResultsContainer} from "../../../modules/state/analysisResultProv
 
 
 export function EventsPanel() {
+    const theme = useMantineTheme();
     const events = useCardStore(state => state.eventState.events);
     const trackEvent = useCardStore(state => state.trackEvent);
     const removeEvent = useCardStore(state => state.removeEvent);
@@ -112,7 +113,7 @@ export function EventsPanel() {
 
                     return (
                         <Grid.Col span={12} key={event.name}>
-                            <Card p="xs" radius="sm" style={{ border: '1px solid var(--mantine-color-default-border)' }}>
+                            <Card p="xs" radius="sm" style={{ border: `1px solid ${theme.colors.dark[3]}` }}>
                                 <Group justify="space-between" mb={1} gap="xs">
                                     <Group gap={2}>
                                         <IconCalendarEvent size={12}/>
@@ -264,7 +265,7 @@ export function Aside() {
                 }}
                 onMouseEnter={(e) => {
                     if (!isResizing) {
-                        e.currentTarget.style.backgroundColor = 'var(--mantine-color-blue-6)';
+                        e.currentTarget.style.backgroundColor = theme.colors.blue[6];
                     }
                 }}
                 onMouseLeave={(e) => {

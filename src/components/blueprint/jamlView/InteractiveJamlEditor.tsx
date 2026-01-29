@@ -11,20 +11,24 @@ import {
   ARRAY_KEYS,
 } from '../../../utils/jamlValues';
 
-// Balatro Colors
+// Balatro Colors (Exact Palette from User)
 const COLORS = {
+  white: '#FFFFFF',
+  black: '#000000',
   red: '#ff4c40',
   darkRed: '#a02721',
+  darkestRed: '#70150f',
   blue: '#0093ff',
   darkBlue: '#0057a1',
+  orange: '#ff9800',
+  darkOrange: '#a05b00',
+  darkGold: '#b8883a',
   green: '#429f79',
   darkGreen: '#215f46',
   purple: '#7d60e0',
   darkPurple: '#292189',
-  orange: '#ff9800',
-  darkOrange: '#a05b00',
-  gold: '#b8883a',
-  // Editor background - very light cream/orange tint
+
+  // Editor background - very light cream/orange tint to match Balatro vibe
   editorBg: '#fef9f3',
   editorBgAlt: '#fff5eb',
 };
@@ -93,14 +97,14 @@ const METADATA_KEYS = ['name', 'author', 'description', 'deck', 'stake', 'label'
 const REQUIRED_KEYS = ['joker', 'soulJoker', 'voucher', 'tarotCard', 'planetCard', 'spectralCard', 'standardCard', 'tag', 'boss'];
 
 // Special toggle display for antes - shows [0][1][2]...[8] as tight toggle buttons
-function AntesToggle({ 
-  values, 
-  onToggle, 
+function AntesToggle({
+  values,
+  onToggle,
   onStartEdit,
   color,
-  darkColor 
-}: { 
-  values: string[]; 
+  darkColor
+}: {
+  values: string[];
   onToggle: (val: string) => void;
   onStartEdit: () => void;
   color: string;
@@ -108,10 +112,10 @@ function AntesToggle({
 }) {
   const [expanded, setExpanded] = useState(false);
   const maxAnte = 8;
-  
+
   // Parse current values
   const selectedAntes = new Set(values.map(v => parseInt(v, 10)).filter(n => !isNaN(n)));
-  
+
   // Compute display text
   const getDisplayText = () => {
     if (selectedAntes.size === 0) return 'tap to select';
@@ -124,7 +128,7 @@ function AntesToggle({
     if (isConsecutive) return `Antes ${min}-${max}`;
     return `Antes ${sorted.join(', ')}`;
   };
-  
+
   if (!expanded) {
     return (
       <Box
@@ -141,7 +145,7 @@ function AntesToggle({
       </Box>
     );
   }
-  
+
   return (
     <Group gap={0} wrap="nowrap">
       {Array.from({ length: maxAnte + 1 }, (_, i) => i).map((ante) => {
@@ -207,7 +211,7 @@ function useSmartPopoverPosition(
     const rect = targetRef.current.getBoundingClientRect();
     // If target is in top 180px of viewport, popover might clip - use right position
     const topThreshold = 180;
-    
+
     if (rect.top < topThreshold) {
       setPosition('right-start');
     } else {
@@ -224,7 +228,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
   const [editingPart, setEditingPart] = useState<'key' | 'value' | 'arrayItem' | null>(null);
   const [editingArrayIndex, setEditingArrayIndex] = useState<number | null>(null);
   const [focusedLineIndex, setFocusedLineIndex] = useState<number>(0);
-  
+
   const editorRef = useRef<HTMLDivElement>(null);
 
   // Parse JAML text into lines
@@ -239,20 +243,20 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
       const trimmed = raw.trim();
       const isComment = trimmed.startsWith('#');
       const isArrayItem = trimmed.startsWith('- ');
-      
+
       // Parse key: value
       let key: string | undefined;
       let value: string | undefined;
       let isArrayValue = false;
       let arrayValues: string[] | undefined;
-      
+
       if (!isComment && trimmed.includes(':')) {
         const colonIndex = trimmed.indexOf(':');
         const rawKey = trimmed.slice(isArrayItem ? 2 : 0, colonIndex).trim();
         const rawValue = trimmed.slice(colonIndex + 1).trim();
         key = rawKey;
         value = rawValue || undefined;
-        
+
         // Check if value is an array like [1, 2, 3]
         if (value && value.startsWith('[') && value.endsWith(']')) {
           isArrayValue = true;
@@ -290,8 +294,14 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
           validationState = 'optional-incomplete';
         }
 
-        // Check for invalid combinations
-        if (key === 'edition' && value === 'Negative' && currentClauseType === 'standardCard') {
+        // Check for manual invalid marking (surrounded by ~)
+        if (value && value.startsWith('~') && value.endsWith('~')) {
+          isInvalidValue = true;
+          validationState = 'invalid';
+        }
+
+        // Check for invalid combinations (logic specific)
+        if (key === 'edition' && (value === 'Negative' || value === '~Negative~') && currentClauseType === 'standardCard') {
           isInvalidValue = true;
           validationState = 'invalid';
         }
@@ -497,7 +507,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
     setLines(prev => {
       const filtered = prev.filter(l => l.id !== lineId);
       const renumbered = filtered.map((l, i) => ({ ...l, lineNumber: i, id: `line-${i}` }));
-      
+
       const jamlText = linesToJaml(renumbered);
       if (onJamlChange) {
         try {
@@ -520,7 +530,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
 
       const currentLine = prev[index];
       const newLineRaw = ' '.repeat(currentLine.indent) + content;
-      
+
       // Parse the new line
       const newParsed = parseJamlToLines(newLineRaw)[0];
       const newLine: ParsedLine = {
@@ -531,7 +541,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
 
       const newLines = [...prev];
       newLines.splice(index + 1, 0, newLine);
-      
+
       // Renumber
       const renumbered = newLines.map((l, i) => ({ ...l, lineNumber: i, id: `line-${i}` }));
 
@@ -554,7 +564,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
     for (let i = currentLineIndex + 1; i < lines.length; i++) {
       const line = lines[i];
       if (line.isComment || !line.key) continue;
-      
+
       // Check if value is incomplete or invalid
       if (!line.value || line.isInvalidValue) {
         return { lineId: line.id, part: 'value' };
@@ -571,7 +581,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
   const handleEnterAdvance = useCallback((currentLineId: string) => {
     const currentIndex = lines.findIndex(l => l.id === currentLineId);
     const next = findNextEditable(currentIndex);
-    
+
     if (next) {
       setEditingLineId(next.lineId);
       setEditingPart(next.part);
@@ -593,7 +603,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
       if (e.key === 'Tab' && !e.shiftKey) {
         e.preventDefault();
         // Move to next editable field
-        const currentIndex = editingLineId 
+        const currentIndex = editingLineId
           ? lines.findIndex(l => l.id === editingLineId)
           : focusedLineIndex;
         const next = findNextEditable(currentIndex);
@@ -605,7 +615,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
       } else if (e.key === 'Tab' && e.shiftKey) {
         e.preventDefault();
         // Move to previous editable field
-        const currentIndex = editingLineId 
+        const currentIndex = editingLineId
           ? lines.findIndex(l => l.id === editingLineId)
           : focusedLineIndex;
         for (let i = currentIndex - 1; i >= 0; i--) {
@@ -638,15 +648,14 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
   }, [lines]);
 
   return (
-    <Paper 
+    <Paper
       ref={editorRef}
-      withBorder 
-      p="md" 
-      radius="md" 
+      p="md"
+      radius="md"
       tabIndex={0}
-      style={{ 
-        flex: 1, 
-        minWidth: 0, 
+      style={{
+        flex: 1,
+        minWidth: 0,
         backgroundColor: COLORS.editorBg,
         fontFamily: MONO_FONT,
         fontSize: '13px',
@@ -686,7 +695,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
         ))}
       </Stack>
 
-      <Box mt="md" p="sm" style={{ backgroundColor: COLORS.editorBgAlt, borderRadius: '4px', border: `1px solid ${COLORS.gold}40` }}>
+      <Box mt="md" p="sm" style={{ backgroundColor: COLORS.editorBgAlt, borderRadius: '4px', border: `1px solid ${COLORS.darkGold}40` }}>
         <Group gap="md" wrap="wrap" mb={4}>
           <span style={{ fontFamily: MONO_FONT, fontSize: '12px', color: '#666' }}>
             <span style={{ color: COLORS.red }}>●</span> required
@@ -727,14 +736,14 @@ interface JamlLineProps {
   onAddLine: (content: string) => void;
 }
 
-function JamlLine({ 
-  line, 
+function JamlLine({
+  line,
   keyWidth,
-  isEditing, 
+  isEditing,
   editingPart,
   editingArrayIndex,
-  onStartEdit, 
-  onEndEdit, 
+  onStartEdit,
+  onEndEdit,
   onChange,
   onArrayItemChange,
   onArrayItemAdd,
@@ -753,21 +762,21 @@ function JamlLine({
   const keyTargetRef = useRef<HTMLSpanElement>(null);
   const valueTargetRef = useRef<HTMLDivElement>(null);
   const isClickingSuggestion = useRef(false);
-  
+
   // Long-form array editing: expand to vertical list when editing
   const [isArrayExpanded, setIsArrayExpanded] = useState(false);
-  
+
   // Smart popover positioning
   const keyPopoverPosition = useSmartPopoverPosition(keyTargetRef, isEditing && editingPart === 'key' && showSuggestions);
   const valuePopoverPosition = useSmartPopoverPosition(valueTargetRef, isEditing && editingPart === 'value' && showSuggestions);
-  
+
   // Expand array when we start editing it
   useEffect(() => {
     if (isEditing && editingPart === 'arrayItem' && line.isArrayValue) {
       setIsArrayExpanded(true);
     }
   }, [isEditing, editingPart, line.isArrayValue]);
-  
+
   // Collapse when done editing (with delay to allow transitions)
   useEffect(() => {
     if (!isEditing && isArrayExpanded) {
@@ -829,14 +838,25 @@ function JamlLine({
     }
 
     // Filter
-    if (filterText) {
-      const lowerFilter = filterText.toLowerCase();
-      options = options.filter(o => o.toLowerCase().includes(lowerFilter));
+    const lowerFilter = (filterText || '').toLowerCase();
+
+    // If filter matches exactly one option, don't show it? No, show it for confirmation/Enter.
+
+    let filtered = options.filter(o => o.toLowerCase().includes(lowerFilter));
+
+    // Sort logic: exact match -> starts with -> contains
+    // Special handling: 'antes' should be at the BOTTOM if searching for keys (as per user request "pop over above")
+    // Wait, SuggestionList renders top-to-bottom. If we want it "closest to cursor" (bottom of list), it should be LAST.
+    // My getSuggestedPropertiesFor puts 'antes' LAST.
+    // But sorting here invalidates that order!
+    // I should Preserve order of `options` as much as possible if filter text is empty!
+
+    if (!filterText) {
+      // Return original order (closest to cursor logic preserved from jamlValues.ts)
+      return options;
     }
 
-    // Sort
-    const lowerFilter = (filterText || '').toLowerCase();
-    options.sort((a, b) => {
+    filtered.sort((a, b) => {
       const aLower = a.toLowerCase();
       const bLower = b.toLowerCase();
       if (aLower === lowerFilter) return -1;
@@ -845,10 +865,11 @@ function JamlLine({
       const bStarts = bLower.startsWith(lowerFilter);
       if (aStarts && !bStarts) return -1;
       if (bStarts && !aStarts) return 1;
+      // Stable sort or alphabetically? Alphabetically for others
       return aLower.localeCompare(bLower);
     });
 
-    return options.slice(0, 12);
+    return filtered.slice(0, 12);
   }, [line.clauseType, line.key, line.isArrayItem, line.indent]);
 
   // Update suggestions
@@ -871,7 +892,9 @@ function JamlLine({
       if (editingPart === 'key') {
         setLocalValue(line.key || '');
       } else if (editingPart === 'value') {
-        setLocalValue(line.value || '');
+        // Strip leading/trailing ~ from value to allow clean editing
+        const raw = line.value || '';
+        setLocalValue(raw.replace(/^~|~$/g, ''));
       } else if (editingPart === 'arrayItem' && editingArrayIndex !== null) {
         setLocalValue(line.arrayValues?.[editingArrayIndex] || '');
       }
@@ -882,10 +905,10 @@ function JamlLine({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const finalValue = suggestions.length === 1 ? suggestions[0] 
-        : (selectedIndex >= 0 && selectedIndex < suggestions.length) ? suggestions[selectedIndex] 
-        : localValue;
-      
+      const finalValue = suggestions.length === 1 ? suggestions[0]
+        : (selectedIndex >= 0 && selectedIndex < suggestions.length) ? suggestions[selectedIndex]
+          : localValue;
+
       if (editingPart === 'key') {
         onChange('key', finalValue);
       } else if (editingPart === 'value') {
@@ -897,7 +920,7 @@ function JamlLine({
           onArrayItemChange(editingArrayIndex, finalValue);
         }
       }
-      
+
       onEndEdit();
       onEnter();
     } else if (e.key === 'ArrowDown') {
@@ -925,7 +948,7 @@ function JamlLine({
 
   const handleSuggestionClick = (suggestion: string) => {
     isClickingSuggestion.current = true;
-    
+
     if (editingPart === 'key') {
       onChange('key', suggestion);
     } else if (editingPart === 'value') {
@@ -937,10 +960,10 @@ function JamlLine({
         onArrayItemChange(editingArrayIndex, suggestion);
       }
     }
-    
+
     onEndEdit();
     onEnter();
-    
+
     requestAnimationFrame(() => {
       isClickingSuggestion.current = false;
     });
@@ -958,9 +981,9 @@ function JamlLine({
   // Comment lines
   if (line.isComment) {
     return (
-      <Box style={{ 
-        padding: '2px 8px 2px 32px', 
-        color: '#7a8599', 
+      <Box style={{
+        padding: '2px 8px 2px 32px',
+        color: '#7a8599',
         fontStyle: 'italic',
         fontSize: '12px',
         fontWeight: 500,
@@ -979,9 +1002,9 @@ function JamlLine({
   if ((line.key === 'must' || line.key === 'should' || line.key === 'mustNot') && !line.value) {
     const sectionColor = line.key === 'must' ? COLORS.darkRed : COLORS.darkBlue;
     return (
-      <Box style={{ 
-        padding: '4px 8px 4px 32px', 
-        color: sectionColor, 
+      <Box style={{
+        padding: '4px 8px 4px 32px',
+        color: sectionColor,
         fontWeight: 700,
         fontSize: '13px',
         borderBottom: `1px solid ${sectionColor}33`,
@@ -1007,13 +1030,13 @@ function JamlLine({
   };
 
   return (
-    <Group 
+    <Group
       ref={lineRef}
-      gap={0} 
+      gap={0}
       wrap="nowrap"
       onClick={handleLineClick}
-      style={{ 
-        padding: '2px 0', 
+      style={{
+        padding: '2px 0',
         position: 'relative',
         backgroundColor: 'transparent',
         cursor: 'default',
@@ -1047,7 +1070,7 @@ function JamlLine({
 
       {/* Key - only highlights when hovering the key itself */}
       {line.key && (
-        <Popover 
+        <Popover
           opened={isEditing && editingPart === 'key' && showSuggestions}
           position={keyPopoverPosition}
           offset={4}
@@ -1251,7 +1274,7 @@ function JamlLine({
           )
         ) : (
           // Single value - consistent block style, only highlights on hover of value itself
-          <Popover 
+          <Popover
             opened={isEditing && editingPart === 'value' && showSuggestions}
             position={valuePopoverPosition}
             offset={4}
@@ -1270,11 +1293,11 @@ function JamlLine({
                 }}
                 onMouseLeave={(e) => {
                   if (!(isEditing && editingPart === 'value')) {
-                    e.currentTarget.style.backgroundColor = line.isInvalidValue 
-                      ? `${COLORS.red}15` 
+                    e.currentTarget.style.backgroundColor = line.isInvalidValue
+                      ? `${COLORS.red}15`
                       : (line.value ? `${getColor()}10` : `${COLORS.red}08`);
-                    e.currentTarget.style.borderColor = line.isInvalidValue 
-                      ? `${COLORS.red}60` 
+                    e.currentTarget.style.borderColor = line.isInvalidValue
+                      ? `${COLORS.red}60`
                       : (line.value ? `${getColor()}40` : `${COLORS.red}40`);
                   }
                 }}
@@ -1282,10 +1305,10 @@ function JamlLine({
                   ...BLOCK_STYLE,
                   minWidth: line.value ? undefined : '80px',
                   color: line.isInvalidValue ? COLORS.red : (line.value ? getColor() : COLORS.darkRed),
-                  backgroundColor: line.isInvalidValue 
-                    ? `${COLORS.red}15` 
-                    : (isEditing && editingPart === 'value') 
-                      ? `${getColor()}25` 
+                  backgroundColor: line.isInvalidValue
+                    ? `${COLORS.red}15`
+                    : (isEditing && editingPart === 'value')
+                      ? `${getColor()}25`
                       : (line.value ? `${getColor()}10` : `${COLORS.red}08`),
                   border: `1px solid ${line.isInvalidValue ? `${COLORS.red}60` : (line.value ? `${getColor()}40` : `${COLORS.red}40`)}`,
                   textDecoration: line.isInvalidValue ? 'line-through' : 'none',
@@ -1376,7 +1399,7 @@ function ArrayItem({
   const inputRef = useRef<HTMLInputElement>(null);
   const targetRef = useRef<HTMLDivElement>(null);
   const isClickingSuggestion = useRef(false);
-  
+
   const popoverPosition = useSmartPopoverPosition(targetRef, showSuggestions);
 
   useEffect(() => {
@@ -1392,7 +1415,7 @@ function ArrayItem({
       e.preventDefault();
       const finalValue = suggestions.length === 1 ? suggestions[0]
         : (selectedIndex >= 0 && selectedIndex < suggestions.length) ? suggestions[selectedIndex]
-        : localValue;
+          : localValue;
       onChange(finalValue);
       onEndEdit();
       onEnter();
@@ -1524,7 +1547,7 @@ function LongFormArrayItem({
   const inputRef = useRef<HTMLInputElement>(null);
   const targetRef = useRef<HTMLDivElement>(null);
   const isClickingSuggestion = useRef(false);
-  
+
   const popoverPosition = useSmartPopoverPosition(targetRef, showSuggestions);
 
   useEffect(() => {
@@ -1540,7 +1563,7 @@ function LongFormArrayItem({
       e.preventDefault();
       const finalValue = suggestions.length === 1 ? suggestions[0]
         : (selectedIndex >= 0 && selectedIndex < suggestions.length) ? suggestions[selectedIndex]
-        : localValue;
+          : localValue;
       onChange(finalValue);
       onEndEdit();
       onEnter();
@@ -1571,7 +1594,7 @@ function LongFormArrayItem({
     <Group ref={ref} gap={4} wrap="nowrap" style={{ paddingLeft: '2ch' }}>
       {/* Dash prefix */}
       <Text span style={{ color: darkColor, fontWeight: 600, width: '12px' }}>-</Text>
-      
+
       {/* Delete button on hover */}
       <Box
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
@@ -1590,7 +1613,7 @@ function LongFormArrayItem({
       >
         <IconMinus size={12} color={COLORS.orange} />
       </Box>
-      
+
       {/* Value */}
       <Popover opened={showSuggestions} position={popoverPosition} offset={4} withArrow shadow="md">
         <Popover.Target>
@@ -1658,35 +1681,44 @@ interface SuggestionListProps {
 
 function SuggestionList({ suggestions, selectedIndex, onSelect, onHover }: SuggestionListProps) {
   if (suggestions.length === 0) {
-    return <Text size="sm" c="dimmed" fw={500}>Type something...</Text>;
+    return (
+      <Box p="xs">
+        <Text size="xs" c="dimmed" fs="italic">No suggestions matching...</Text>
+      </Box>
+    );
   }
 
   return (
-    <Stack gap={2} onMouseDown={(e) => e.preventDefault()}>
-      {suggestions.map((suggestion, index) => (
-        <Box
-          key={suggestion}
-          onClick={() => onSelect(suggestion)}
-          onMouseEnter={() => onHover(index)}
-          style={{
-            ...BLOCK_STYLE,
-            height: 'auto',
-            padding: '6px 10px',
-            justifyContent: 'flex-start',
-            backgroundColor: index === selectedIndex ? `${COLORS.blue}20` : 'transparent',
-            border: `1px solid ${index === selectedIndex ? `${COLORS.blue}60` : 'transparent'}`,
-          }}
-        >
-          <span style={{ 
-            fontFamily: MONO_FONT,
-            fontSize: '13px',
-            fontWeight: index === selectedIndex ? 600 : 500, 
-            color: index === selectedIndex ? COLORS.darkBlue : '#444' 
-          }}>
-            {suggestion}
-          </span>
-        </Box>
-      ))}
+    <Stack gap={0} onMouseDown={(e) => e.preventDefault()} style={{ maxHeight: '200px', overflowY: 'auto' }}>
+      {suggestions.map((suggestion, index) => {
+        const isSelected = index === selectedIndex;
+        // Determine category color based on simple heuristics or passed types? 
+        // For now, use Balatro Blue as standard highlight
+
+        return (
+          <Box
+            key={suggestion}
+            onClick={() => onSelect(suggestion)}
+            onMouseEnter={() => onHover(index)}
+            style={{
+              padding: '6px 10px',
+              cursor: 'pointer',
+              backgroundColor: isSelected ? COLORS.darkBlue : 'transparent',
+              color: isSelected ? COLORS.white : '#333',
+              fontFamily: MONO_FONT,
+              fontSize: '13px',
+              fontWeight: isSelected ? 600 : 500,
+              transition: 'background-color 0.1s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <span>{suggestion}</span>
+            {isSelected && <span style={{ opacity: 0.5, fontSize: '10px' }}>↵</span>}
+          </Box>
+        );
+      })}
     </Stack>
   );
 }

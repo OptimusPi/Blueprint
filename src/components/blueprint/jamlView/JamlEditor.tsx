@@ -10,7 +10,8 @@ import {
     ActionIcon,
     Alert,
     CopyButton,
-    SegmentedControl
+    SegmentedControl,
+    useMantineTheme
 } from '@mantine/core';
 import { 
     IconUpload, 
@@ -94,6 +95,7 @@ interface ValidationResult {
 }
 
 export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
+    const theme = useMantineTheme();
     const [jamlText, setJamlText] = useState<string>(initialJaml || DEFAULT_JAML);
     const [editorMode, setEditorMode] = useState<'text' | 'interactive'>('interactive');
 
@@ -155,7 +157,7 @@ export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
     }, []);
 
     return (
-        <Paper withBorder p="sm" radius="md">
+        <Paper p="sm" radius="md" bg={theme.colors.dark[0]}>
             <Stack gap="sm">
                 {/* Header */}
                 <Group justify="space-between" align="center">
@@ -235,7 +237,7 @@ export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
 
                 {/* Raw Text Mode (fallback) */}
                 {editorMode === 'text' && (
-                    <Paper withBorder p="xs" radius="sm" style={{ backgroundColor: 'var(--mantine-color-dark-8)' }}>
+                    <Paper p="xs" radius="sm" bg={theme.colors.dark[8]}>
                         <Textarea
                             value={jamlText}
                             onChange={(e) => setJamlText(e.currentTarget.value)}

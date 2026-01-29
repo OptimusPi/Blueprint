@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from "react";
-import {Autocomplete, Button, Group, Modal, NativeSelect, Paper, Stack, Text, Textarea} from "@mantine/core";
+import {Autocomplete, Button, Group, Modal, NativeSelect, Paper, Stack, Text, Textarea, useMantineTheme} from "@mantine/core";
 import {useDisclosure, useMediaQuery} from "@mantine/hooks";
 import {IconUpload} from "@tabler/icons-react";
 import {SeedsWithLegendary, popularSeeds} from "../modules/const.ts";
@@ -72,7 +72,7 @@ export function QuickAnalyze() {
     );
 
     return (
-        <Paper withBorder shadow={'lg'} p={{ base: 'xs', sm: 'sm' }} radius={'md'}>
+        <Paper p={{ base: 'xs', sm: 'sm' }} radius={'md'}>
             <Stack gap="sm">
                 {isMobile ? (
                     <>
@@ -133,6 +133,7 @@ export function QuickAnalyze() {
 }
 
 export default function SeedInputAutoComplete({seed, setSeed, onBulkImport}: { seed: string, setSeed: (seed: string) => void, onBulkImport?: (seeds: string[]) => void }) {
+    const theme = useMantineTheme();
     const [bulkOpened, { open: openBulk, close: closeBulk }] = useDisclosure(false);
     const [bulkText, setBulkText] = useState('');
     
@@ -231,8 +232,8 @@ export default function SeedInputAutoComplete({seed, setSeed, onBulkImport}: { s
                         styles={{ 
                             input: { 
                                 fontFamily: 'monospace',
-                                backgroundColor: 'var(--mantine-color-dark-7)',
-                                color: 'var(--mantine-color-gray-3)',
+                                backgroundColor: theme.colors.dark[7],
+                                color: theme.colors.gray[3],
                                 fontSize: '14px',
                                 letterSpacing: '0.5px'
                             } 

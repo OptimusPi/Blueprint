@@ -299,7 +299,7 @@ function SimpleBoss({bossName}: { bossName: string }) {
 
 function AnteSkeletonLoader() {
     return (
-        <Paper w={'100%'} withBorder shadow={'xl'} mb={'xl'} p={'md'}>
+        <Paper w={'100%'} mb={'xl'} p={'md'}>
             <Skeleton height={28} width="120px" mb="lg"/>
 
             {/* Shop section */}
@@ -428,7 +428,7 @@ function Simple() {
                 const blinds = value.blinds;
 
                 return (
-                    <Paper w={'100%'} withBorder shadow={'xl'} mb={'xl'} p={'md'} key={key}>
+                    <Paper w={'100%'} mb={'xl'} p={'md'} key={key}>
                         <Title order={2} mb={'1rem'}>Ante {key}</Title>
                         <Group align={'flex-start'} justify={'space-between'} mb={'xs'}>
                             <Group align={'flex-start'}>

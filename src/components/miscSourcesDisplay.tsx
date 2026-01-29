@@ -1,6 +1,6 @@
 import React from 'react';
 import {MiscCardSource} from "../modules/ImmolateWrapper";
-import {Accordion, Box, Center, Group, Paper, Text, Title} from "@mantine/core";
+import {Accordion, Box, Center, Group, Paper, Text, Title, useMantineTheme} from "@mantine/core";
 import {IconPlus, IconMinus} from "@tabler/icons-react";
 import {Tooltip} from "@mantine/core";
 import {useCardStore} from "../modules/state/store.ts";
@@ -123,12 +123,12 @@ export default function MiscCardSourcesDisplay({miscSources, boosterQueue, bossQ
                                                 height: '20px',
                                                 cursor: 'pointer',
                                                 borderRadius: '4px',
-                                                color: addedSourceNames?.has(`misc-${name}`) ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-blue-6)',
+                                                color: addedSourceNames?.has(`misc-${name}`) ? theme.colors.red[6] : theme.colors.blue[6],
                                                 backgroundColor: 'transparent',
                                                 transition: 'background-color 0.2s'
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = addedSourceNames?.has(`misc-${name}`) ? 'var(--mantine-color-red-0)' : 'var(--mantine-color-blue-0)';
+                                                e.currentTarget.style.backgroundColor = addedSourceNames?.has(`misc-${name}`) ? theme.colors.red[0] : theme.colors.blue[0];
                                             }}
                                             onMouseLeave={(e) => {
                                                 e.currentTarget.style.backgroundColor = 'transparent';

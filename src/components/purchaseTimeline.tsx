@@ -89,7 +89,7 @@ export default function PurchaseTimeline({buys, sells}: {
 
     if (buyEntries.length === 0) {
         return (
-            <Paper p="xs" withBorder>
+            <Paper p="xs">
                 <Group justify={'space-between'} mb={4} gap="xs">
                     <Text c="dimmed" size="xs">No purchases yet</Text>
                     <Button
@@ -113,7 +113,7 @@ export default function PurchaseTimeline({buys, sells}: {
     }
 
     return (
-        <Paper p="xs" withBorder>
+        <Paper p="xs">
             <Group justify="space-between" mb={4} gap="xs">
                 <Title order={5} fz="sm">Purchase History</Title>
                 <Group gap={4}>

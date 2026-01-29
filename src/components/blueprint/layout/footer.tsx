@@ -8,7 +8,8 @@ import {
     HoverCard,
     HoverCardDropdown,
     HoverCardTarget,
-    Text, Title
+    Text, Title,
+    useMantineTheme
 } from "@mantine/core";
 import {IconCoffee, IconHeart} from "@tabler/icons-react";
 import {useQuery} from "@tanstack/react-query";
@@ -17,6 +18,7 @@ import {GaEvent} from "../../../modules/useGA.ts";
 
 
 export default function Footer() {
+    const theme = useMantineTheme();
     const {data: supporters, isPending} = useQuery<Array<{ name: string, subscription: boolean }>>({
         queryKey: ['supporters'],
         queryFn: async () => {
@@ -35,34 +37,35 @@ export default function Footer() {
             component="footer"
             p={0}
             style={{
-                backgroundColor: 'var(--mantine-color-body)'
+                backgroundColor: theme.colors.dark[0]
             }}
         >
-            <Center w={'100%'} py={4}>
-                <Flex align={'center'} direction={{base: "column", sm: "row"}} gap={'sm'}>
-                    <Text ta={'center'} fz={'xs'}>
+            <Center w={'100%'} py={{ base: 2, sm: 4 }}>
+                <Flex align={'center'} direction={{ base: 'column', sm: 'row' }} gap={{ base: 4, sm: 'sm' }} wrap="wrap" justify="center">
+                    <Text ta={'center'} fz={'xs'} style={{ lineHeight: 1.4 }}>
                         Made by Michael Walker with {' '}
                         <Anchor fz={'xs'} href={"https://mantine.dev/"} target={"_blank"}> Mantine </Anchor>,
                         <Anchor fz={'xs'} href={'https://vite.dev/'}> Vite </Anchor>,
                         <Anchor fz={'xs'} href={'https://github.com/pmndrs/zustand'}> Zustand </Anchor>,
                         <Anchor fz={'xs'} href={'https://github.com/MathIsFun0/Immolate'}> Immolate </Anchor>.
                     </Text>
-                    <Button
-                        component={'a'}
-                        target={'_blank'}
-                        href={'https://buymeacoffee.com/ouisihai2'}
-                        size={'compact-sm'}
-                        color={'yellow'}
-                        leftSection={<IconCoffee/>}
-                    >
-                        Buy me a coffee
-                    </Button>
-                    <HoverCard onOpen={() => GaEvent('view_supporters')}>
-                        <HoverCardTarget>
-                            <Text ta={'center'} fz={'xs'}>
-                                <IconHeart size={'11'}/> Coffee Buyers
-                            </Text>
-                        </HoverCardTarget>
+                    <Flex align={'center'} gap={'xs'} wrap="wrap" justify="center">
+                        <Button
+                            component={'a'}
+                            target={'_blank'}
+                            href={'https://buymeacoffee.com/ouisihai2'}
+                            size={'compact-sm'}
+                            color={'yellow'}
+                            leftSection={<IconCoffee/>}
+                        >
+                            Buy me a coffee
+                        </Button>
+                        <HoverCard onOpen={() => GaEvent('view_supporters')}>
+                            <HoverCardTarget>
+                                <Text ta={'center'} fz={'xs'} style={{ lineHeight: 1 }}>
+                                    <IconHeart size={'11'}/> Coffee Buyers
+                                </Text>
+                            </HoverCardTarget>
                         <HoverCardDropdown w={'100%'} maw={400}>
                             <Title order={4}>Coffee Buyers</Title>
                             {
@@ -101,7 +104,8 @@ export default function Footer() {
                                 please give it approximately 5 minutes to appear.
                             </Text>
                         </HoverCardDropdown>
-                    </HoverCard>
+                        </HoverCard>
+                    </Flex>
                 </Flex>
 
             </Center>
