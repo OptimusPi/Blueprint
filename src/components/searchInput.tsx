@@ -23,7 +23,7 @@ import {useSeedResultsContainer} from "../modules/state/analysisResultProvider.t
 import type {BuyMetaData} from "../modules/classes/BuyMetaData.ts";
 import type {Ante} from "../modules/ImmolateWrapper/CardEngines/Cards.ts";
 import {POKER_HANDS} from "../modules/balatrots/enum/PokerHands.ts";
-import type {StandardCard_Final} from "../modules/ImmolateWrapper/CardEngines/Cards.ts";
+import {StandardCard_Final} from "../modules/ImmolateWrapper/CardEngines/Cards.ts";
 
 const registeredMiscSources = getMiscCardSources(15).map(source => source.name)
 

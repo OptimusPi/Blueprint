@@ -1,11 +1,11 @@
-import {Layer} from "../../modules/classes/Layer.ts";
 import React, {useEffect, useRef, useState} from "react";
-import {useForceUpdate, useHover, useMergedRef, useMouse, useResizeObserver} from "@mantine/hooks";
 import {AspectRatio} from "@mantine/core";
+import {useForceUpdate, useHover, useMergedRef, useMouse, useResizeObserver} from "@mantine/hooks";
+import type {Layer} from "../../modules/classes/Layer.ts";
 
 const globalImageCache = new Map<string, HTMLImageElement>();
 interface RenderCanvasProps {
-    layers: any[],
+    layers: Array<any>,
     invert?: boolean,
     spacing?: boolean,
     animated?: boolean
@@ -175,7 +175,6 @@ export function RenderImagesWithCanvas({layers, invert = false, spacing = false}
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [ratio, setRatio] = useState(3 / 4);
-    const [transform, setTransform] = useState('');
     const animationFrameRef = useRef<number | null>(null);
     const [elapsed, setElapsed] = useState(0);
     const forceUpdate = useForceUpdate();
@@ -216,7 +215,7 @@ export function RenderImagesWithCanvas({layers, invert = false, spacing = false}
             .sort((a, b) => a.order - b.order)
             .forEach((layer => {
                 if (globalImageCache.has(layer.source)) {
-                    let image = globalImageCache.get(layer.source) as HTMLImageElement;
+                    const image = globalImageCache.get(layer.source) as HTMLImageElement;
                     const imageRatio = renderImage(canvas, context, image, layer, hasAnimatedLayer ? elapsed : undefined);
                     if (layer.order === 0) {
                         setRatio(imageRatio);
@@ -236,36 +235,28 @@ export function RenderImagesWithCanvas({layers, invert = false, spacing = false}
 
         if (invert) {
             canvas.style.filter = 'invert(0.8)';
+        } else {
+            canvas.style.filter = 'none';
         }
-    }, [layers, elapsed, forceUpdate]);
+    }, [layers, elapsed, forceUpdate, hasAnimatedLayer, invert]);
 
     const {hovered, ref: hoverRef} = useHover();
     const {ref: mouseRef, x: mouseX, y: mouseY} = useMouse();
     const [rectRef, rect] = useResizeObserver();
     const mergedRef = useMergedRef(mouseRef, hoverRef, containerRef, rectRef);
 
-    // Handle card tilt effect
-    useEffect(() => {
-        const SCALE_X = 6;
-        const SCALE_Y = 8;
+    // Handle card tilt effect - compute transform directly
+    const SCALE_X = 6;
+    const SCALE_Y = 8;
+    const tiltTransform = React.useMemo(() => {
         const x = mouseX - rect.x;
         const y = mouseY - rect.y;
-        let mousePosition = {
-            x,
-            y
-        }
-        let cardSize = {
-            width: rect.width,
-            height: rect.height
-        }
-        setTransform(
-            `perspective(1000px) rotateX(${
-                (mousePosition.y / cardSize.height) * -(SCALE_Y * 2) + SCALE_Y
-            }deg) rotateY(${
-                (mousePosition.x / cardSize.width) * (SCALE_X * 2) - SCALE_X
-            }deg) translateZ(10px)`
-        )
-    }, [mouseX, mouseY, hovered]);
+        return `perspective(1000px) rotateX(${
+            (y / rect.height) * -(SCALE_Y * 2) + SCALE_Y
+        }deg) rotateY(${
+            (x / rect.width) * (SCALE_X * 2) - SCALE_X
+        }deg) translateZ(10px)`;
+    }, [mouseX, mouseY, rect.x, rect.y, rect.width, rect.height]);
 
     return (
         <AspectRatio
@@ -275,7 +266,7 @@ export function RenderImagesWithCanvas({layers, invert = false, spacing = false}
             ref={mergedRef}
             style={{
                 transition: hovered ? 'none' : 'transform 0.4s ease',
-                transform: hovered ? transform : 'none',
+                transform: hovered ? tiltTransform : 'none',
                 transformStyle: 'preserve-3d',
                 transformOrigin: 'center center',
                 display: 'flex',

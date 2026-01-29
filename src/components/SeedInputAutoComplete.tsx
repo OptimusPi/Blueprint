@@ -1,9 +1,9 @@
-import {Autocomplete, Button, Group, NativeSelect, Paper, Stack, Modal, Textarea, Text} from "@mantine/core";
-import {useMediaQuery, useDisclosure} from "@mantine/hooks";
+import React, {useCallback, useState} from "react";
+import {Autocomplete, Button, Group, Modal, NativeSelect, Paper, Stack, Text, Textarea} from "@mantine/core";
+import {useDisclosure, useMediaQuery} from "@mantine/hooks";
 import {IconUpload} from "@tabler/icons-react";
-import {popularSeeds, SeedsWithLegendary} from "../modules/const.ts";
+import {SeedsWithLegendary, popularSeeds} from "../modules/const.ts";
 import {useCardStore} from "../modules/state/store.ts";
-import {useState, useCallback} from "react";
 
 
 export function QuickAnalyze() {

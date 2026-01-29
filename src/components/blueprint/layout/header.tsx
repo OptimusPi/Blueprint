@@ -1,6 +1,7 @@
 import React from "react";
 import {useViewportSize} from "@mantine/hooks";
-import {AppShell, Box, Burger, Button, Center, Container, CopyButton, Group, Title} from "@mantine/core";
+import {ActionIcon, AppShell, Box, Burger, Button, Center, Container, CopyButton, Group, Title, Tooltip, useMantineColorScheme} from "@mantine/core";
+import {IconMoon, IconSun} from "@tabler/icons-react";
 import {useCardStore} from "../../../modules/state/store.ts";
 import SearchSeedInput from "../../searchInput.tsx";
 import {GaEvent} from "../../../modules/useGA.ts";
@@ -8,6 +9,7 @@ import {GaEvent} from "../../../modules/useGA.ts";
 
 export default function Header() {
     const {width} = useViewportSize();
+    const colorScheme = useMantineColorScheme();
     const start = useCardStore(state => state.applicationState.start)
     const settingsOpened = useCardStore(state => state.applicationState.settingsOpen);
     const toggleSettings = useCardStore(state => state.toggleSettings);
@@ -16,6 +18,7 @@ export default function Header() {
     const toggleOutput = useCardStore(state => state.toggleOutput);
     const headerGap = width > 600 ? 'md' : 'xs';
     const rightGap = width > 600 ? 'sm' : 'xs';
+    const isDark = colorScheme.colorScheme === 'dark';
     return (
         <AppShell.Header>
             <Container fluid h={'100%'} px={{ base: 'xs', sm: 'md' }}>
@@ -55,6 +58,16 @@ export default function Header() {
                                 )}
                             </CopyButton>
                         )}
+                        <Tooltip label={isDark ? 'Light mode' : 'Dark mode'}>
+                            <ActionIcon
+                                variant="subtle"
+                                size="lg"
+                                onClick={() => colorScheme.toggleColorScheme()}
+                                aria-label="Toggle dark mode"
+                            >
+                                {isDark ? <IconSun size={18} /> : <IconMoon size={18} />}
+                            </ActionIcon>
+                        </Tooltip>
                         <Burger opened={outputOpened} onClick={()=>{
                             GaEvent('side_panel_toggled')
                             toggleOutput()

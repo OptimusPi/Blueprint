@@ -37,7 +37,7 @@ const BALATRO = {
   purpleMuted: '#6B5AA8',
 };
 
-const scale = (...values: string[]) => [
+const scale = (...values: Array<string>): [string, string, string, string, string, string, string, string, string, string] => [
   values[0], values[0],
   values[1] ?? values[0],
   values[1] ?? values[0],
@@ -97,35 +97,33 @@ export const BalatroTheme = createTheme({
   activeClassName: 'mantine-active',
   focusClassName: 'mantine-focus-auto',
   components: {
+    // Flat styling - no pixel borders, use background color hierarchy instead
     Paper: {
-      defaultProps: { withBorder: true },
+      defaultProps: { withBorder: false },
       styles: {
         root: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
-          boxShadow: `0 2px 0 ${BALATRO.brightSilver}`,
-          backgroundColor: BALATRO.grey,
+          border: 'none',
+          boxShadow: 'none',
+          backgroundColor: BALATRO.darkGrey,
         },
       },
     },
     Card: {
-      defaultProps: { withBorder: true },
+      defaultProps: { withBorder: false },
       styles: {
         root: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
-          boxShadow: `0 2px 0 ${BALATRO.brightSilver}`,
-          backgroundColor: BALATRO.grey,
+          border: 'none',
+          boxShadow: 'none',
+          backgroundColor: BALATRO.mediumGrey,
         },
       },
     },
     Fieldset: {
       styles: {
         root: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
-          boxShadow: `0 2px 0 ${BALATRO.brightSilver}`,
-          backgroundColor: BALATRO.grey,
+          border: 'none',
+          boxShadow: 'none',
+          backgroundColor: BALATRO.mediumGrey,
         },
         legend: {
           fontWeight: 700,
@@ -135,9 +133,9 @@ export const BalatroTheme = createTheme({
     Input: {
       styles: {
         input: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
-          boxShadow: `0 2px 0 ${BALATRO.brightSilver}`,
+          border: 'none',
+          boxShadow: 'none',
+          backgroundColor: BALATRO.grey,
           fontWeight: 600,
         },
       },
@@ -145,9 +143,8 @@ export const BalatroTheme = createTheme({
     Button: {
       styles: {
         root: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
-          boxShadow: `0 2px 0 ${BALATRO.brightSilver}`,
+          border: 'none',
+          boxShadow: 'none',
           fontWeight: 700,
         },
       },
@@ -155,20 +152,18 @@ export const BalatroTheme = createTheme({
     SegmentedControl: {
       styles: {
         root: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
+          border: 'none',
+          backgroundColor: BALATRO.darkGrey,
         },
         control: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
+          border: 'none',
         },
       },
     },
     Tabs: {
       styles: {
         tab: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
+          border: 'none',
           fontWeight: 700,
         },
       },
@@ -176,8 +171,7 @@ export const BalatroTheme = createTheme({
     Badge: {
       styles: {
         root: {
-          borderWidth: '2px',
-          borderColor: BALATRO.brightSilver,
+          border: 'none',
           fontWeight: 700,
         },
       },

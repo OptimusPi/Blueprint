@@ -146,9 +146,10 @@ export function Consumables({card}: { card: Planet_Final | Spectral_Final | Taro
 export interface GameCardProps {
     card: Planet_Final | Spectral_Final | Tarot_Final | Joker_Final | StandardCard_Final;
     glow?: 'red' | 'blue' | null;
+    scale?: number; // 0.5 = half size, 1 = full size (default 1)
 }
-export function GameCard({card, glow}: GameCardProps) {
-    let Card = () => {
+export function GameCard({card, glow, scale = 1}: GameCardProps) {
+    const Card = () => {
         if (card instanceof StandardCard_Final) {
             return <PlayingCard card={card}/>
         }
@@ -167,10 +168,34 @@ export function GameCard({card, glow}: GameCardProps) {
         borderRadius: '4px',
     } : {};
     
+    // Only apply transform if scale !== 1
+    if (scale === 1) {
+        return (
+            <Paper 
+                maw={'71px'}
+                style={{ overflow: 'visible', ...glowStyle }}
+                p={0}
+            >
+                <Card/>
+            </Paper>
+        );
+    }
+    
+    // Scaled version - for compact views
+    const scaledWidth = Math.round(71 * scale);
+    
     return (
         <Paper 
-            maw={'71px'}
-            style={{ overflow: 'visible', ...glowStyle }}
+            maw={`${scaledWidth}px`}
+            style={{ 
+                overflow: 'visible', 
+                ...glowStyle,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                width: `${scaledWidth}px`,
+                marginRight: `${Math.round(71 * (scale - 1))}px`,
+                marginBottom: `${Math.round(96 * (scale - 1))}px`,
+            }}
             p={0}
         >
             <Card/>

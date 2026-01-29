@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Stack, Paper, Text, Box, Group, Popover, Divider, Tooltip, ActionIcon } from '@mantine/core';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Group, Paper, Popover, Stack, Text } from '@mantine/core';
 import { useHover, useViewportSize } from '@mantine/hooks';
-import { IconPlus, IconMinus } from '@tabler/icons-react';
+import { IconMinus, IconPlus } from '@tabler/icons-react';
 import yaml from 'js-yaml';
 import {
   getValidValuesFor,
@@ -28,6 +28,25 @@ const COLORS = {
   editorBg: '#fef9f3',
   editorBgAlt: '#fff5eb',
 };
+
+// Consistent monospace font stack - legible but not too nerdy
+const MONO_FONT = '"JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace';
+
+// Consistent block styling - uniform size, very slight rounding
+const BLOCK_STYLE = {
+  height: '28px',
+  minWidth: '28px',
+  padding: '0 8px',
+  borderRadius: '3px',
+  fontSize: '13px',
+  fontWeight: 600,
+  fontFamily: MONO_FONT,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'background-color 0.1s, border-color 0.1s',
+} as const;
 
 interface InteractiveJamlEditorProps {
   initialJaml?: string;
@@ -72,6 +91,105 @@ const METADATA_KEYS = ['name', 'author', 'description', 'deck', 'stake', 'label'
 
 // Required keys that MUST have a value
 const REQUIRED_KEYS = ['joker', 'soulJoker', 'voucher', 'tarotCard', 'planetCard', 'spectralCard', 'standardCard', 'tag', 'boss'];
+
+// Special toggle display for antes - shows [0][1][2]...[8] as tight toggle buttons
+function AntesToggle({ 
+  values, 
+  onToggle, 
+  onStartEdit,
+  color,
+  darkColor 
+}: { 
+  values: string[]; 
+  onToggle: (val: string) => void;
+  onStartEdit: () => void;
+  color: string;
+  darkColor: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const maxAnte = 8;
+  
+  // Parse current values
+  const selectedAntes = new Set(values.map(v => parseInt(v, 10)).filter(n => !isNaN(n)));
+  
+  // Compute display text
+  const getDisplayText = () => {
+    if (selectedAntes.size === 0) return 'tap to select';
+    const sorted = Array.from(selectedAntes).sort((a, b) => a - b);
+    if (sorted.length === 1) return `Ante ${sorted[0]}`;
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    // Check if consecutive
+    const isConsecutive = sorted.every((v, i) => i === 0 || v === sorted[i - 1] + 1);
+    if (isConsecutive) return `Antes ${min}-${max}`;
+    return `Antes ${sorted.join(', ')}`;
+  };
+  
+  if (!expanded) {
+    return (
+      <Box
+        onClick={() => setExpanded(true)}
+        style={{
+          ...BLOCK_STYLE,
+          backgroundColor: selectedAntes.size > 0 ? `${darkColor}15` : `${COLORS.red}10`,
+          border: `1px solid ${selectedAntes.size > 0 ? darkColor : COLORS.red}40`,
+          color: selectedAntes.size > 0 ? darkColor : COLORS.darkRed,
+          minWidth: '100px',
+        }}
+      >
+        {getDisplayText()}
+      </Box>
+    );
+  }
+  
+  return (
+    <Group gap={0} wrap="nowrap">
+      {Array.from({ length: maxAnte + 1 }, (_, i) => i).map((ante) => {
+        const isSelected = selectedAntes.has(ante);
+        return (
+          <Box
+            key={ante}
+            onClick={(e) => {
+              e.stopPropagation();
+              // Toggle this ante
+              const newValues = isSelected
+                ? values.filter(v => parseInt(v, 10) !== ante)
+                : [...values, ante.toString()];
+              // Rebuild array - we need to update parent
+              onToggle(ante.toString());
+            }}
+            style={{
+              ...BLOCK_STYLE,
+              minWidth: '28px',
+              backgroundColor: isSelected ? `${darkColor}30` : 'transparent',
+              border: `1px solid ${isSelected ? darkColor : '#ccc'}`,
+              borderRight: ante < maxAnte ? 'none' : `1px solid ${isSelected ? darkColor : '#ccc'}`,
+              borderRadius: ante === 0 ? '3px 0 0 3px' : ante === maxAnte ? '0 3px 3px 0' : '0',
+              color: isSelected ? darkColor : '#999',
+              fontWeight: isSelected ? 700 : 500,
+            }}
+          >
+            {ante}
+          </Box>
+        );
+      })}
+      <Box
+        onClick={() => setExpanded(false)}
+        style={{
+          ...BLOCK_STYLE,
+          minWidth: '24px',
+          marginLeft: '4px',
+          backgroundColor: `${COLORS.green}20`,
+          border: `1px solid ${COLORS.green}`,
+          borderRadius: '3px',
+          color: COLORS.darkGreen,
+        }}
+      >
+        ✓
+      </Box>
+    </Group>
+  );
+}
 
 // Smart popover position: above unless would clip at top, then right
 type PopoverPosition = 'top' | 'top-start' | 'right' | 'right-start';
@@ -506,6 +624,19 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
     return () => document.removeEventListener('keydown', handleGlobalKeyDown);
   }, [editingLineId, focusedLineIndex, lines, findNextEditable]);
 
+  // Calculate max key length at each indent level for colon alignment
+  const maxKeyLengthByIndent = useMemo(() => {
+    const byIndent: Record<number, number> = {};
+    for (const line of lines) {
+      if (line.key) {
+        const indent = line.indent;
+        const keyLen = line.key.length;
+        byIndent[indent] = Math.max(byIndent[indent] || 0, keyLen);
+      }
+    }
+    return byIndent;
+  }, [lines]);
+
   return (
     <Paper 
       ref={editorRef}
@@ -517,18 +648,19 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
         flex: 1, 
         minWidth: 0, 
         backgroundColor: COLORS.editorBg,
-        fontFamily: '"Fira Code", "JetBrains Mono", Consolas, monospace',
-        fontSize: '14px',
+        fontFamily: MONO_FONT,
+        fontSize: '13px',
         fontWeight: 500,
-        lineHeight: 2,
+        lineHeight: 1.8,
         outline: 'none',
       }}
     >
-      <Stack gap={4}>
+      <Stack gap={2}>
         {lines.map((line, index) => (
           <JamlLine
             key={line.id}
             line={line}
+            keyWidth={maxKeyLengthByIndent[line.indent] || 8}
             isEditing={editingLineId === line.id}
             editingPart={editingLineId === line.id ? editingPart : null}
             editingArrayIndex={editingLineId === line.id ? editingArrayIndex : null}
@@ -554,27 +686,23 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
         ))}
       </Stack>
 
-      <Box mt="lg" p="md" style={{ backgroundColor: COLORS.editorBgAlt, borderRadius: '8px', border: `2px solid ${COLORS.gold}50` }}>
-        <Group gap="lg" wrap="wrap" mb="xs">
-          <Text size="sm" fw={600} c="dark">
-            <span style={{ color: COLORS.red, fontSize: '16px' }}>●</span> Required
-          </Text>
-          <Text size="sm" fw={600} c="dark">
-            <span style={{ color: COLORS.blue, fontSize: '16px' }}>●</span> Optional
-          </Text>
-          <Text size="sm" fw={600} c="dark">
-            <span style={{ color: COLORS.green, fontSize: '16px' }}>●</span> Complete
-          </Text>
-          <Text size="sm" fw={600} c="dark">
-            <span style={{ color: COLORS.purple, fontSize: '16px' }}>●</span> Metadata
-          </Text>
-          <Text size="sm" fw={600} c="dark">
-            <span style={{ color: COLORS.orange, fontWeight: 700, fontSize: '18px' }}>−</span> Delete
-          </Text>
+      <Box mt="md" p="sm" style={{ backgroundColor: COLORS.editorBgAlt, borderRadius: '4px', border: `1px solid ${COLORS.gold}40` }}>
+        <Group gap="md" wrap="wrap" mb={4}>
+          <span style={{ fontFamily: MONO_FONT, fontSize: '12px', color: '#666' }}>
+            <span style={{ color: COLORS.red }}>●</span> required
+          </span>
+          <span style={{ fontFamily: MONO_FONT, fontSize: '12px', color: '#666' }}>
+            <span style={{ color: COLORS.blue }}>●</span> optional
+          </span>
+          <span style={{ fontFamily: MONO_FONT, fontSize: '12px', color: '#666' }}>
+            <span style={{ color: COLORS.green }}>●</span> complete
+          </span>
+          <span style={{ fontFamily: MONO_FONT, fontSize: '12px', color: '#666' }}>
+            <span style={{ color: COLORS.purple }}>●</span> metadata
+          </span>
         </Group>
-        <Divider my="sm" color={COLORS.gold} opacity={0.4} />
-        <Text size="sm" fw={500} style={{ color: '#555' }}>
-          <strong>Tab</strong> to navigate • <strong>Enter</strong> to confirm & advance • Click any value to edit • Arrow keys in suggestions
+        <Text size="xs" style={{ fontFamily: MONO_FONT, color: '#888' }}>
+          Tab/Shift+Tab to navigate • Enter to confirm • Click to edit
         </Text>
       </Box>
     </Paper>
@@ -584,6 +712,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
 // Individual line component
 interface JamlLineProps {
   line: ParsedLine;
+  keyWidth: number; // Character width for key alignment
   isEditing: boolean;
   editingPart: 'key' | 'value' | 'arrayItem' | null;
   editingArrayIndex: number | null;
@@ -600,6 +729,7 @@ interface JamlLineProps {
 
 function JamlLine({ 
   line, 
+  keyWidth,
   isEditing, 
   editingPart,
   editingArrayIndex,
@@ -883,12 +1013,10 @@ function JamlLine({
       wrap="nowrap"
       onClick={handleLineClick}
       style={{ 
-        padding: '4px 0', 
+        padding: '2px 0', 
         position: 'relative',
-        backgroundColor: lineHovered && line.isArrayItem ? `${COLORS.orange}08` : 'transparent',
-        transition: 'background-color 0.15s',
-        cursor: lineHovered && line.isArrayItem ? 'pointer' : 'default',
-        borderRadius: '4px',
+        backgroundColor: 'transparent',
+        cursor: 'default',
       }}
     >
       {/* Delete zone indicator */}
@@ -917,7 +1045,7 @@ function JamlLine({
         {indentSpaces}{prefix}
       </Text>
 
-      {/* Key */}
+      {/* Key - only highlights when hovering the key itself */}
       {line.key && (
         <Popover 
           opened={isEditing && editingPart === 'key' && showSuggestions}
@@ -927,20 +1055,26 @@ function JamlLine({
           shadow="md"
         >
           <Popover.Target>
-            <Text
+            <Box
               ref={keyTargetRef}
-              span
               onClick={(e) => { e.stopPropagation(); onStartEdit('key'); }}
               style={{
-                color: lineHovered || (isEditing && editingPart === 'key') ? getBrightColor() : getColor(),
-                backgroundColor: (lineHovered || (isEditing && editingPart === 'key')) ? `${getBrightColor()}18` : 'transparent',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                fontWeight: 600,
-                fontSize: '14px',
-                border: `1px solid ${(lineHovered || (isEditing && editingPart === 'key')) ? getBrightColor() : 'transparent'}`,
+                ...BLOCK_STYLE,
+                minWidth: `${keyWidth}ch`,
+                justifyContent: 'flex-start',
+                color: (isEditing && editingPart === 'key') ? getBrightColor() : getColor(),
+                backgroundColor: (isEditing && editingPart === 'key') ? `${getBrightColor()}15` : 'transparent',
+                border: `1px solid transparent`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = `${getBrightColor()}15`;
+                e.currentTarget.style.borderColor = `${getBrightColor()}40`;
+              }}
+              onMouseLeave={(e) => {
+                if (!(isEditing && editingPart === 'key')) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = 'transparent';
+                }
               }}
             >
               {isEditing && editingPart === 'key' ? (
@@ -956,15 +1090,15 @@ function JamlLine({
                     border: 'none',
                     outline: 'none',
                     color: getColor(),
-                    fontFamily: 'inherit',
-                    fontSize: '15px',
-                    fontWeight: 700,
+                    fontFamily: MONO_FONT,
+                    fontSize: '13px',
+                    fontWeight: 600,
                     width: `${Math.max(localValue.length, 4)}ch`,
                     padding: 0,
                   }}
                 />
               ) : line.key}
-            </Text>
+            </Box>
           </Popover.Target>
           <Popover.Dropdown p={4} style={{ minWidth: '180px' }}>
             <SuggestionList
@@ -1056,48 +1190,67 @@ function JamlLine({
               </Group>
             </Stack>
           ) : (
-            // Inline pill style when not editing
-            <Group gap={4} wrap="wrap" onClick={(e) => e.stopPropagation()} style={{ marginLeft: '4px' }}>
-              <Text span style={{ color: '#666' }}>[</Text>
-              {line.arrayValues.map((item, idx) => (
-                <React.Fragment key={idx}>
-                  <ArrayItem
-                    value={item}
-                    index={idx}
-                    isEditing={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx}
-                    lineHovered={lineHovered}
-                    color={getBrightColor()}
-                    darkColor={getColor()}
-                    onStartEdit={() => { setIsArrayExpanded(true); onStartEdit('arrayItem', idx); }}
-                    onEndEdit={onEndEdit}
-                    onChange={(newValue) => onArrayItemChange(idx, newValue)}
-                    onRemove={() => onArrayItemRemove(idx)}
-                    onEnter={onEnter}
-                    suggestions={suggestions}
-                    selectedIndex={selectedIndex}
-                    onSuggestionSelect={handleSuggestionClick}
-                    onSuggestionHover={setSelectedIndex}
-                    showSuggestions={isEditing && editingPart === 'arrayItem' && editingArrayIndex === idx && showSuggestions}
-                  />
-                  {idx < line.arrayValues!.length - 1 && <Text span style={{ color: '#666' }}>,</Text>}
-                </React.Fragment>
-              ))}
-              <Tooltip label="Add item" position="top">
-                <ActionIcon 
-                  size="xs" 
-                  variant="subtle" 
-                  color="green"
-                  onClick={(e) => { e.stopPropagation(); setIsArrayExpanded(true); onStartEdit('arrayItem', line.arrayValues!.length); }}
-                  style={{ opacity: lineHovered ? 1 : 0.4 }}
-                >
-                  <IconPlus size={12} />
-                </ActionIcon>
-              </Tooltip>
-              <Text span style={{ color: '#666' }}>]</Text>
+            // Tight toggle buttons - no gaps, no brackets, no x-out overlays
+            <Group gap={0} wrap="nowrap" onClick={(e) => e.stopPropagation()} style={{ marginLeft: '4px' }}>
+              {line.key === 'antes' ? (
+                // Special ante toggle display
+                <AntesToggle
+                  values={line.arrayValues || []}
+                  onToggle={(val) => {
+                    const current = line.arrayValues || [];
+                    const idx = current.indexOf(val);
+                    if (idx >= 0) {
+                      // Remove by index
+                      onArrayItemRemove(idx);
+                    } else {
+                      // Add
+                      onArrayItemAdd(val);
+                    }
+                  }}
+                  onStartEdit={() => { setIsArrayExpanded(true); onStartEdit('arrayItem', 0); }}
+                  color={getBrightColor()}
+                  darkColor={getColor()}
+                />
+              ) : (
+                // Regular array items - tight, no gaps
+                <>
+                  {line.arrayValues.map((item, idx) => (
+                    <Box
+                      key={idx}
+                      onClick={() => { setIsArrayExpanded(true); onStartEdit('arrayItem', idx); }}
+                      style={{
+                        ...BLOCK_STYLE,
+                        minWidth: '24px',
+                        backgroundColor: `${getColor()}15`,
+                        border: `1px solid ${getColor()}40`,
+                        borderRight: idx < line.arrayValues!.length - 1 ? 'none' : `1px solid ${getColor()}40`,
+                        borderRadius: idx === 0 ? '3px 0 0 3px' : idx === line.arrayValues!.length - 1 ? '0 3px 3px 0' : '0',
+                        color: getColor(),
+                      }}
+                    >
+                      {item}
+                    </Box>
+                  ))}
+                  <Box
+                    onClick={(e) => { e.stopPropagation(); setIsArrayExpanded(true); onStartEdit('arrayItem', line.arrayValues!.length); }}
+                    style={{
+                      ...BLOCK_STYLE,
+                      minWidth: '24px',
+                      backgroundColor: `${COLORS.green}15`,
+                      border: `1px solid ${COLORS.green}40`,
+                      borderRadius: '0 3px 3px 0',
+                      color: COLORS.green,
+                      opacity: lineHovered ? 1 : 0.5,
+                    }}
+                  >
+                    +
+                  </Box>
+                </>
+              )}
             </Group>
           )
         ) : (
-          // Single value
+          // Single value - consistent block style, only highlights on hover of value itself
           <Popover 
             opened={isEditing && editingPart === 'value' && showSuggestions}
             position={valuePopoverPosition}
@@ -1109,26 +1262,33 @@ function JamlLine({
               <Box
                 ref={valueTargetRef}
                 onClick={(e) => { e.stopPropagation(); onStartEdit('value'); }}
+                onMouseEnter={(e) => {
+                  if (!line.isInvalidValue) {
+                    e.currentTarget.style.backgroundColor = line.value ? `${getColor()}25` : `${COLORS.red}20`;
+                    e.currentTarget.style.borderColor = line.value ? getColor() : COLORS.red;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!(isEditing && editingPart === 'value')) {
+                    e.currentTarget.style.backgroundColor = line.isInvalidValue 
+                      ? `${COLORS.red}15` 
+                      : (line.value ? `${getColor()}10` : `${COLORS.red}08`);
+                    e.currentTarget.style.borderColor = line.isInvalidValue 
+                      ? `${COLORS.red}60` 
+                      : (line.value ? `${getColor()}40` : `${COLORS.red}40`);
+                  }
+                }}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  minHeight: '32px',
+                  ...BLOCK_STYLE,
+                  minWidth: line.value ? undefined : '80px',
                   color: line.isInvalidValue ? COLORS.red : (line.value ? getColor() : COLORS.darkRed),
-                  backgroundColor: line.isInvalidValue
-                    ? `${COLORS.red}20`
-                    : (lineHovered || (isEditing && editingPart === 'value'))
-                      ? (line.value ? `${getBrightColor()}18` : `${COLORS.red}15`)
-                      : (!line.value ? `${COLORS.red}08` : `${getColor()}08`),
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  backgroundColor: line.isInvalidValue 
+                    ? `${COLORS.red}15` 
+                    : (isEditing && editingPart === 'value') 
+                      ? `${getColor()}25` 
+                      : (line.value ? `${getColor()}10` : `${COLORS.red}08`),
+                  border: `1px solid ${line.isInvalidValue ? `${COLORS.red}60` : (line.value ? `${getColor()}40` : `${COLORS.red}40`)}`,
                   textDecoration: line.isInvalidValue ? 'line-through' : 'none',
-                  minWidth: line.value ? undefined : '100px',
-                  border: `1px solid ${line.isInvalidValue ? COLORS.red : (line.value ? getColor() : COLORS.darkRed)}${lineHovered || isEditing ? '' : '40'}`,
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  boxShadow: (lineHovered || isEditing) ? `0 0 0 2px ${getBrightColor()}30` : 'none',
                 }}
               >
                 {isEditing && editingPart === 'value' ? (
@@ -1144,17 +1304,17 @@ function JamlLine({
                       border: 'none',
                       outline: 'none',
                       color: getColor(),
-                      fontFamily: 'inherit',
-                      fontSize: '14px',
+                      fontFamily: MONO_FONT,
+                      fontSize: '13px',
                       fontWeight: 600,
-                      width: `${Math.max(localValue.length, 8)}ch`,
+                      width: `${Math.max(localValue.length, 6)}ch`,
                       padding: 0,
                     }}
                   />
                 ) : line.isInvalidValue ? (
-                  <span title="Invalid - click to fix">~{line.value}~</span>
+                  <span title="Invalid - click to fix">{line.value}</span>
                 ) : (
-                  line.value || <span style={{ opacity: 0.5, fontStyle: 'italic', fontWeight: 500 }}>{lineHovered ? 'tap to edit' : '???'}</span>
+                  line.value || <span style={{ opacity: 0.6, fontWeight: 500 }}>???</span>
                 )}
               </Box>
             </Popover.Target>
@@ -1270,46 +1430,13 @@ function ArrayItem({
           }}
           onClick={onStartEdit}
           style={{
-            position: 'relative',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minWidth: '20px',
-            height: '22px',
-            backgroundColor: isEditing ? `${color}20` : (hovered ? `${color}18` : 'transparent'),
-            border: `1px solid ${hovered || isEditing ? color : `${darkColor}55`}`,
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            boxShadow: 'none',
+            ...BLOCK_STYLE,
+            minWidth: '24px',
+            backgroundColor: isEditing ? `${color}20` : (hovered ? `${color}15` : `${darkColor}08`),
+            border: `1px solid ${hovered || isEditing ? color : `${darkColor}40`}`,
           }}
         >
-          {/* Delete X on hover - top right corner */}
-          {(hovered || lineHovered) && !isEditing && (
-            <Box
-              onClick={(e) => { e.stopPropagation(); onRemove(); }}
-              style={{
-                position: 'absolute',
-                top: '-6px',
-                right: '-6px',
-                width: '14px',
-                height: '14px',
-                backgroundColor: COLORS.darkOrange,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '10px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: 'none',
-              }}
-            >
-              ×
-            </Box>
-          )}
-          
+          {/* No floating x-out button - use left delete zone instead */}
           {isEditing ? (
             <input
               ref={inputRef}
@@ -1323,18 +1450,18 @@ function ArrayItem({
                 border: 'none',
                 outline: 'none',
                 color: darkColor,
-                fontFamily: 'inherit',
-                fontSize: '12px',
+                fontFamily: MONO_FONT,
+                fontSize: '13px',
                 fontWeight: 600,
                 width: `${Math.max(localValue.length, 2)}ch`,
-                padding: '0 2px',
+                padding: 0,
                 textAlign: 'center',
               }}
             />
           ) : (
-            <Text fw={600} style={{ color: darkColor, fontSize: '12px' }}>
+            <span style={{ color: darkColor, fontSize: '13px', fontWeight: 600 }}>
               {value}
-            </Text>
+            </span>
           )}
         </Box>
       </Popover.Target>
@@ -1471,16 +1598,10 @@ function LongFormArrayItem({
             ref={targetRef}
             onClick={onStartEdit}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              minWidth: '40px',
-              height: '24px',
+              ...BLOCK_STYLE,
+              minWidth: '32px',
               backgroundColor: isEditing ? `${color}20` : (hovered ? `${color}15` : `${darkColor}08`),
-              border: `2px solid ${hovered || isEditing ? color : `${darkColor}50`}`,
-              borderRadius: '4px',
-              cursor: 'pointer',
-              padding: '0 8px',
-              transition: 'all 0.15s',
+              border: `1px solid ${hovered || isEditing ? color : `${darkColor}40`}`,
             }}
           >
             {isEditing ? (
@@ -1496,7 +1617,7 @@ function LongFormArrayItem({
                   border: 'none',
                   outline: 'none',
                   color: darkColor,
-                  fontFamily: 'inherit',
+                  fontFamily: MONO_FONT,
                   fontSize: '13px',
                   fontWeight: 600,
                   width: `${Math.max(localValue.length, 3)}ch`,
@@ -1504,9 +1625,9 @@ function LongFormArrayItem({
                 }}
               />
             ) : (
-              <Text fw={600} style={{ color: darkColor, fontSize: '13px' }}>
+              <span style={{ color: darkColor, fontSize: '13px', fontWeight: 600 }}>
                 {value}
-              </Text>
+              </span>
             )}
           </Box>
         </Popover.Target>
@@ -1541,24 +1662,29 @@ function SuggestionList({ suggestions, selectedIndex, onSelect, onHover }: Sugge
   }
 
   return (
-    <Stack gap={4} onMouseDown={(e) => e.preventDefault()}>
+    <Stack gap={2} onMouseDown={(e) => e.preventDefault()}>
       {suggestions.map((suggestion, index) => (
         <Box
           key={suggestion}
           onClick={() => onSelect(suggestion)}
           onMouseEnter={() => onHover(index)}
           style={{
-            padding: '8px 12px',
-            cursor: 'pointer',
-            backgroundColor: index === selectedIndex ? `${COLORS.blue}25` : 'transparent',
-            border: index === selectedIndex ? `2px solid ${COLORS.blue}` : '2px solid transparent',
-            borderRadius: '6px',
-            transition: 'all 0.1s',
+            ...BLOCK_STYLE,
+            height: 'auto',
+            padding: '6px 10px',
+            justifyContent: 'flex-start',
+            backgroundColor: index === selectedIndex ? `${COLORS.blue}20` : 'transparent',
+            border: `1px solid ${index === selectedIndex ? `${COLORS.blue}60` : 'transparent'}`,
           }}
         >
-          <Text size="sm" fw={index === selectedIndex ? 700 : 500} style={{ color: index === selectedIndex ? COLORS.darkBlue : '#333' }}>
+          <span style={{ 
+            fontFamily: MONO_FONT,
+            fontSize: '13px',
+            fontWeight: index === selectedIndex ? 600 : 500, 
+            color: index === selectedIndex ? COLORS.darkBlue : '#444' 
+          }}>
             {suggestion}
-          </Text>
+          </span>
         </Box>
       ))}
     </Stack>

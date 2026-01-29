@@ -171,6 +171,11 @@ const blueprintStorage: StateStorage = {
         const immolateState = getImmolateStateFromUrl();
 
 
+        // Also read viewMode and selectedAnte from URL
+        const params = new URLSearchParams(window.location.search);
+        const viewMode = params.get('view') || initialState.applicationState.viewMode;
+        const selectedAnte = parseInt(params.get('ante') || '1');
+        
         const results = {
             state: {
                 immolateState: {
@@ -179,7 +184,9 @@ const blueprintStorage: StateStorage = {
                 },
                 applicationState: {
                     ...initialState.applicationState,
-                    start: !!immolateState.seed
+                    start: !!immolateState.seed,
+                    viewMode,
+                    selectedAnte,
                 },
                 shoppingState: {
                     ...initialState.shoppingState,
@@ -199,6 +206,14 @@ const blueprintStorage: StateStorage = {
                 params.set(key, String(value));
             }
         });
+        
+        // Also sync viewMode and selectedAnte to URL
+        if (parsedValue.state.applicationState?.viewMode) {
+            params.set('view', parsedValue.state.applicationState.viewMode);
+        }
+        if (parsedValue.state.applicationState?.selectedAnte) {
+            params.set('ante', String(parsedValue.state.applicationState.selectedAnte));
+        }
 
         // Update URL without reloading the page
         const newUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;

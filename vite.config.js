@@ -7,9 +7,10 @@ export default defineConfig({
   plugins: [react()],
   base: env.BASE_PATH || '/',
   server: {
-    port: 4444,
+    port: 3141,
+    host: true,
     cors: true,
-    allowedHosts: ['*.8pi.me'],
+    allowedHosts: true, // Allow any host
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

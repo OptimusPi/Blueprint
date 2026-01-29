@@ -243,6 +243,13 @@ export function getValidValuesFor(clauseType: string, propertyKey?: string): str
       // Common slot indices
       return ['0', '1', '2', '3', '4', '5'];
     
+    case 'source':
+      // Layout source options
+      return [...LAYOUT_SOURCES];
+    
+    case 'colspan':
+      return ['1', '2', '3'];
+    
     case 'deck':
       return ALL_DECKS;
     
@@ -335,10 +342,34 @@ export function getSuggestedPropertiesFor(clauseType: string): Array<{key: strin
 }
 
 /**
+ * Layout row configuration for custom views
+ */
+export interface LayoutRow {
+  colspan?: number;  // 1, 2, or 3 (columns to span)
+  source: string;    // shopSlots, packSlots, voucher, smallBlind, bigBlind, bossBlind, tag, boss
+  slots?: Array<number>;  // Optional slot indices to show
+}
+
+/**
+ * Valid layout sources
+ */
+export const LAYOUT_SOURCES = [
+  'shopSlots',
+  'voucher', 
+  'packSlots',
+  'smallBlind',
+  'bigBlind',
+  'bossBlind',
+  'tag',
+  'boss',
+  'customSource',
+] as const;
+
+/**
  * Get all valid top-level JAML keys
  */
 export function getTopLevelKeys(): string[] {
-  return ['name', 'author', 'description', 'deck', 'stake', 'must', 'should', 'mustNot'];
+  return ['name', 'author', 'description', 'deck', 'stake', 'layout', 'must', 'should', 'mustNot'];
 }
 
 /**

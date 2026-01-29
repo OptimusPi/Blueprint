@@ -328,7 +328,8 @@ export function Aside() {
                                     // Dispatch custom event that Custom view can listen to
                                     // Use the currently selected ante from the store
                                     const currentAnte = selectedAnte || 1;
-                                    const sourceKey = `${sourceType}-${sourceName}-${currentAnte}`;
+                                    // Key format matches MiscCardSourcesDisplay: ${sourceType}-${sourceName}
+                                    const sourceKey = `${sourceType}-${sourceName}`;
                                     const isAdded = addedSourceNames.has(sourceKey);
                                     window.dispatchEvent(new CustomEvent('addCustomSource', {
                                         detail: { 

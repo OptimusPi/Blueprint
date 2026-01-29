@@ -96,7 +96,11 @@ export default function NavBar() {
                 minWidth: '250px', 
                 maxWidth: 'min(450px, 100%)',
                 overscrollBehavior: 'contain',
-                overflowX: 'hidden'
+                overflowX: 'hidden',
+                height: '100vh',
+                maxHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
             }}
         >
             <UnlocksModal />
@@ -107,7 +111,7 @@ export default function NavBar() {
                 targetIndex={rerollCalculatorMetadata?.index ?? 0}
                 metaData={rerollCalculatorMetadata}
             />
-            <AppShell.Section px={0}>
+            <AppShell.Section px={0} style={{ flex: '0 0 auto' }}>
                 <SegmentedControl
                     fullWidth
                     value={viewMode}
@@ -145,7 +149,7 @@ export default function NavBar() {
                             label: (
                                 <Group gap={4} wrap="nowrap" align="center">
                                     <img 
-                                        src="images/JAML.ico" 
+                                        src="/images/JAML.ico" 
                                         alt="JAML" 
                                         style={{ width: '18px', height: '18px', objectFit: 'contain' }}
                                     />
@@ -165,7 +169,9 @@ export default function NavBar() {
                 style={{ 
                     overflowY: 'auto', 
                     overflowX: 'hidden',
-                    overscrollBehavior: 'contain'
+                    overscrollBehavior: 'contain',
+                    flex: '1 1 auto',
+                    minHeight: 0, // Important for flex scroll
                 }}
             >
                 <Group grow gap="xs" mb="xs">
@@ -400,7 +406,7 @@ export default function NavBar() {
                     </Box>
                 </Group>
             </AppShell.Section>
-            <AppShell.Section my={0}>
+            <AppShell.Section my={0} style={{ flex: '0 0 auto' }}>
                 <Stack gap="xs">
                     <Button
                         onClick={handleAnalyzeClick}
