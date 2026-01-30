@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite dev --host --port 3141",
+    "dev": "vite dev --host --port 4444",
     "build": "vite build",
     "preview": "vite preview --host"
   },
