@@ -1037,7 +1037,7 @@ function JamlView() {
                     </Group>
                 </Stack>
             </Modal>
-        </>
+        </Stack>
     );
 }
 
