@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Group, Paper, Popover, Stack, Text } from '@mantine/core';
-import { useHover, useViewportSize } from '@mantine/hooks';
+import { useHover } from '@mantine/hooks';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
 import yaml from 'js-yaml';
 import {
@@ -28,9 +28,9 @@ const COLORS = {
   purple: '#7d60e0',
   darkPurple: '#292189',
 
-  // Editor background - very light cream/orange tint to match Balatro vibe
-  editorBg: '#fef9f3',
-  editorBgAlt: '#fff5eb',
+  // Editor background - matching Balatro dark theme
+  editorBg: '#1e2b2d',
+  editorBgAlt: '#33464b',
 };
 
 // Consistent monospace font stack - legible but not too nerdy
@@ -166,7 +166,9 @@ function AntesToggle({
               ...BLOCK_STYLE,
               minWidth: '28px',
               backgroundColor: isSelected ? `${darkColor}30` : 'transparent',
-              border: `1px solid ${isSelected ? darkColor : '#ccc'}`,
+              borderTop: `1px solid ${isSelected ? darkColor : '#ccc'}`,
+              borderBottom: `1px solid ${isSelected ? darkColor : '#ccc'}`,
+              borderLeft: `1px solid ${isSelected ? darkColor : '#ccc'}`,
               borderRight: ante < maxAnte ? 'none' : `1px solid ${isSelected ? darkColor : '#ccc'}`,
               borderRadius: ante === 0 ? '3px 0 0 3px' : ante === maxAnte ? '0 3px 3px 0' : '0',
               color: isSelected ? darkColor : '#999',
@@ -195,32 +197,7 @@ function AntesToggle({
   );
 }
 
-// Smart popover position: above unless would clip at top, then right
-type PopoverPosition = 'top' | 'top-start' | 'right' | 'right-start';
-
-function useSmartPopoverPosition(
-  targetRef: React.RefObject<HTMLElement | null>,
-  isOpen: boolean
-): PopoverPosition {
-  const { height: viewportHeight } = useViewportSize();
-  const [position, setPosition] = useState<PopoverPosition>('top-start');
-
-  useEffect(() => {
-    if (!isOpen || !targetRef.current) return;
-
-    const rect = targetRef.current.getBoundingClientRect();
-    // If target is in top 180px of viewport, popover might clip - use right position
-    const topThreshold = 180;
-
-    if (rect.top < topThreshold) {
-      setPosition('right-start');
-    } else {
-      setPosition('top-start');
-    }
-  }, [isOpen, targetRef, viewportHeight]);
-
-  return position;
-}
+// Smart popover position logic removed in favor of Mantine's built-in collision detection
 
 export function InteractiveJamlEditor({ initialJaml, onJamlChange }: InteractiveJamlEditorProps) {
   const [lines, setLines] = useState<ParsedLine[]>([]);
@@ -267,11 +244,11 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
 
       // Track section context
       if (key === 'must') {
-        inMust = true;
-        inShould = false;
+        // inMust = true;
+        // inShould = false;
       } else if (key === 'should') {
-        inShould = true;
-        inMust = false;
+        // inShould = true;
+        // inMust = false;
       }
 
       // Track clause type
@@ -766,9 +743,9 @@ function JamlLine({
   // Long-form array editing: expand to vertical list when editing
   const [isArrayExpanded, setIsArrayExpanded] = useState(false);
 
-  // Smart popover positioning
-  const keyPopoverPosition = useSmartPopoverPosition(keyTargetRef, isEditing && editingPart === 'key' && showSuggestions);
-  const valuePopoverPosition = useSmartPopoverPosition(valueTargetRef, isEditing && editingPart === 'value' && showSuggestions);
+  // Mantine handles positioning automatically now
+  // const keyPopoverPosition = useSmartPopoverPosition(keyTargetRef, isEditing && editingPart === 'key' && showSuggestions);
+  // const valuePopoverPosition = useSmartPopoverPosition(valueTargetRef, isEditing && editingPart === 'value' && showSuggestions);
 
   // Expand array when we start editing it
   useEffect(() => {
@@ -785,19 +762,19 @@ function JamlLine({
     }
   }, [isEditing, isArrayExpanded]);
 
-  // Get validation color (for light background, use darker variants as base)
+  // Get validation color (for dark background, use bright variants)
   const getColor = () => {
     switch (line.validationState) {
-      case 'required-incomplete': return COLORS.darkRed;
-      case 'optional-incomplete': return COLORS.darkBlue;
-      case 'complete': return COLORS.darkGreen;
-      case 'invalid': return COLORS.darkRed;
-      case 'metadata': return COLORS.darkPurple;
-      default: return '#555';
+      case 'required-incomplete': return COLORS.red;
+      case 'optional-incomplete': return COLORS.blue;
+      case 'complete': return COLORS.green;
+      case 'invalid': return COLORS.red;
+      case 'metadata': return COLORS.purple;
+      default: return '#ccc';
     }
   };
 
-  // Brighter color for hover/active states
+  // Brighter color for hover/active states (same for now on dark theme)
   const getBrightColor = () => {
     switch (line.validationState) {
       case 'required-incomplete': return COLORS.red;
@@ -805,7 +782,7 @@ function JamlLine({
       case 'complete': return COLORS.green;
       case 'invalid': return COLORS.red;
       case 'metadata': return COLORS.purple;
-      default: return '#888';
+      default: return '#fff';
     }
   };
 
@@ -1072,7 +1049,7 @@ function JamlLine({
       {line.key && (
         <Popover
           opened={isEditing && editingPart === 'key' && showSuggestions}
-          position={keyPopoverPosition}
+          position="bottom-start"
           offset={4}
           withArrow
           shadow="md"
@@ -1245,7 +1222,9 @@ function JamlLine({
                         ...BLOCK_STYLE,
                         minWidth: '24px',
                         backgroundColor: `${getColor()}15`,
-                        border: `1px solid ${getColor()}40`,
+                        borderTop: `1px solid ${getColor()}40`,
+                        borderBottom: `1px solid ${getColor()}40`,
+                        borderLeft: `1px solid ${getColor()}40`,
                         borderRight: idx < line.arrayValues!.length - 1 ? 'none' : `1px solid ${getColor()}40`,
                         borderRadius: idx === 0 ? '3px 0 0 3px' : idx === line.arrayValues!.length - 1 ? '0 3px 3px 0' : '0',
                         color: getColor(),
@@ -1276,7 +1255,7 @@ function JamlLine({
           // Single value - consistent block style, only highlights on hover of value itself
           <Popover
             opened={isEditing && editingPart === 'value' && showSuggestions}
-            position={valuePopoverPosition}
+            position="bottom-start"
             offset={4}
             withArrow
             shadow="md"
@@ -1400,7 +1379,7 @@ function ArrayItem({
   const targetRef = useRef<HTMLDivElement>(null);
   const isClickingSuggestion = useRef(false);
 
-  const popoverPosition = useSmartPopoverPosition(targetRef, showSuggestions);
+
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -1548,7 +1527,7 @@ function LongFormArrayItem({
   const targetRef = useRef<HTMLDivElement>(null);
   const isClickingSuggestion = useRef(false);
 
-  const popoverPosition = useSmartPopoverPosition(targetRef, showSuggestions);
+
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -1615,7 +1594,7 @@ function LongFormArrayItem({
       </Box>
 
       {/* Value */}
-      <Popover opened={showSuggestions} position={popoverPosition} offset={4} withArrow shadow="md">
+      <Popover opened={showSuggestions} position="bottom-start" withinPortal offset={4} withArrow shadow="md">
         <Popover.Target>
           <Box
             ref={targetRef}
