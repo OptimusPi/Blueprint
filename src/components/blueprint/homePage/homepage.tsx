@@ -6,7 +6,7 @@ import {
     IconShoppingCart,
     IconUser
 } from '@tabler/icons-react';
-import { Container, Paper, SimpleGrid, Space, Stack, Text, ThemeIcon, Title, useMantineTheme } from '@mantine/core';
+import { Container, Paper, SimpleGrid, Space, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import React from "react";
 import { QuickAnalyze } from "../../SeedInputAutoComplete.tsx";
 import classes from './Homepage.module.css';
@@ -62,9 +62,8 @@ interface FeatureProps {
 }
 
 export function Feature({ icon: Icon, title, description }: FeatureProps) {
-    const theme = useMantineTheme();
     return (
-        <Paper withBorder p={'1rem'} shadow={'lg'} bg={theme.colors.dark[0]}>
+        <Paper withBorder p={'1rem'} shadow={'lg'}>
             <ThemeIcon variant="light" size={40} radius={40}>
                 <Icon size={18} stroke={1.5} />
             </ThemeIcon>
@@ -124,14 +123,13 @@ function HeroText() {
 }
 
 export function FeaturesGrid() {
-    const theme = useMantineTheme();
     const features = Features.map((feature, index) => <Feature {...feature} key={index} />);
 
     return (
         <Container className={classes.wrapper}>
             <HeroText />
             <Space my={'xl'} />
-            <Paper p={'2rem'} bg={theme.colors.dark[0]}>
+            <Paper p={'2rem'}>
                 <SimpleGrid
                     mt={60}
                     cols={{ base: 1, sm: 2, md: 3 }}
