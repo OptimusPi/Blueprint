@@ -532,7 +532,7 @@ function Main() {
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
             {SeedResults && viewMode === 'custom' && (
-                <MantineProvider theme={BalatroTheme} defaultColorScheme="dark">
+                <MantineProvider theme={JamlTheme} defaultColorScheme="dark">
                     <JamlView />
                 </MantineProvider>
             )}

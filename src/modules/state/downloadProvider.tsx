@@ -20,12 +20,12 @@ export function DownloadSeedResultProvider({ children }: { children: React.React
     const options = useSeedOptionsContainer()
     const SeedResults = useSeedResultsContainer()
 
-    const downloadImmolateResults = useCallback(() => {
+    const downloadSeedResults = useCallback(() => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
             JSON.stringify({
                 analyzeState: analyzeState,
                 options,
-                immolateResults: SeedResults
+                results: SeedResults
             }, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -38,7 +38,7 @@ export function DownloadSeedResultProvider({ children }: { children: React.React
     }, [SeedResults, analyzeState, options])
 
     return (
-        <DownloadSeedResultContext.Provider value={downloadImmolateResults}>
+        <DownloadSeedResultContext.Provider value={downloadSeedResults}>
             {children}
         </DownloadSeedResultContext.Provider>
     )

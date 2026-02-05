@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite dev --host --port 4444",
+    "dev": "vite dev --host --port 3141",
     "build": "vite build",
     "preview": "vite preview --host"
   },
@@ -19,7 +19,7 @@
     "immer": "^10.1.3",
     "js-convert-case": "^4.2.0",
     "js-yaml": "^4.1.1",
-    "motely-wasm": "^1.0.4",
+    "motely-wasm": "^1.0.9",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-error-boundary": "^5.0.0",
