@@ -16,8 +16,10 @@ import {
     SegmentedControl,
     Stack,
     Tabs,
-    Text
+    Text,
+    MantineProvider
 } from "@mantine/core";
+import { JamlTheme } from "../../../themes/JamlTheme.ts";
 import { toHeaderCase } from "js-convert-case";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { Boss, BoosterPack, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
@@ -519,8 +521,6 @@ function SeedExplorer() {
     )
 }
 
-import { MantineProvider } from "@mantine/core";
-import { BalatroTheme } from "../../../themes/Balatro.ts";
 
 function Main() {
     const SeedResults = useSeedResultsContainer()
