@@ -4,130 +4,72 @@ import {Box} from "@mantine/core";
 interface DragScrollProps {
     children: ReactNode;
     className?: string;
-    friction?: number;
     style?: React.CSSProperties;
+    hideScrollbar?: boolean;
 }
-export function DragScroll({children, className, friction = 0.95, style}: DragScrollProps) {
+
+export function DragScroll({children, className, style, hideScrollbar = false}: DragScrollProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [scrollLeft, setScrollLeft] = useState(0);
-    const [momentum, setMomentum] = useState(0);
-    const [lastX, setLastX] = useState(0);
-    const [lastTimestamp, setLastTimestamp] = useState(0);
+    const startXRef = useRef(0);
+    const scrollLeftRef = useRef(0);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
-
         setIsDragging(true);
-        setStartX(e.pageX - containerRef.current.offsetLeft);
-        setScrollLeft(containerRef.current.scrollLeft);
-        setLastX(e.pageX);
-        setLastTimestamp(Date.now());
-        setMomentum(0);
+        startXRef.current = e.pageX;
+        scrollLeftRef.current = containerRef.current.scrollLeft;
     };
 
     const handleTouchStart = (e: React.TouchEvent) => {
         if (!containerRef.current) return;
-
         setIsDragging(true);
-        setStartX(e.touches[0].pageX - containerRef.current.offsetLeft);
-        setScrollLeft(containerRef.current.scrollLeft);
-        setLastX(e.touches[0].pageX);
-        setLastTimestamp(Date.now());
-        setMomentum(0);
+        startXRef.current = e.touches[0].pageX;
+        scrollLeftRef.current = containerRef.current.scrollLeft;
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-        if (!isDragging || !containerRef.current) return;
-
-        e.preventDefault();
-        const x = e.pageX - containerRef.current.offsetLeft;
-        const delta = x - startX;
-        containerRef.current.scrollLeft = scrollLeft - delta;
-
-        // Calculate momentum
-        const now = Date.now();
-        const elapsed = now - lastTimestamp;
-        if (elapsed > 0) {
-            const velocity = (lastX - e.pageX) / elapsed;
-            setMomentum(velocity * 15);
-            setLastX(e.pageX);
-            setLastTimestamp(now);
-        }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-        if (!isDragging || !containerRef.current) return;
-
-        const x = e.touches[0].pageX - containerRef.current.offsetLeft;
-        const delta = x - startX;
-        containerRef.current.scrollLeft = scrollLeft - delta;
-
-        // Calculate momentum
-        const now = Date.now();
-        const elapsed = now - lastTimestamp;
-        if (elapsed > 0) {
-            const velocity = (lastX - e.touches[0].pageX) / elapsed;
-            setMomentum(velocity * 15);
-            setLastX(e.touches[0].pageX);
-            setLastTimestamp(now);
-        }
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    const handleTouchEnd = () => {
-        setIsDragging(false);
-    };
-
-    // Apply momentum scrolling
-    useEffect(() => {
-        if (isDragging || !containerRef.current) return;
-
-        let animationId: number;
-        let currentMomentum = momentum;
-
-        const animateMomentum = () => {
-            if (Math.abs(currentMomentum) < 0.1) return;
-
-            if (containerRef.current) {
-                containerRef.current.scrollLeft += currentMomentum;
-                currentMomentum *= friction;
-                animationId = requestAnimationFrame(animateMomentum);
-            }
-        };
-
-        if (Math.abs(momentum) > 0.1) {
-            animationId = requestAnimationFrame(animateMomentum);
-        }
-
-        return () => cancelAnimationFrame(animationId);
-    }, [isDragging, momentum, friction]);
-
-    // Add and remove event listeners
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
-        const handleMouseLeave = () => setIsDragging(false);
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const delta = e.pageX - startXRef.current;
+            container.scrollLeft = scrollLeftRef.current - delta;
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (!isDragging) return;
+            const delta = e.touches[0].pageX - startXRef.current;
+            container.scrollLeft = scrollLeftRef.current - delta;
+        };
+
+        const handleEnd = () => {
+            setIsDragging(false);
+        };
+
+        // Stop dragging if mouse leaves the window
+        const handleMouseLeave = () => {
+            if (isDragging) {
+                setIsDragging(false);
+            }
+        };
 
         document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-        document.addEventListener('touchmove', handleTouchMove, {passive: false});
-        document.addEventListener('touchend', handleTouchEnd);
-        container.addEventListener('mouseleave', handleMouseLeave);
+        document.addEventListener('mouseup', handleEnd);
+        document.addEventListener('mouseleave', handleMouseLeave);
+        document.addEventListener('touchmove', handleTouchMove, {passive: true});
+        document.addEventListener('touchend', handleEnd);
 
         return () => {
             document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('mouseup', handleEnd);
+            document.removeEventListener('mouseleave', handleMouseLeave);
             document.removeEventListener('touchmove', handleTouchMove);
-            document.removeEventListener('touchend', handleTouchEnd);
-            container?.removeEventListener('mouseleave', handleMouseLeave);
+            document.removeEventListener('touchend', handleEnd);
         };
-    }, [isDragging, scrollLeft, startX, lastX, lastTimestamp]);
+    }, [isDragging]);
 
     return (
         <Box
@@ -142,8 +84,10 @@ export function DragScroll({children, className, friction = 0.95, style}: DragSc
                 cursor: isDragging ? 'grabbing' : 'grab',
                 userSelect: 'none',
                 WebkitOverflowScrolling: 'touch',
+                ...(hideScrollbar && { scrollbarWidth: 'none', msOverflowStyle: 'none' }),
                 ...style
             }}
+            {...(hideScrollbar && { 'data-hide-scrollbar': true })}
         >
             {children}
         </Box>

@@ -1,0 +1,204 @@
+/* Fallback variables if no MantineProvider is present */
+:root {
+    --mantine-color-polaroidBg-0: #fbf9f5;
+    --mantine-color-polaroidBg-1: #efebe0;
+    --mantine-color-polaroidText-0: #1a1a1a;
+    --mantine-color-polaroidText-3: #666666;
+    --mantine-color-polaroidText-5: #999999;
+    --mantine-color-polaroidText-7: #cccccc;
+
+    --mantine-color-jamlRed-6: #d93126;
+    --mantine-color-jamlRed-7: #a02721;
+    --mantine-color-jamlRed-8: #70150f;
+
+    --mantine-color-jamlBlue-6: #006bb8;
+    --mantine-color-jamlBlue-8: #0057a1;
+
+    --mantine-color-jamlGreen-6: #2d8f63;
+    --mantine-color-jamlGreen-8: #215f46;
+    --mantine-color-jamlGreen-9: #184532;
+
+    --mantine-color-jamlOrange-6: #e68a00;
+    --mantine-color-jamlOrange-8: #a05b00;
+
+    --mantine-color-jamlGold-8: #8f6a2d;
+
+    --mantine-color-jamlPurple-6: #6a4ec0;
+    --mantine-color-jamlPurple-8: #292189;
+
+    --mantine-color-white: #ffffff;
+}
+
+.suggestionList {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.suggestionItem {
+    padding: 6px 10px;
+    cursor: pointer;
+    background-color: transparent;
+    color: #ffffff;
+    font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-left: 2px solid transparent;
+}
+
+.suggestionItem:hover {
+    /* Optional hover state if not handled by JS selection */
+}
+
+.suggestionItem[data-selected="true"] {
+    background-color: #b8883a;
+    /* Balatro Gold from COLORS.darkGold */
+    color: #1e2b2d;
+    /* Balatro Dark from COLORS.editorBg */
+    border-left: 2px solid #ffffff;
+}
+
+.noSuggestions {
+    padding: 10px;
+}
+
+.noSuggestionsText {
+    font-size: 12px;
+    color: #868e96;
+    /* dim color */
+    font-style: italic;
+}
+
+.block {
+    height: 28px;
+    min-width: 28px;
+    padding: 0 8px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.1s, border-color 0.1s;
+    font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+}
+
+.input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0;
+    margin: 0;
+}
+
+.addArrayItemBox {
+    display: inline-flex;
+    align-items: center;
+    min-width: 60px;
+    height: 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0 8px;
+    transition: all 0.15s;
+}
+
+.deleteZone {
+    width: 24px;
+    min-width: 24px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* New classes to replace inline styles */
+.lineWrapper {
+    padding: 2px 0;
+    position: relative;
+    background-color: transparent;
+    cursor: default;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+}
+
+.commentLine {
+    padding: 2px 8px 2px 32px;
+    color: var(--mantine-color-polaroidText-3);
+    font-style: italic;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.sectionHeader {
+    padding: 4px 8px 4px 32px;
+    font-weight: 700;
+    font-size: 13px;
+    margin-top: 8px;
+    border-bottom: 1px solid currentColor;
+}
+
+/* Contextual colors for section headers (managed via data-type or separate classes) */
+.sectionHeader[data-type="must"] {
+    color: var(--mantine-color-jamlRed-7);
+    border-bottom-color: rgba(160, 39, 33, 0.2);
+}
+
+.sectionHeader[data-type="should"] {
+    color: var(--mantine-color-jamlBlue-8);
+    border-bottom-color: rgba(0, 87, 161, 0.2);
+}
+
+.indentGuide {
+    white-space: pre;
+    color: var(--mantine-color-polaroidText-7);
+    /* Light gray for guide */
+}
+
+.colon {
+    color: var(--mantine-color-polaroidText-5);
+    /* Mid gray */
+}
+
+.arrayItemInput {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--mantine-color-jamlGreen-9);
+}
+
+.legendBox {
+    background-color: var(--mantine-color-polaroidBg-1);
+    border-radius: 4px;
+    border: 1px solid rgba(184, 136, 58, 0.4);
+}
+
+.legendItem {
+    font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legendDot {
+    font-size: 14px;
+    line-height: 1;
+}

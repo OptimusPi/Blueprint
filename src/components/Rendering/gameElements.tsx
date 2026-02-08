@@ -14,7 +14,7 @@ export function Voucher({voucherName}: { voucherName: string | null }) {
         rows: 4
     }));
     return (
-        <Box maw={'80px'}>
+        <Box maw={{ base: '71px', sm: '71px', md: '71px' }}>
             <RenderImagesWithCanvas
                 layers={layers}
                 spacing
@@ -36,7 +36,7 @@ export function BoosterPack({packName}: { packName: string | null }) {
         rows: 9
     }));
     return (
-        <Box maw={'80px'}>
+        <Box maw={{ base: '50px', sm: '60px', md: '70px' }}>
             <RenderImagesWithCanvas
                 layers={layers}
             />

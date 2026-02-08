@@ -1,35 +1,33 @@
+import React from "react",{useState, useEffect} from "react";
 import {
     AppShell,
     Box,
     Button,
-    Divider,
     Group,
     InputLabel,
     NativeSelect,
     NumberInput,
-    ScrollArea,
     SegmentedControl,
     Select,
     Stack,
     Switch,
     Text,
     Tooltip,
-    useMantineColorScheme,
     useMantineTheme
 } from "@mantine/core";
-import React, {useState, useEffect} from "react";
+
+import { DeckBackIcon, StakeChipIcon } from "../../Rendering/deckStakeIcons.tsx";
 import {
     IconFileText,
     IconJoker,
     IconLayout,
     IconListSearch,
-    IconMoon,
-    IconPlayCard,
-    IconSun
+    IconPlayCard
 } from "@tabler/icons-react";
 import { useCardStore } from "../../../modules/state/store.ts";
 import UnlocksModal from "../../unlocksModal.tsx";
 import FeaturesModal from "../../FeaturesModal.tsx";
+
 import {RerollCalculatorModal} from "../../RerollCalculatorModal.tsx";
 import {GaEvent} from "../../../modules/useGA.ts";
 import { useDebouncedCallback } from "@mantine/hooks";
@@ -37,30 +35,32 @@ import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
 import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
 import { useBlueprintTheme } from "../../../modules/state/themeProvider.tsx";
 import type { KnownThemes } from "../../../modules/state/themeProvider.tsx";
+import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
 
 
 export default function NavBar() {
-    const theme = useMantineTheme();
     const { theme: themeName, setTheme, themes } = useBlueprintTheme()
     const themeNames = Object.keys(themes);
     const colorScheme = useMantineColorScheme()
     const viewMode = useCardStore(state => state.applicationState.viewMode);
     const setViewMode = useCardStore(state => state.setViewMode);
+    const settingsOpen = useCardStore(state => state.applicationState.settingsOpen);
+    const toggleSettings = useCardStore(state => state.toggleSettings);
 
-    const analyzeState = useCardStore(state => state.immolateState);
-    const { seed, deck, stake, gameVersion: version, antes, cardsPerAnte } = analyzeState;
+    const analyzeState = useCardStore(state => state.engineState);
+    const { seed, deck, stake, gameVersion: version, minAnte, maxAnte, cardsPerAnte } = analyzeState;
     const showCardSpoilers = useCardStore(state => state.applicationState.showCardSpoilers);
     const useCardPeek = useCardStore(state => state.applicationState.useCardPeek);
     const setUseCardPeek = useCardStore(state => state.setUseCardPeek);
     const maxMiscCardSource = useCardStore(state => state.applicationState.maxMiscCardSource);
     const setMiscMaxSource = useCardStore(state => state.setMiscMaxSource);
 
-
     const setSeed = useCardStore(state => state.setSeed);
     const setDeck = useCardStore(state => state.setDeck);
     const setStake = useCardStore(state => state.setStake);
     const setVersion = useCardStore(state => state.setGameVersion);
-    const setAntes = useCardStore(state => state.setAntes);
+    const setMinAnte = useCardStore(state => state.setMinAnte);
+    const setMaxAnte = useCardStore(state => state.setMaxAnte);
     const setCardsPerAnte = useCardStore(state => state.setCardsPerAnte);
     const setShowCardSpoilers = useCardStore(state => state.setShowCardSpoilers);
     const setStart = useCardStore(state => state.setStart);
@@ -71,7 +71,6 @@ export default function NavBar() {
     const rerollCalculatorMetadata = useCardStore(state => state.applicationState.rerollCalculatorMetadata);
     const closeRerollCalculatorModal = useCardStore(state => state.closeRerollCalculatorModal);
     const reset = useCardStore(state => state.reset);
-    const hasSettingsChanged = useCardStore((state) => state.applicationState.hasSettingsChanged);
 
     const [localAntes, setLocalAntes] = useState<number | string>(antes);
     useEffect(() => { setLocalAntes(antes); }, [antes]);
@@ -83,8 +82,34 @@ export default function NavBar() {
         setStart(true);
     }
 
+
+    const handleViewModeChange = (value: string) => {
+        // If clicking JAML (custom), close the menu
+        if (value === 'custom') {
+            toggleSettings(); // Close the menu
+        } else {
+            // If switching from JAML to another view, switch to Blueprint instead
+            const nextView = viewMode === 'custom' ? 'blueprint' : value;
+            setViewMode(nextView);
+        }
+        setViewMode(value);
+    }
+
     return (
-        <AppShell.Navbar p="md">
+        <AppShell.Navbar
+            p="xs"
+            hidden={!settingsOpen}
+            style={{
+                minWidth: '250px',
+                maxWidth: 'min(450px, 100%)',
+                overscrollBehavior: 'contain',
+                overflowX: 'hidden',
+                height: '100vh',
+                maxHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+            }}
+        >
             <UnlocksModal />
             <UnlocksModal />
             <FeaturesModal />
@@ -95,172 +120,231 @@ export default function NavBar() {
                 targetIndex={rerollCalculatorMetadata?.index ?? 0}
                 metaData={rerollCalculatorMetadata}
             />
-            <AppShell.Section>
+            <AppShell.Section px={0} style={{ flex: '0 0 auto' }}>
                 <SegmentedControl
                     id="view-mode"
                     fullWidth
                     value={viewMode}
-                    onChange={(value: string) => setViewMode(value)}
+                    onChange={handleViewModeChange}
                     data={[
                         {
                             value: 'blueprint',
                             label: (
-                                <Group gap="xs">
-                                    <IconLayout size={16} />
-                                    <Text>Blueprint</Text>
+                                <Group gap={4} wrap="nowrap" align="center">
+                                    <IconLayout size={12} />
+                                    <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Blueprint</Text>
                                 </Group>
                             )
                         },
                         {
                             value: 'simple',
                             label: (
-                                <Group gap="xs">
-                                    <IconListSearch size={16} />
-                                    <Text>Efficiency</Text>
+                                <Group gap={4} wrap="nowrap" align="center">
+                                    <IconListSearch size={12} />
+                                    <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Efficiency</Text>
                                 </Group>
                             )
                         },
                         {
                             value: 'text',
                             label: (
-                                <Group gap="xs">
-                                    <IconFileText size={16} />
-                                    <Text>Text</Text>
+                                <Group gap={4} wrap="nowrap" align="center">
+                                    <IconFileText size={12} />
+                                    <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Text</Text>
+                                </Group>
+                            )
+                        },
+                        {
+                            value: 'custom',
+                            label: (
+                                <Group gap={4} wrap="nowrap" align="center">
+                                    <img
+                                        src="/images/JAML.ico"
+                                        alt="JAML"
+                                        style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+                                    />
+                                    <Text size="sm" style={{ whiteSpace: 'nowrap' }}>JAML</Text>
                                 </Group>
                             )
                         }
                     ]}
-                    mb="sm"
+                    mb="xs"
+                    size="sm"
                 />
-                <Divider mb='md' />
-
-                <Group align={'flex-end'}>
+            </AppShell.Section>
+            <AppShell.Section
+                pr="xs"
+                grow
+                my={0}
+                style={{
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    overscrollBehavior: 'contain',
+                    flex: '1 1 auto',
+                    minHeight: 0, // Important for flex scroll
+                }}
+            >
+                <Group grow gap="xs" mb="xs">
+                    <Box flex={1}>
+                        <SeedInputAutoComplete
+                            seed={seed}
+                            setSeed={setSeed}
+                        />
+                    </Box>
+                    <Box flex={1}>
+                        <NumberInput
+                            label={'Max Ante'}
+                            value={maxAnte}
+                            onChange={(val) => {
+                                const newMax = Number(val) || 8;
+                                setMaxAnte(Math.max(minAnte, Math.min(newMax, 39)));
+                            }}
+                            min={minAnte}
+                            max={39}
+                            size="sm"
+                            styles={{
+                                input: {
+                                    height: 'calc(var(--input-height-sm) + 4px)',
+                                    fontSize: 'var(--mantine-font-size-sm)'
+                                },
+                                label: {
+                                    fontSize: 'var(--mantine-font-size-sm)'
+                                }
+                            }}
+                        />
+                    </Box>
+                </Group>
+                <Group grow gap="xs" mb="xs">
                     <Select
-                        label={'Theme'}
-                        value={themeName}
-                        onChange={(t) => {
-                            if (!t) return
-                            setTheme(t as KnownThemes)
+                        label={'Choose Deck'}
+                        value={deck}
+                        onChange={(value) => {
+                            if (value) setDeck(value);
                         }}
-                        data={themeNames}
-                        flex={1}
+                        size="sm"
+                        data={[
+                            "Red Deck",
+                            "Blue Deck",
+                            "Yellow Deck",
+                            "Green Deck",
+                            "Black Deck",
+                            "Magic Deck",
+                            "Nebula Deck",
+                            "Ghost Deck",
+                            "Abandoned Deck",
+                            "Checkered Deck",
+                            "Zodiac Deck",
+                            "Painted Deck",
+                            "Anaglyph Deck",
+                            "Plasma Deck",
+                            "Erratic Deck"
+                        ]}
+                        leftSection={deck ? <DeckBackIcon deckName={deck} /> : null}
+                        styles={{
+                            input: {
+                                height: 'calc(var(--input-height-sm) + 4px)',
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            },
+                            label: {
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            },
+                            option: {
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            }
+                        }}
                     />
-                    <Switch
-                        size={'xl'}
-                        checked={colorScheme.colorScheme === 'dark'}
-                        thumbIcon={colorScheme.colorScheme === 'dark' ? (<IconSun size={16} color={'var(--mantine-color-teal-6)'} />) : (<IconMoon size={16} />)}
-                        onChange={colorScheme.toggleColorScheme}
+                    <Select
+                        label={'Choose Stake'}
+                        value={stake}
+                        onChange={(value) => {
+                            if (value) setStake(value);
+                        }}
+                        size="sm"
+                        data={[
+                            "White Stake",
+                            "Red Stake",
+                            "Green Stake",
+                            "Black Stake",
+                            "Blue Stake",
+                            "Purple Stake",
+                            "Orange Stake",
+                            "Gold Stake"
+                        ]}
+                        leftSection={stake ? <StakeChipIcon stakeName={stake} /> : null}
+                        styles={{
+                            input: {
+                                height: 'calc(var(--input-height-sm) + 4px)',
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            },
+                            label: {
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            },
+                            option: {
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            }
+                        }}
                     />
                 </Group>
-
-
-            </AppShell.Section>
-            <AppShell.Section id="seed-config" pr={'xs'} grow my="md" component={ScrollArea} scrollbars={'y'}>
-                <SeedInputAutoComplete
-                    seed={seed}
-                    setSeed={setSeed}
-                />
-                <NumberInput
-                    id="setting-max-ante"
-                    label={'Max Ante'}
-                    defaultValue={8}
-                    value={localAntes}
-                    onChange={(val: number | string) => {
-                        const num = typeof val === 'string' ? parseInt(val) || 8 : val;
-                        setLocalAntes(num);
-                        debouncedSetAntes(num);
-                    }}
-                />
-                <NativeSelect
-                    id="setting-deck"
-                    label={'Choose Deck'}
-                    value={deck}
-                    onChange={(e) => setDeck(e.currentTarget.value)}
-                >
-                    <option value="Red Deck">Red Deck</option>
-                    <option value="Blue Deck">Blue Deck</option>
-                    <option value="Yellow Deck">Yellow Deck</option>
-                    <option value="Green Deck">Green Deck</option>
-                    <option value="Black Deck">Black Deck</option>
-                    <option value="Magic Deck">Magic Deck</option>
-                    <option value="Nebula Deck">Nebula Deck</option>
-                    <option value="Ghost Deck">Ghost Deck</option>
-                    <option value="Abandoned Deck">Abandoned Deck</option>
-                    <option value="Checkered Deck">Checkered Deck</option>
-                    <option value="Zodiac Deck">Zodiac Deck</option>
-                    <option value="Painted Deck">Painted Deck</option>
-                    <option value="Anaglyph Deck">Anaglyph Deck</option>
-                    <option value="Plasma Deck">Plasma Deck</option>
-                    <option value="Erratic Deck">Erratic Deck</option>
-                </NativeSelect>
-                <NativeSelect
-                    id="setting-stake"
-                    label={'Choose Stake'}
-                    value={stake}
-                    onChange={(e) => setStake(e.currentTarget.value)}
-                >
-                    <option value="White Stake">White Stake</option>
-                    <option value="Red Stake">Red Stake</option>
-                    <option value="Green Stake">Green Stake</option>
-                    <option value="Black Stake">Black Stake</option>
-                    <option value="Blue Stake">Blue Stake</option>
-                    <option value="Purple Stake">Purple Stake</option>
-                    <option value="Orange Stake">Orange Stake</option>
-                    <option value="Gold Stake">Gold Stake</option>
-                </NativeSelect>
-                <NativeSelect
-                    id="setting-version"
-                    label={'Choose Version'}
-                    value={version}
-                    onChange={(e) => setVersion(e.currentTarget.value)}
-                    mb={'md'}
-                >
-                    <option value="10106">1.0.1f</option>
-                    <option value="10103">1.0.1c</option>
-                    <option value="10014">1.0.0n</option>
-                </NativeSelect>
-                <InputLabel> Cards per Ante</InputLabel>
-                <Text fz={'xs'} c={'dimmed'}>
+                <InputLabel fz="sm" mb="xs" mt="xs"> Cards per Ante</InputLabel>
+                <Text fz={'sm'} c={'dimmed'} mb="xs">
                     It is recommended to keep this number under 200.
                 </Text>
-                <Box id="setting-cards-per-ante" mb={'lg'}>
-                    <Button.Group w={'100%'}>
-                        <Button variant="default" c={'blue'} onClick={() => setCardsPerAnte(50)}>50</Button>
-                        <Button variant="default" c={'red'} onClick={() => setCardsPerAnte(Math.max(cardsPerAnte - 50, 0))}>-50</Button>
-                        <Button.GroupSection flex={1} variant="default" bg="var(--mantine-color-body)" miw={80}>
-                            {cardsPerAnte}
-                        </Button.GroupSection>
-                        <Button variant="default" c={'green'}
-                            onClick={() => setCardsPerAnte(Math.min(cardsPerAnte + 50, 1000))}>+50</Button>
-                        <Button variant="default" c={'blue'} onClick={() => setCardsPerAnte(1000)}>1000</Button>
-                    </Button.Group>
-                </Box>
-                <InputLabel> Cards per Misc source</InputLabel>
-                <Text fz={'xs'} c={'dimmed'}>
+                <Button.Group w={'100%'} mb="xs">
+                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setCardsPerAnte(50)}>50</Button>
+                    <Button variant="default" color="balatroRed" size="sm" onClick={() => setCardsPerAnte(Math.max(cardsPerAnte - 50, 0))}>-50</Button>
+                    <Button.GroupSection flex={1} variant="default" miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px', fontWeight: 800, textAlign: 'center' }}>
+                        {cardsPerAnte}
+                    </Button.GroupSection>
+                    <Button variant="default" color="balatroGreen" size="sm"
+                        onClick={() => setCardsPerAnte(Math.min(cardsPerAnte + 50, 1000))}>+50</Button>
+                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setCardsPerAnte(1000)}>1000</Button>
+                </Button.Group>
+                <InputLabel fz="sm" mb="xs"> Cards per Misc source</InputLabel>
+                <Text fz={'sm'} c={'dimmed'} mb="xs">
                     It is recommended to keep this number under 50.
                 </Text>
-                <Box id="setting-misc-source" mb={'lg'}>
-                    <Button.Group w={'100%'}>
-                        <Button variant="default" c={'blue'} onClick={() => setMiscMaxSource(15)}>15</Button>
-                        <Button variant="default" c={'red'} onClick={() => setMiscMaxSource(Math.max(maxMiscCardSource - 5, 0))}>-5</Button>
-                        <Button.GroupSection flex={1} variant="default" bg="var(--mantine-color-body)" miw={80}>
-                            {maxMiscCardSource}
-                        </Button.GroupSection>
-                        <Button variant="default" c={'green'}
-                            onClick={() => setMiscMaxSource(Math.min(maxMiscCardSource + 5, 100))}>+5</Button>
-                        <Button variant="default" c={'blue'} onClick={() => setMiscMaxSource(100)}>100</Button>
-                    </Button.Group>
-                </Box>
-                <Group justify={'space-between'}>
-                    <Box id="setting-spoilers">
-                        <Text mb={0} fz={'xs'}>Show Joker Spoilers</Text>
+                <Button.Group w={'100%'} mb="xs">
+                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setMiscMaxSource(15)}>15</Button>
+                    <Button variant="default" color="balatroRed" size="sm" onClick={() => setMiscMaxSource(Math.max(maxMiscCardSource - 5, 0))}>-5</Button>
+                    <Button.GroupSection flex={1} variant="default" miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px', fontWeight: 800, textAlign: 'center' }}>
+                        {maxMiscCardSource}
+                    </Button.GroupSection>
+                    <Button variant="default" color="balatroGreen" size="sm"
+                        onClick={() => setMiscMaxSource(Math.min(maxMiscCardSource + 5, 100))}>+5</Button>
+                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setMiscMaxSource(100)}>100</Button>
+                </Button.Group>
+
+                <Group grow gap="xs" mb="xs">
+                    <NativeSelect
+                        label={'Version'}
+                        value={version}
+                        onChange={(e) => setVersion(e.currentTarget.value)}
+                        size="sm"
+                        styles={{
+                            input: {
+                                height: 'calc(var(--input-height-sm) + 4px)',
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            },
+                            label: {
+                                fontSize: 'var(--mantine-font-size-sm)'
+                            }
+                        }}
+                    >
+                        <option value="10106">1.0.1f</option>
+                        <option value="10103">1.0.1c</option>
+                        <option value="10014">1.0.0n</option>
+                    </NativeSelect>
+                </Group>
+                <Group grow gap="xs" mb="xs">
+                    <Box>
+                        <Text mb={0} fz={'sm'}>Show Joker Spoilers</Text>
                         <Tooltip label="Cards that give jokers, are replaced with the joker the card would give."
                             refProp="rootRef">
                             <Switch
-                                size={'xl'}
+                                size={'sm'}
                                 checked={showCardSpoilers}
-                                thumbIcon={showCardSpoilers ? (<IconJoker color={'black'} />) : (
-                                    <IconPlayCard color={'black'} />)}
+                                thumbIcon={showCardSpoilers ? (<IconJoker size={12} color={'black'} />) : (
+                                    <IconPlayCard size={12} color={'black'} />)}
                                 onChange={() => setShowCardSpoilers(!showCardSpoilers)}
                             />
                         </Tooltip>
@@ -270,7 +354,7 @@ export default function NavBar() {
                         <Tooltip label="Long pressing a card in the shop queue, will reroll that card."
                             refProp="rootRef">
                             <Switch
-                                size={'xl'}
+                                size={'sm'}
                                 checked={useCardPeek}
                                 onChange={() => setUseCardPeek(!useCardPeek)}
                             />
@@ -279,13 +363,13 @@ export default function NavBar() {
                 </Group>
             </AppShell.Section>
             <AppShell.Section id="tool-buttons" my="md">
-                <Stack>
+                <Stack gap="xs">
                     <Button
                         id="analyze-button"
                         onClick={handleAnalyzeClick}
-                        disabled={!hasSettingsChanged}
-                        color={hasSettingsChanged ? "green" : "gray"}
-
+                        color="green"
+                        size="sm"
+                        fullWidth
                     >
                         Analyze Seed
                     </Button>
@@ -296,13 +380,15 @@ export default function NavBar() {
                             GaEvent('view_features');
                             openFeaturesModal()
                         }}
+                        size="sm"
+                        fullWidth
                     >
                         Features
                     </Button>
-                    <Button id="unlocks-button" color={theme.colors.blue[9]} onClick={() => openSelectOptionModal()}>
+                    <Button color={theme.colors.blue[9]} onClick={() => openSelectOptionModal()} size="sm" fullWidth>
                         Modify Unlocks
                     </Button>
-                    <Group grow>
+                    <Group grow gap="xs" align="stretch">
                         <Button
                             id="snapshot-button"
                             color={theme.colors.cyan[9]}
@@ -310,10 +396,11 @@ export default function NavBar() {
                                 openSnapshotModal();
                                 GaEvent('view_seed_snapshot');
                             }}
+                            size="sm"
                         >
                             Seed Summary
                         </Button>
-                        <Button color={theme.colors.red[9]} variant={'filled'} onClick={() => reset()}>
+                        <Button color={theme.colors.red[9]} variant={'filled'} onClick={() => reset()} size="sm">
                             Reset
                         </Button>
                     </Group>

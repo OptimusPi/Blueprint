@@ -121,7 +121,7 @@ export function RerollCalculatorModal({ opened, onClose, targetIndex, metaData }
     }, [startIndex, targetIndex, shopSize, rerollDiscount, ownedVouchers]);
 
     return (
-        <Modal opened={opened} onClose={onClose} title="Reroll Calculator" centered size='lg'>
+        <Modal opened={opened} onClose={onClose} title="Reroll Calculator" centered size='lg' maw={600}>
             <Stack>
                 <Group align='flex-end' px={'sm'}>
                     <Stack gap={0} flex={4}>

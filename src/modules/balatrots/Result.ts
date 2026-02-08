@@ -2,8 +2,8 @@ import { Card } from "./enum/cards/Card";
 // import { Edition } from "./enum/Edition";
 import { PackKind } from "./enum/packs/PackKind";
 import { JokerData } from "./struct/JokerData";
-import {MiscCardSource} from "../ImmolateWrapper";
-import {BossBlind} from "./enum/BossBlind.ts";
+import { MiscCardSource } from "../GameEngine";
+import { BossBlind } from "./enum/BossBlind.ts";
 
 export interface IResult {
 	ante: number;
@@ -49,7 +49,7 @@ export class Result {
 		}
 	}
 
-	addItemToShopQueue(item:Card | JokerData) {
+	addItemToShopQueue(item: Card | JokerData) {
 		if (!this.result[this.currentAnte - 1]?.shop) {
 			this.result[this.currentAnte - 1] = {
 				...this.result[this.currentAnte - 1],
@@ -89,13 +89,13 @@ export class Result {
 			cards,
 		});
 	}
-	addMiscCardSourcesToQueue(miscSources:MiscCardSource[]) {
-		if(!this.result[this.currentAnte - 1]?.miscQueues) {
+	addMiscCardSourcesToQueue(miscSources: MiscCardSource[]) {
+		if (!this.result[this.currentAnte - 1]?.miscQueues) {
 			this.result[this.currentAnte - 1] = {
 				...this.result[this.currentAnte - 1],
 				miscQueues: miscSources,
 			};
-		}else{
+		} else {
 			this.result[this.currentAnte - 1].miscQueues!.push(...miscSources);
 		}
 	}

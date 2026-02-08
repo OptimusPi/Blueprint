@@ -1,4 +1,5 @@
 import React from "react";
+
 import { useViewportSize } from "@mantine/hooks";
 import { AppShell, ActionIcon, Box, Burger, Button, Center, Container, CopyButton, Group, Title } from "@mantine/core";
 import { useCardStore } from "../../../modules/state/store.ts";
@@ -15,6 +16,7 @@ export default function Header() {
 
     const outputOpened = useCardStore(state => state.applicationState.asideOpen);
     const toggleOutput = useCardStore(state => state.toggleOutput);
+
     const { startNextStep, closeNextStep } = useNextStep();
     return (
         <AppShell.Header>
@@ -25,12 +27,11 @@ export default function Header() {
                         <Center h={'100%'}>
                             <Group grow>
                                 <Box flex={1}>
-                                    <Title > Blueprint </Title>
+                                    <Title order={5} fz={{ base: 'xs', sm: 'sm' }}> Blueprint </Title>
                                 </Box>
                             </Group>
                         </Center>
                     </Group>
-
                     <Group align={'center'}>
                         <ActionIcon onClick={() => startNextStep('onboarding-tour')}>
                             <IconInfoCircle />
@@ -45,7 +46,25 @@ export default function Header() {
                                 )}
                             </CopyButton>
                         )}
-                        <Burger id="side-panel-toggle" opened={outputOpened} onClick={() => {
+                        <Select
+                            size="xs"
+                            w={width > 600 ? 100 : 80}
+                            value={themeName}
+                            onChange={(t) => { if (t) setTheme(t as KnownThemes); }}
+                            data={themeNames}
+                            styles={{ input: { fontSize: 'var(--mantine-font-size-xs)' } }}
+                        />
+                        <Tooltip label={isDark ? 'Light mode' : 'Dark mode'}>
+                            <ActionIcon
+                                variant="subtle"
+                                size="lg"
+                                onClick={() => colorScheme.toggleColorScheme()}
+                                aria-label="Toggle dark mode"
+                            >
+                                {isDark ? <IconSun size={18} /> : <IconMoon size={18} />}
+                            </ActionIcon>
+                        </Tooltip>
+                        <Burger opened={outputOpened} onClick={()=>{
                             GaEvent('side_panel_toggled')
                             toggleOutput()
                         }} size="sm" />

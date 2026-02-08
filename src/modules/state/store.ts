@@ -11,15 +11,16 @@ import { Deck, deckMap } from "../balatrots/enum/Deck.ts";
 import { Stake, stakeMap } from "../balatrots/enum/Stake.ts";
 import type { StateStorage } from "zustand/middleware";
 import type { BuyMetaData } from "../classes/BuyMetaData.ts";
-import type { SeedResultsContainer } from "../ImmolateWrapper/CardEngines/Cards.ts";
+import type { SeedResultsContainer } from "../GameEngine/CardEngines/Cards.ts";
 
 export type Blinds = 'smallBlind' | 'bigBlind' | 'bossBlind';
 export interface InitialState {
-    immolateState: {
+    engineState: {
         seed: string;
         deck: string;
         cardsPerAnte: number;
-        antes: number;
+        minAnte: number;
+        maxAnte: number;
         stake: string;
         showmanOwned: boolean;
         gameVersion: string;
@@ -81,7 +82,8 @@ interface StoreActions {
     setSeed: (seed: string) => void;
     setDeck: (deck: string) => void;
     setCardsPerAnte: (cardsPerAnte: number) => void;
-    setAntes: (antes: number) => void;
+    setMinAnte: (minAnte: number) => void;
+    setMaxAnte: (maxAnte: number) => void;
     setStake: (stake: string) => void;
     setGameVersion: (gameVersion: string) => void;
     setSelectedOptions: (selectedOptions: Array<string>) => void;
@@ -136,11 +138,12 @@ interface StoreActions {
 }
 export interface CardStore extends InitialState, StoreActions { }
 const initialState: InitialState = {
-    immolateState: {
+    engineState: {
         seed: '',
         deck: 'Ghost Deck',
         cardsPerAnte: 50,
-        antes: 8,
+        minAnte: 0,
+        maxAnte: 8,
         stake: 'White Stake',
         showmanOwned: false,
         gameVersion: '10106',
@@ -149,7 +152,7 @@ const initialState: InitialState = {
     applicationState: {
         viewMode: 'blueprint',
         start: false,
-        settingsOpen: true,
+        settingsOpen: false,
         asideOpen: false,
         selectOptionsModalOpen: false,
         featuresModalOpen: false,
@@ -200,19 +203,25 @@ const initialState: InitialState = {
 const blueprintStorage: StateStorage = {
     // @ts-ignore
     getItem: (): string => {
-        const immolateState = getImmolateStateFromUrl();
-
+        const engineState = getEngineStateFromUrl();
         const hasSeed = !!immolateState.seed;
+
+        // Also read viewMode and selectedAnte from URL
+        const params = new URLSearchParams(window.location.search);
+        const viewMode = params.get('view') || initialState.applicationState.viewMode;
+        const selectedAnte = parseInt(params.get('ante') || '1');
         const results = {
             state: {
-                immolateState: {
-                    ...initialState.immolateState,
-                    ...immolateState
+                engineState: {
+                    ...initialState.engineState,
+                    ...engineState
                 },
                 applicationState: {
                     ...initialState.applicationState,
                     start: hasSeed,
                     settingsOpen: !hasSeed,
+                    viewMode,
+                    selectedAnte,
                 },
                 shoppingState: {
                     ...initialState.shoppingState,
@@ -226,12 +235,20 @@ const blueprintStorage: StateStorage = {
         const parsedValue = JSON.parse(newValue);
         const params = new URLSearchParams(window.location.search);
         const ignoreKeys = ['selectedOptions', 'cardsPerAnte', 'showmanOwned', 'gameVersion']; // Keys to ignore when updating URL
-        // Update URL with immolateState values
-        Object.entries(parsedValue.state.immolateState).forEach(([key, value]) => {
+        // Update URL with engineState values
+        Object.entries(parsedValue.state.engineState).forEach(([key, value]) => {
             if (!ignoreKeys.includes(key)) { // Don't include selectedOptions in URL
                 params.set(key, String(value));
             }
         });
+
+        // Also sync viewMode and selectedAnte to URL
+        if (parsedValue.state.applicationState?.viewMode) {
+            params.set('view', parsedValue.state.applicationState.viewMode);
+        }
+        if (parsedValue.state.applicationState?.selectedAnte) {
+            params.set('ante', String(parsedValue.state.applicationState.selectedAnte));
+        }
 
         // Update URL without reloading the page
         const newUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
@@ -240,23 +257,28 @@ const blueprintStorage: StateStorage = {
     },
 };
 
-// Helper functions to manage immolateState in URL
-function getImmolateStateFromUrl() {
+// Helper functions to manage engineState in URL
+function getEngineStateFromUrl() {
     const params = new URLSearchParams(window.location.search);
-    const antesParam = params.get('antes');
-    const parsedAntes = antesParam !== null && antesParam !== '' && !Number.isNaN(Number(antesParam)) ? Number(antesParam) : undefined;
-    const seedParam = params.get('seed');
-    const parsedSeed = seedParam ? sanitizeSeed(seedParam) : initialState.immolateState.seed;
+    // Backward compatibility: if old 'antes' param exists, use it as maxAnte with minAnte=0
+    const oldAntes = params.get('antes');
+    const minAnte = oldAntes
+        ? 0
+        : parseInt(params.get('minAnte') ?? initialState.engineState.minAnte.toString());
+    const maxAnte = oldAntes
+        ? parseInt(oldAntes)
+        : parseInt(params.get('maxAnte') ?? initialState.engineState.maxAnte.toString());
+
     return {
-        seed: parsedSeed,
-        deck: params.get('deck') || initialState.immolateState.deck,
-        cardsPerAnte: parseInt(params.get('cardsPerAnte') || initialState.immolateState.cardsPerAnte.toString()),
-        antes: parsedAntes !== undefined ? parsedAntes : initialState.immolateState.antes,
-        stake: params.get('stake') || initialState.immolateState.stake,
-        gameVersion: params.get('gameVersion') || initialState.immolateState.gameVersion,
+        seed: params.get('seed') || initialState.engineState.seed,
+        deck: params.get('deck') || initialState.engineState.deck,
+        cardsPerAnte: parseInt(params.get('cardsPerAnte') || initialState.engineState.cardsPerAnte.toString()),
+        minAnte,
+        maxAnte,
+        stake: params.get('stake') || initialState.engineState.stake,
+        gameVersion: params.get('gameVersion') || initialState.engineState.gameVersion
     };
 }
-
 
 export const useCardStore = create<CardStore>()(
     devtools(
@@ -589,7 +611,7 @@ export const useCardStore = create<CardStore>()(
                 name: 'blueprint-store-v2',
                 version: 2,
                 partialize: (state) => ({
-                    immolateState: state.immolateState,
+                    engineState: state.engineState,
                     shoppingState: {
                         buys: state.shoppingState.buys,
                         sells: state.shoppingState.sells

@@ -3,24 +3,24 @@ import {
     Planet_Final,
     Spectral_Final,
     StandardCard_Final, Tarot_Final
-} from "../../modules/ImmolateWrapper/CardEngines/Cards.ts";
-import {consumablesFaces, editionMap, jokerFaces, jokers, stickerMap, tarotsAndPlanets} from "../../modules/const.ts";
-import {Layer} from "../../modules/classes/Layer.ts";
-import {getEnhancerPosition, getSealPosition, getStandardCardPosition} from "../../modules/utils.ts";
-import {Paper} from "@mantine/core";
-import {RenderImagesWithCanvas} from "./canvasRenderer.tsx";
+} from "../../modules/GameEngine/CardEngines/Cards.ts";
+import { consumablesFaces, editionMap, jokerFaces, jokers, stickerMap, tarotsAndPlanets } from "../../modules/const.ts";
+import { Layer } from "../../modules/classes/Layer.ts";
+import { getEnhancerPosition, getSealPosition, getStandardCardPosition } from "../../modules/utils.ts";
+import { Paper } from "@mantine/core";
+import { RenderImagesWithCanvas } from "./canvasRenderer.tsx";
 
 
-export function JokerCard({card}: { card: Joker_Final }) {
+export function JokerCard({ card }: { card: Joker_Final }) {
     let layers = [];
     const jokerData = jokers.find((joker: any) => joker.name === card.name);
-    if (jokerData) layers.push(new Layer({...jokerData, source: 'images/Jokers.png', order: 0, columns: 10, rows: 16}));
+    if (jokerData) layers.push(new Layer({ ...jokerData, source: 'images/Jokers.png', order: 0, columns: 10, rows: 16 }));
     const face = jokerFaces.find((joker: any) => joker.name === card.name);
-    if (face) layers.push(new Layer({...face, source: 'images/Jokers.png', order: 1, columns: 10, rows: 16}));
+    if (face) layers.push(new Layer({ ...face, source: 'images/Jokers.png', order: 1, columns: 10, rows: 16 }));
     if (card.edition) {
         const index = editionMap[card.edition];
         layers.push(new Layer({
-            pos: {x: index, y: 0},
+            pos: { x: index, y: 0 },
             name: card.edition,
             order: 2,
             source: 'images/Editions.png',
@@ -61,12 +61,12 @@ export function JokerCard({card}: { card: Joker_Final }) {
     return (
         <RenderImagesWithCanvas
             invert={card.edition === "Negative"}
-    layers={layers}
-    />
-)
+            layers={layers}
+        />
+    )
 }
-export function PlayingCard({card}: { card: StandardCard_Final }) {
-    if(!card?.rank || !card?.suit) return null;
+export function PlayingCard({ card }: { card: StandardCard_Final }) {
+    if (!card?.rank || !card?.suit) return null;
     const position = getStandardCardPosition(card.rank, card.suit);
     //getEnhancerPosition
     const background = getEnhancerPosition([card?.enhancements ?? '']);
@@ -91,7 +91,7 @@ export function PlayingCard({card}: { card: StandardCard_Final }) {
     if (card.edition) {
         const index = editionMap[card.edition];
         layers.push(new Layer({
-            pos: {x: index, y: 0},
+            pos: { x: index, y: 0 },
             name: card.edition,
             order: 2,
             source: 'images/Editions.png',
@@ -112,10 +112,10 @@ export function PlayingCard({card}: { card: StandardCard_Final }) {
     return (
         <RenderImagesWithCanvas
             layers={layers}
-    />
-)
+        />
+    )
 }
-export function Consumables({card}: { card: Planet_Final | Spectral_Final | Tarot_Final }) {
+export function Consumables({ card }: { card: Planet_Final | Spectral_Final | Tarot_Final }) {
     let layers = [
         new Layer({
             ...tarotsAndPlanets.find((t: any) => t.name === card.name),
@@ -139,28 +139,66 @@ export function Consumables({card}: { card: Planet_Final | Spectral_Final | Taro
     return (
         <RenderImagesWithCanvas
             invert={card?.edition === "Negative"}
-    layers={layers}
-    />
-)
+            layers={layers}
+        />
+    )
 }
 export interface GameCardProps {
-    card: Planet_Final | Spectral_Final | Tarot_Final | Joker_Final | StandardCard_Final
+    card: Planet_Final | Spectral_Final | Tarot_Final | Joker_Final | StandardCard_Final;
+    glow?: 'red' | 'blue' | null;
+    scale?: number; // 0.5 = half size, 1 = full size (default 1)
 }
-export function GameCard({card}: GameCardProps) {
-    let Card = () => {
+export function GameCard({ card, glow, scale = 1 }: GameCardProps) {
+    const Card = () => {
         if (card instanceof StandardCard_Final) {
-            return <PlayingCard card={card}/>
+            return <PlayingCard card={card} />
         }
         else if (card instanceof Joker_Final) {
-            return <JokerCard card={card}/>
+            return <JokerCard card={card} />
         }
         else {
-            return <Consumables card={card}/>
+            return <Consumables card={card} />
         }
     }
-    return (
-        <Paper maw={'71px'}>
-            <Card/>
+
+    const glowStyle = glow ? {
+        boxShadow: glow === 'red'
+            ? '0 0 12px 4px rgba(255, 60, 60, 0.8), 0 0 20px 8px rgba(255, 0, 0, 0.5)'
+            : '0 0 12px 4px rgba(60, 140, 255, 0.8), 0 0 20px 8px rgba(0, 100, 255, 0.5)',
+        borderRadius: '4px',
+    } : {};
+
+    // Only apply transform if scale !== 1
+    if (scale === 1) {
+        return (
+            <Paper
+                maw={'71px'}
+                style={{ overflow: 'visible', ...glowStyle }}
+                p={0}
+            >
+                <Card />
             </Paper>
+        );
+    }
+
+    // Scaled version - for compact views
+    const scaledWidth = Math.round(71 * scale);
+
+    return (
+        <Paper
+            maw={`${scaledWidth}px`}
+            style={{
+                overflow: 'visible',
+                ...glowStyle,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                width: `${scaledWidth}px`,
+                marginRight: `${Math.round(71 * (scale - 1))}px`,
+                marginBottom: `${Math.round(96 * (scale - 1))}px`,
+            }}
+            p={0}
+        >
+            <Card />
+        </Paper>
     )
 }

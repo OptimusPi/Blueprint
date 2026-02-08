@@ -15,6 +15,7 @@ export default function FeaturesModal() {
             title="Blueprint Features"
             opened={featuresModalOpen}
             onClose={() => closeFeaturesModal()}
+            maw={600}
         >
             <Container fluid data-tour-id="features-modal">
                 <Accordion variant="separated" defaultValue={null}>

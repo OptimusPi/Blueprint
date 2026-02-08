@@ -12,9 +12,9 @@ import {
     Title,
     Tooltip
 } from "@mantine/core";
-import React, {useEffect, useRef, useState} from "react";
-import {useIntersection} from "@mantine/hooks";
-import {IconLockOpen} from "@tabler/icons-react";
+import React, { useEffect, useRef, useState } from "react";
+import { useDebouncedCallback, useIntersection } from "@mantine/hooks";
+import { IconLockOpen } from "@tabler/icons-react";
 import {
     bosses,
     consumablesFaces,
@@ -26,36 +26,36 @@ import {
     tarotsAndPlanets,
     vouchers
 } from "../../../modules/const.ts";
-import {Layer} from "../../../modules/classes/Layer.ts";
-import {SimpleRenderCanvas} from "../../Rendering/canvasRenderer.tsx";
-import {getEnhancerPosition, getSealPosition, getStandardCardPosition} from "../../../modules/utils.ts";
-import {DragScroll} from "../../DragScroller.tsx";
-import {useCardStore} from "../../../modules/state/store.ts";
+import { Layer } from "../../../modules/classes/Layer.ts";
+import { SimpleRenderCanvas } from "../../Rendering/canvasRenderer.tsx";
+import { getEnhancerPosition, getSealPosition, getStandardCardPosition } from "../../../modules/utils.ts";
+import { DragScroll } from "../../DragScroller.tsx";
+import { useCardStore } from "../../../modules/state/store.ts";
 import {
     Joker_Final,
     StandardCard_Final
-} from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
-import {useSeedResultsContainer} from "../../../modules/state/analysisResultProvider.tsx";
-import {SimpleBuyerWrapper} from "./simpleBuyWrapper.tsx";
+} from "../../../modules/GameEngine/CardEngines/Cards.ts";
+import { useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
+import { SimpleBuyerWrapper } from "./simpleBuyWrapper.tsx";
 import type {
     CardTuple,
     Planet_Final,
     Spectral_Final
-,
+    ,
     Stringifies, Tarot_Final
-} from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
+} from "../../../modules/GameEngine/CardEngines/Cards.ts";
 
 
-function SimpleJokerCard({card, index}: { card: Joker_Final, index?: number }) {
+function SimpleJokerCard({ card, index }: { card: Joker_Final, index?: number }) {
     const layers = [];
     const jokerData = jokers.find((joker: { name: string; }) => joker.name === card.name);
-    if (jokerData) layers.push(new Layer({...jokerData, source: 'images/Jokers.png', order: 0, columns: 10, rows: 16}));
+    if (jokerData) layers.push(new Layer({ ...jokerData, source: 'images/Jokers.png', order: 0, columns: 10, rows: 16 }));
     const face = jokerFaces.find((joker: { name: string; }) => joker.name === card.name);
-    if (face) layers.push(new Layer({...face, source: 'images/Jokers.png', order: 1, columns: 10, rows: 16}));
+    if (face) layers.push(new Layer({ ...face, source: 'images/Jokers.png', order: 1, columns: 10, rows: 16 }));
     if (card.edition) {
         const idx = editionMap[card.edition];
         layers.push(new Layer({
-            pos: {x: idx, y: 0},
+            pos: { x: idx, y: 0 },
             name: card.edition,
             order: 2,
             source: 'images/Editions.png',
@@ -107,7 +107,7 @@ function SimpleJokerCard({card, index}: { card: Joker_Final, index?: number }) {
     )
 }
 
-function SimplePlayingCard({card, index}: { card: StandardCard_Final, index?: number }) {
+function SimplePlayingCard({ card, index }: { card: StandardCard_Final, index?: number }) {
     if (!card.rank || !card.suit) return null;
     const position = getStandardCardPosition(card.rank, card.suit);
     const background = getEnhancerPosition([card.enhancements ?? '']);
@@ -132,7 +132,7 @@ function SimplePlayingCard({card, index}: { card: StandardCard_Final, index?: nu
     if (card.edition) {
         const idx = editionMap[card.edition];
         layers.push(new Layer({
-            pos: {x: idx, y: 0},
+            pos: { x: idx, y: 0 },
             name: card.edition,
             order: 2,
             source: 'images/Editions.png',
@@ -160,8 +160,8 @@ function SimplePlayingCard({card, index}: { card: StandardCard_Final, index?: nu
     )
 }
 export type ConsumableCard = Planet_Final | Spectral_Final | Tarot_Final;
-export type C_Card = Omit<ConsumableCard,'edition'> & { edition?: string }
-function SimpleConsumables({card, index}: { card: C_Card | undefined, index?: number }) {
+export type C_Card = Omit<ConsumableCard, 'edition'> & { edition?: string }
+function SimpleConsumables({ card, index }: { card: C_Card | undefined, index?: number }) {
     const layers = [
         new Layer({
             ...tarotsAndPlanets.find((t: { name: string; }) => t.name === card?.name),
@@ -200,16 +200,16 @@ interface GameCardProps {
     index?: number
 }
 
-function GameCard({card, index}: GameCardProps) {
+function GameCard({ card, index }: GameCardProps) {
     return (
-        <Paper maw={'71px'}>
+        <Paper maw={'71px'} miw={'71px'} style={{ flexShrink: 0 }}>
             {
                 card instanceof StandardCard_Final ? (
-                    <SimplePlayingCard index={index} card={card}/>
+                    <SimplePlayingCard index={index} card={card} />
                 ) : card instanceof Joker_Final ? (
-                    <SimpleJokerCard index={index} card={card}/>
+                    <SimpleJokerCard index={index} card={card} />
                 ) : (
-                    <SimpleConsumables index={index} card={card}/>
+                    <SimpleConsumables index={index} card={card} />
                 )
             }
         </Paper>
@@ -218,7 +218,7 @@ function GameCard({card, index}: GameCardProps) {
 
 const MemoizedGameCard = React.memo(GameCard);
 
-function SimpleVoucher({voucherName}: { voucherName: string | null }) {
+function SimpleVoucher({ voucherName }: { voucherName: string | null }) {
     const layers = [];
     const voucherData = vouchers.find((voucher: { name: string | null; }) => voucher.name === voucherName);
     if (voucherData) layers.push(new Layer({
@@ -240,7 +240,7 @@ function SimpleVoucher({voucherName}: { voucherName: string | null }) {
     )
 }
 
-function SimpleTag({tagName}: { tagName: string }) {
+function SimpleTag({ tagName }: { tagName: string }) {
     const tagData = tags.find((tag: { name: string }) => tag.name === tagName);
     if (!tagData) {
         console.error("Tag not found:", tagName);
@@ -267,7 +267,7 @@ function SimpleTag({tagName}: { tagName: string }) {
 
 }
 
-function SimpleBoss({bossName}: { bossName: string }) {
+function SimpleBoss({ bossName }: { bossName: string }) {
     const bossData = bosses.find((boss: { name: string }) => boss.name === bossName);
     if (!bossData) {
         console.error("Boss not found:", bossName);
@@ -299,29 +299,29 @@ function SimpleBoss({bossName}: { bossName: string }) {
 
 function AnteSkeletonLoader() {
     return (
-        <Paper w={'100%'} withBorder shadow={'xl'} mb={'xl'} p={'md'}>
-            <Skeleton height={28} width="120px" mb="lg"/>
+        <Paper w={'100%'} mb={'xl'} p={'md'}>
+            <Skeleton height={28} width="120px" mb="lg" />
 
             {/* Shop section */}
-            <Skeleton height={20} width="80px" mb="sm"/>
+            <Skeleton height={20} width="80px" mb="sm" />
             <Group gap="xs" wrap={'nowrap'}>
                 {Array(6).fill(0).map((_, i) => (
-                    <Skeleton key={i} height={90} width={71}/>
+                    <Skeleton key={i} height={90} width={71} />
                 ))}
             </Group>
 
-            <Divider my={'md'}/>
+            <Divider my={'md'} />
 
             {/* Packs section */}
-            <Skeleton height={20} width="80px" mb="sm"/>
+            <Skeleton height={20} width="80px" mb="sm" />
             {Array(2).fill(0).map((_i, blindIndex) => (
                 <Box key={blindIndex} mb="xl">
-                    <Skeleton height={18} width="100px" mb="xs"/>
+                    <Skeleton height={18} width="100px" mb="xs" />
                     <Box mb="md">
-                        <Skeleton height={16} width="180px" mb="xs"/>
+                        <Skeleton height={16} width="180px" mb="xs" />
                         <Group gap="xs" wrap={'nowrap'}>
                             {Array(4).fill(0).map((_j, i) => (
-                                <Skeleton key={i} height={90} width={71}/>
+                                <Skeleton key={i} height={90} width={71} />
                             ))}
                         </Group>
                     </Box>
@@ -331,13 +331,13 @@ function AnteSkeletonLoader() {
             {/* Footer section */}
             <Group align="flex-start" justify="space-between" p="md">
                 <Group align="flex-start">
-                    <Skeleton height={80} width={80}/>
+                    <Skeleton height={80} width={80} />
                     <Stack align="flex-start">
                         <Group align="flex-start">
-                            <Skeleton height={32} width={32}/>
-                            <Skeleton height={32} width={32}/>
+                            <Skeleton height={32} width={32} />
+                            <Skeleton height={32} width={32} />
                         </Group>
-                        <Skeleton height={32} width={32}/>
+                        <Skeleton height={32} width={32} />
                     </Stack>
                 </Group>
             </Group>
@@ -352,6 +352,7 @@ function Simple() {
     const [loadingNextAnte, setLoadingNextAnte] = useState<number | null>(2);
     const lockedCards = useCardStore(state => state.lockState.lockedCards);
     const clearLockedCards = useCardStore(state => state.clearLockedCards);
+    const analyzeSeed = useCardStore(state => state.analyzeSeed)
     const hasLockedCards = Object.keys(lockedCards).length > 0;
     if (!SeedResults) return null;
 
@@ -363,8 +364,8 @@ function Simple() {
     };
 
     // Intersection observer for each ante
-    const AnteObserver = ({anteNumber}: { anteNumber: number }) => {
-        const {ref, entry} = useIntersection({
+    const AnteObserver = ({ anteNumber }: { anteNumber: number }) => {
+        const { ref, entry } = useIntersection({
             threshold: 0.3, // Start loading next ante when 30% of current is visible
         });
 
@@ -379,21 +380,22 @@ function Simple() {
             }
         }, [entry?.isIntersecting, anteNumber]);
 
-        return <div ref={ref}/>;
+        return <div ref={ref} />;
     };
 
     return (
         <Container fluid ref={containerRef}>
             {hasLockedCards && (
-                <Affix position={{bottom: 40, right: 40}}>
+                <Affix position={{ bottom: 40, right: 40 }}>
                     <Group justify="flex-end" mb="md">
                         <Button
                             size="sm"
                             variant="light"
                             color="yellow"
-                            leftSection={<IconLockOpen size={16}/>}
+                            leftSection={<IconLockOpen size={16} />}
                             onClick={() => {
                                 clearLockedCards();
+                                analyzeSeed()
                             }}
                         >
                             Clear Locked Cards ({Object.keys(lockedCards).length})
@@ -408,30 +410,30 @@ function Simple() {
                 if (!shouldRenderAnte(anteNumber)) {
                     // Show skeleton loader only for the next ante that would be loaded
                     if (loadingNextAnte === anteNumber) {
-                        return <AnteSkeletonLoader key={key}/>;
+                        return <AnteSkeletonLoader key={key} />;
                     }
                     // Otherwise just render the observer for previous ante
-                    return <AnteObserver key={key} anteNumber={anteNumber - 1}/>;
+                    return <AnteObserver key={key} anteNumber={anteNumber - 1} />;
                 }
 
                 const blinds = value.blinds;
 
                 return (
-                    <Paper w={'100%'} withBorder shadow={'xl'} mb={'xl'} p={'md'} key={key}>
+                    <Paper w={'100%'} mb={'xl'} p={'md'} key={key}>
                         <Title order={2} mb={'1rem'}>Ante {key}</Title>
                         <Group align={'flex-start'} justify={'space-between'} mb={'xs'}>
                             <Group align={'flex-start'}>
-                                <SimpleVoucher voucherName={value.voucher}/>
+                                <SimpleVoucher voucherName={value.voucher} />
                                 <Stack align={'flex-start'}>
                                     <Group align={'flex-start'}>
-                                        <SimpleTag tagName={value.tags[0]}/>
-                                        <SimpleTag tagName={value.tags[1]}/>
+                                        <SimpleTag tagName={value.tags[0]} />
+                                        <SimpleTag tagName={value.tags[1]} />
                                     </Group>
-                                    <SimpleBoss bossName={value.boss || ''}/>
+                                    <SimpleBoss bossName={value.boss || ''} />
                                 </Stack>
                             </Group>
                         </Group>
-                        <Divider my={'xs'}/>
+                        <Divider my={'xs'} />
                         {/* Shop section */}
                         <Title order={4} mb={'1rem'}>Shop</Title>
                         <DragScroll>
@@ -442,12 +444,12 @@ function Simple() {
                                         card={card}
                                         cardId={`ante_${key}_shop_${index}`}
                                     >
-                                        <MemoizedGameCard key={index} index={index + 1} card={card}/>
+                                        <MemoizedGameCard key={index} index={index + 1} card={card} />
                                     </SimpleBuyerWrapper>
                                 ))}
                             </Group>
                         </DragScroll>
-                        <Divider my={'xs'}/>
+                        <Divider my={'xs'} />
 
                         {/* Packs section */}
                         <Title order={4} mb={'xs'}>Packs</Title>
@@ -491,7 +493,7 @@ function Simple() {
 
 
                         {/* Observer at the bottom of each rendered ante to detect when it's visible */}
-                        <AnteObserver anteNumber={anteNumber}/>
+                        <AnteObserver anteNumber={anteNumber} />
                     </Paper>
                 );
             })}
@@ -499,7 +501,7 @@ function Simple() {
             {/* Show a skeleton at the end if there are more antes to load */}
             {loadingNextAnte && loadingNextAnte <= anteEntries.length &&
                 !visibleAntes.includes(loadingNextAnte) &&
-                <AnteSkeletonLoader key="loading-next"/>}
+                <AnteSkeletonLoader key="loading-next" />}
         </Container>
     );
 }

@@ -1,28 +1,28 @@
-import {getMiscCardSources} from "../ImmolateWrapper";
-import {PackKind} from "./enum/packs/PackKind";
-import {ItemImpl} from "./interface/Item";
-import {Type} from "./enum/cards/CardType";
-import {Edition} from "./enum/Edition";
-import {Game} from "./Game";
-import {Result} from "./Result";
-import {Run} from "./Run";
-import {AbstractCard} from "./struct/AbstractCard";
-import {CardNameBuilder} from "./struct/CardNameBuilder";
-import {InstanceParams} from "./struct/InstanceParams";
-import {Option} from "./struct/Option";
-import {RNGSource} from "./enum/QueueName.ts";
-import type {QueueNames} from "./enum/QueueName.ts";
-import type {JokerData} from "./struct/JokerData";
-import type {AnalysisParams} from "./interface/AnalysisParams";
-import type {Version} from "./enum/Version";
-import type {Stake} from "./enum/Stake";
-import type {Configurations} from "./interface/Configurations";
-import type {Deck} from "./enum/Deck";
-import type {SpoilableItems} from "../ImmolateWrapper";
-import type {Card} from "./enum/cards/Card";
-import type {BossBlind} from "./enum/BossBlind.ts";
-import type {PackCard} from "../ImmolateWrapper/CardEngines/Cards.ts";
-import type {PackInfo} from "./struct/PackInfo.ts";
+import { getMiscCardSources } from "../GameEngine";
+import { PackKind } from "./enum/packs/PackKind";
+import { ItemImpl } from "./interface/Item";
+import { Type } from "./enum/cards/CardType";
+import { Edition } from "./enum/Edition";
+import { Game } from "./Game";
+import { Result } from "./Result";
+import { Run } from "./Run";
+import { AbstractCard } from "./struct/AbstractCard";
+import { CardNameBuilder } from "./struct/CardNameBuilder";
+import { InstanceParams } from "./struct/InstanceParams";
+import { Option } from "./struct/Option";
+import { RNGSource } from "./enum/QueueName.ts";
+import type { QueueNames } from "./enum/QueueName.ts";
+import type { JokerData } from "./struct/JokerData";
+import type { AnalysisParams } from "./interface/AnalysisParams";
+import type { Version } from "./enum/Version";
+import type { Stake } from "./enum/Stake";
+import type { Configurations } from "./interface/Configurations";
+import type { Deck } from "./enum/Deck";
+import type { SpoilableItems } from "../GameEngine";
+import type { Card } from "./enum/cards/Card";
+import type { BossBlind } from "./enum/BossBlind.ts";
+import type { PackCard } from "../GameEngine/CardEngines/Cards.ts";
+import type { PackInfo } from "./struct/PackInfo.ts";
 
 
 export class BalatroAnalyzer {
@@ -145,7 +145,7 @@ export class BalatroAnalyzer {
         }
     }
 
-    performAnalysis({seed, ante, cardsPerAnte, deck, stake, version}: AnalysisParams): { run: Run, game: Game } {
+    performAnalysis({ seed, ante, cardsPerAnte, deck, stake, version }: AnalysisParams): { run: Run, game: Game } {
         if (ante > cardsPerAnte.length) {
             throw new Error(`cardsPerAnte array does not have enough elements for ante ${ante}`);
         }
@@ -165,7 +165,7 @@ export class BalatroAnalyzer {
             this.processAnte(game, run, a, cardsPerAnte[a - 1]);
         }
 
-        return {run, game};
+        return { run, game };
     }
 
     private lockOptions(game: Game, selectedOptions: Array<boolean>): void {

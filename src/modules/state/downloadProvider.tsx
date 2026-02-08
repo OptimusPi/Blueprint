@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext } from "react";
-import {useCardStore} from "./store.ts";
-import {useSeedOptionsContainer} from "./optionsProvider.tsx";
-import {SeedResultContext} from "./analysisResultProvider.tsx";
 
+import { useCardStore } from "./store.ts";
+import { useSeedOptionsContainer } from "./optionsProvider.tsx";
+import { useSeedResultsContainer } from "./analysisResultProvider.tsx";
 
 export type DownloadSeedResultFunction = () => void;
 export const DownloadSeedResultContext = createContext<DownloadSeedResultFunction | undefined>(undefined);
@@ -17,16 +17,16 @@ export function useDownloadSeedResults() {
 
 export function DownloadSeedResultProvider({ children }: { children: React.ReactNode }) {
 
-    const analyzeState = useCardStore(state => state.immolateState);
+    const analyzeState = useCardStore(state => state.engineState);
     const options = useSeedOptionsContainer()
     const SeedResults = useContext(SeedResultContext);
 
-    const downloadImmolateResults = useCallback(() => {
+    const downloadSeedResults = useCallback(() => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
             JSON.stringify({
                 analyzeState: analyzeState,
                 options,
-                immolateResults: SeedResults
+                results: SeedResults
             }, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -39,7 +39,7 @@ export function DownloadSeedResultProvider({ children }: { children: React.React
     }, [SeedResults, analyzeState, options])
 
     return (
-        <DownloadSeedResultContext.Provider value={downloadImmolateResults}>
+        <DownloadSeedResultContext.Provider value={downloadSeedResults}>
             {children}
         </DownloadSeedResultContext.Provider>
     )

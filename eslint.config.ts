@@ -17,6 +17,24 @@ export default defineConfig([
     pluginReact.configs.flat.recommended,
     pluginReactHook.configs.flat.recommended,
     tanstackConfig,
+    // Vite config is JS and lives outside tsconfig.json include
+    {
+        files: ["vite.config.js"],
+        languageOptions: {
+            parserOptions: {
+                project: ["./tsconfig.node.json"]
+            },
+            globals: {
+                ...globals.node
+            }
+        },
+        rules: {
+            "@typescript-eslint/no-unnecessary-condition": "off",
+            "@typescript-eslint/no-unnecessary-boolean-literal-compare": "off",
+            "@typescript-eslint/strict-boolean-expressions": "off",
+            "@typescript-eslint/no-unnecessary-type-assertion": "off"
+        }
+    },
     // disable the no ts ignore rule for ts files
     {
         files: ["**/*.{ts,mts,cts,tsx}"],

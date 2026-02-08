@@ -89,9 +89,9 @@ export default function PurchaseTimeline({buys, sells}: {
 
     if (buyEntries.length === 0) {
         return (
-            <Paper p="md" withBorder>
-                <Group justify={'space-between'} mb="md">
-                    <Text c="dimmed" size="sm">No purchases yet</Text>
+            <Paper p="xs">
+                <Group justify={'space-between'} mb={4} gap="xs">
+                    <Text c="dimmed" size="xs">No purchases yet</Text>
                     <Button
                         leftSection={<IconUpload size={16} />}
                         size="xs"
@@ -113,12 +113,12 @@ export default function PurchaseTimeline({buys, sells}: {
     }
 
     return (
-        <Paper p="md" withBorder>
-            <Group justify="space-between" mb="md">
-                <Title order={3}>Purchase History</Title>
-                <Group>
+        <Paper p="xs">
+            <Group justify="space-between" mb={4} gap="xs">
+                <Title order={5} fz="sm">Purchase History</Title>
+                <Group gap={4}>
                     <Button
-                        leftSection={<IconUpload size={16} />}
+                        leftSection={<IconUpload size={12} />}
                         size="xs"
                         variant="light"
                         onClick={importPurchases}
@@ -126,7 +126,7 @@ export default function PurchaseTimeline({buys, sells}: {
                         Import
                     </Button>
                     <Button
-                        leftSection={<IconDownload size={16} />}
+                        leftSection={<IconDownload size={12} />}
                         size="xs"
                         variant="light"
                         onClick={exportPurchases}
@@ -142,7 +142,7 @@ export default function PurchaseTimeline({buys, sells}: {
                     />
                 </Group>
             </Group>
-            <Timeline active={transactions.length - 1} bulletSize={24} lineWidth={2}>
+            <Timeline active={transactions.length - 1} bulletSize={16} lineWidth={1}>
                 {transactions.map(([key, buyData]) => {
                     // Parse the key to extract information
                     const [, , index] = key.split('-');
@@ -172,10 +172,10 @@ export default function PurchaseTimeline({buys, sells}: {
                             title={
                                 <Group justify="space-between" wrap="nowrap">
                                     <Stack gap={0}>
-                                        <Text size={'lg'} fw={500}>
+                                        <Text size={'sm'} fw={500}>
                                             {buyData.name}
                                         </Text>
-                                        <Text size="xs" c="dimmed" mt={4}>
+                                        <Text size="xs" c="dimmed" mt={2}>
                                             {
                                                 buyMessage
                                             }
@@ -185,7 +185,7 @@ export default function PurchaseTimeline({buys, sells}: {
                                         </Text>
                                     </Stack>
 
-                                    <Stack>
+                                    <Stack gap={2}>
                                         <Button color={'red'} size={'compact-sm'} onClick={() => {
                                             if (buyData.transactionType === 'sell') {
                                                 undoSell(buyData);
@@ -220,7 +220,7 @@ export default function PurchaseTimeline({buys, sells}: {
                         >
 
 
-                            <Badge size="xs" variant="light" color="blue" mt={4}>
+                            <Badge size="xs" variant="light" color="blue" mt={2}>
                                 Ante {buyData.ante}
                             </Badge>
                         </Timeline.Item>
@@ -228,9 +228,9 @@ export default function PurchaseTimeline({buys, sells}: {
                 })}
             </Timeline>
 
-            <Group justify="space-between" mt="md">
-                <Text size="sm" fw={500}>Total Purchases:</Text>
-                <Badge size="lg">{buyEntries.length}</Badge>
+            <Group justify="space-between" mt={4}>
+                <Text size="xs" fw={500}>Total Purchases:</Text>
+                <Badge size="sm">{buyEntries.length}</Badge>
             </Group>
         </Paper>
     );

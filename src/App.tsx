@@ -3,7 +3,6 @@ import '@mantine/code-highlight/styles.css';
 import '@mantine/carousel/styles.css';
 import '@mantine/spotlight/styles.css';
 
-
 import { MantineProvider, Paper, Space, Stack, Text, Title } from "@mantine/core";
 import { Blueprint } from "./components/blueprint/standardView";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import { DownloadSeedResultProvider } from "./modules/state/downloadProvider.tsx
 import { BlueprintThemeProvider, useBlueprintTheme } from "./modules/state/themeProvider.tsx";
 import { NextStepProvider, NextStepReact, type Tour, type Step } from 'nextstepjs';
 import { useCardStore } from "./modules/state/store.ts";
+
 const queryClient = new QueryClient()
 
 const steps: Array<Tour> = [
@@ -315,7 +315,10 @@ function ProviderContainer({ children }: { children: React.ReactNode }) {
 
     return (
 
-        <MantineProvider defaultColorScheme={'dark'} theme={themes[theme]}>
+        <MantineProvider
+            defaultColorScheme={'auto'}
+            theme={themes[theme]}
+        >
             <QueryClientProvider client={queryClient}>
                 <SeedOptionsProvider>
                     <SeedResultProvider>
@@ -339,8 +342,7 @@ export default function App() {
     return (
         <BlueprintThemeProvider>
             <ProviderContainer>
-                <Blueprint />
-                <Space my={'xl'} />
+                <Blueprint/>
             </ProviderContainer>
         </BlueprintThemeProvider>
     );

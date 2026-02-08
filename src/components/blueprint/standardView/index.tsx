@@ -16,11 +16,14 @@ import {
     SegmentedControl,
     Stack,
     Tabs,
-    Text
+    Text,
+    MantineProvider
 } from "@mantine/core";
+
+import { JamlTheme } from "../../../themes/JamlTheme.ts";
 import { toHeaderCase } from "js-convert-case";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
-import { Boss, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
+import { Boss, BoosterPack, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
 import { BuyMetaData } from "../../../modules/classes/BuyMetaData.ts";
 import { BuyWrapper } from "../../buyerWrapper.tsx";
 import { LOCATIONS, LOCATION_TYPES, blinds, tagDescriptions } from "../../../modules/const.ts";
@@ -33,6 +36,7 @@ import Footer from "../layout/footer.tsx";
 import HomePage from "../homePage/homepage.tsx";
 import Index from "../textView";
 import Simple from "../simpleView/simple.tsx";
+import JamlView from "../jamlView/JamlView.tsx";
 import SnapshotModal from "../snapshotView/SnapshotView.tsx";
 import { useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
 import { useDownloadSeedResults } from "../../../modules/state/downloadProvider.tsx";
@@ -40,6 +44,7 @@ import type { Blinds } from "../../../modules/state/store.ts";
 import type { Tag } from "../../../modules/balatrots/enum/Tag.ts";
 import type { Ante, Pack } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
 import type { EmblaCarouselType } from 'embla-carousel';
+
 
 function QueueCarousel({ queue, tabName }: { queue: Array<any>, tabName: string }) {
     const selectedBlind = useCardStore(state => state.applicationState.selectedBlind);
@@ -63,13 +68,13 @@ function QueueCarousel({ queue, tabName }: { queue: Array<any>, tabName: string 
     }, [embla, selectedSearchResult])
 
     return (
-        <Paper>
+        <Box>
             <Carousel
                 getEmblaApi={setEmbla}
-                slideGap={{ base: 'sm' }}
-                slideSize={{ base: 90 }}
+                slideGap={{ base: 'xs', sm: 'sm' }}
+                slideSize={85}
                 withControls={false}
-                height={190}
+                height={175}
                 emblaOptions={{ dragFree: true, containScroll: "keepSnaps" }}
                 type={'container'}
             >
@@ -97,7 +102,7 @@ function QueueCarousel({ queue, tabName }: { queue: Array<any>, tabName: string 
                     })
                 }
             </Carousel>
-        </Paper>
+        </Box>
     )
 }
 
@@ -398,8 +403,8 @@ function TagDisplay({ tag, ante }: { tag: Tag, ante: Ante }) {
                     <RenderTag tagName={tag} />
                 </Box>
             </Popover.Target>
-            <Popover.Dropdown>
-                <Box onMouseEnter={open} onMouseLeave={close} maw={375} w={'100%'}>
+            <Popover.Dropdown maw={400}>
+                <Box onMouseEnter={open} onMouseLeave={close} w={'100%'}>
                     <Text ta={'center'}>{tag}</Text>
                     <Text>
                         {tagDescriptions[tag] ?? 'No description available'}
@@ -434,18 +439,30 @@ function SeedExplorer() {
         return null;
     }
 
-
     const pool = SeedResults.antes
-    const itemPool = selectedAnte
+    const availableAntes = Object.keys(pool).map(Number).sort((a, b) => a - b);
+
+    // Ensure selectedAnte is valid, default to 1 if undefined/null or not found (but allow ante 0 if explicitly selected)
+    let itemPool = selectedAnte;
+    if (selectedAnte == null || selectedAnte === undefined || !pool[itemPool] || availableAntes.length === 0) {
+        if (availableAntes.length > 0) {
+            // Default to ante 1 if it exists, otherwise use first available
+            itemPool = pool[1] ? 1 : availableAntes[0];
+            setSelectedAnte(itemPool);
+        } else {
+            return null;
+        }
+    }
 
     return (
         <>
-            <Box>
+            <Box mb="xs">
                 <NativeSelect
-                    mb={'sm'}
+                    mb="xs"
                     hiddenFrom="sm"
                     value={selectedAnte}
                     onChange={(e) => setSelectedAnte(Number(e.currentTarget.value))}
+                    size="xs"
                     data={Object.keys(SeedResults.antes).map((ante: string) => ({
                         label: `Ante ${ante}`,
                         value: String(ante)
@@ -457,25 +474,25 @@ function SeedExplorer() {
                     onChange={(v) => setSelectedBlind(v as Blinds)}
                     fullWidth
                     radius="xl"
-                    size="md"
-                    mb={'sm'}
+                    size={width > 600 ? 'sm' : 'xs'}
+                    mb="xs"
                     data={blinds.map((blind: string, i: number) => ({
                         value: ['smallBlind', 'bigBlind', 'bossBlind'][i],
-                        label: <Group justify={'center'}>
-                            {blind}
-                            {i < 2 && (
+                        label: <Group justify={'center'} gap={4}>
+                            <Text size="xs">{blind}</Text>
+                            {i < 2 && pool[itemPool]?.tags?.[i] && (
                                 <TagDisplay tag={pool[itemPool].tags[i] as Tag} ante={pool[itemPool]} />
                             )
                             }
                             {
-                                i === 2 &&
+                                i === 2 && pool[itemPool] &&
                                 <Popover>
                                     <Popover.Target>
                                         <Box>
                                             <Boss bossName={pool[itemPool].boss ?? ''} />
                                         </Box>
                                     </Popover.Target>
-                                    <Popover.Dropdown>
+                                    <Popover.Dropdown maw={400}>
                                         <Box>
                                             <Text>{pool[itemPool].boss}</Text>
                                         </Box>
@@ -491,7 +508,7 @@ function SeedExplorer() {
             <Tabs
                 w={'100%'}
                 variant="pills"
-                orientation={"vertical"}
+                orientation={width > 767 ? "vertical" : "horizontal"}
                 defaultValue={'1'}
                 keepMounted={false}
                 value={String(selectedAnte)}
@@ -530,6 +547,7 @@ function SeedExplorer() {
     )
 }
 
+
 function Main() {
     const SeedResults = useSeedResultsContainer()
     const viewMode = useCardStore(state => state.applicationState.viewMode);
@@ -539,6 +557,11 @@ function Main() {
             {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
+            {SeedResults && viewMode === 'custom' && (
+                <MantineProvider theme={JamlTheme} defaultColorScheme="dark">
+                    <JamlView />
+                </MantineProvider>
+            )}
             {SeedResults && <SnapshotModal />}
         </AppShell.Main>
     )
@@ -563,22 +586,37 @@ export function Blueprint() {
 
     return (
         <AppShell
-            header={{ height: { base: 60, md: 70, lg: 80 } }}
+            header={{ height: { base: 45, md: 50, lg: 55 } }}
+            footer={{ height: 'fit-content' }}
             aside={{
-                width: { base: '100%', md: 400, lg: 550 },
-                breakpoint: 'md',
+                width: { base: 380, sm: 380 },
+                breakpoint: 'sm',
                 collapsed: {
                     desktop: !outputOpened,
                     mobile: !outputOpened
                 },
             }}
             navbar={{
-                width: { base: '100%', md: 400, lg: 400 },
+                width: { base: 380, sm: 380 },
                 breakpoint: 'sm',
                 collapsed: {
-                    desktop: !(width > 1000) && !settingsOpened,
+                    desktop: !settingsOpened,
                     mobile: !settingsOpened
                 },
+            }}
+            styles={{
+                navbar: {
+                    maxWidth: '100%',
+                    overflowX: 'hidden'
+                },
+                aside: {
+                    maxWidth: '100%',
+                    overflowX: 'hidden'
+                },
+                main: {
+                    maxWidth: '100%',
+                    overflowX: 'hidden'
+                }
             }}
             padding="md"
         >
@@ -586,7 +624,9 @@ export function Blueprint() {
             <NavBar />
             <Main />
             <Aside />
-            <Footer />
+            <AppShell.Footer>
+                <Footer />
+            </AppShell.Footer>
         </AppShell>
     )
 }

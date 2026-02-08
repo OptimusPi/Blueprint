@@ -1,8 +1,8 @@
-import React,{createContext, useContext, useMemo} from "react";
-import { useCardStore} from "./store.ts";
-import type {InitialState} from "./store.ts";
+import React, { createContext, useContext, useMemo } from "react";
+import { useCardStore } from "./store.ts";
+import type { InitialState } from "./store.ts";
 
-type immolateState = InitialState['immolateState'];
+type immolateState = InitialState['engineState'];
 type shoppingState = InitialState['shoppingState'];
 type applicationState = InitialState['applicationState'];
 type eventState = InitialState['eventState']["events"];
@@ -27,16 +27,16 @@ export function useSeedOptionsContainer() {
     return context;
 }
 
-export function SeedOptionsProvider({children}: {children: React.ReactNode}) {
+export function SeedOptionsProvider({ children }: { children: React.ReactNode }) {
     const buys = useCardStore(state => state.shoppingState.buys);
     const sells = useCardStore(state => state.shoppingState.sells);
     const showCardSpoilers = useCardStore(state => state.applicationState.showCardSpoilers);
-    const unlocks = useCardStore(state => state.immolateState.selectedOptions);
-    const events = useCardStore(state=> state.eventState.events);
+    const unlocks = useCardStore(state => state.engineState.selectedOptions);
+    const events = useCardStore(state => state.eventState.events);
     const lockedCards = useCardStore(state => state.lockState.lockedCards);
     const maxMiscCardSource = useCardStore(state => state.applicationState.maxMiscCardSource);
 
-    const options = useMemo<OptionsProviderProps>(()=>{
+    const options = useMemo<OptionsProviderProps>(() => {
         return {
             maxMiscCardSource,
             showCardSpoilers,
@@ -47,7 +47,7 @@ export function SeedOptionsProvider({children}: {children: React.ReactNode}) {
             sells,
             lockedCards
         }
-    },[buys, events, lockedCards, maxMiscCardSource, sells, showCardSpoilers, unlocks])
+    }, [buys, events, lockedCards, maxMiscCardSource, sells, showCardSpoilers, unlocks])
 
 
 
