@@ -8,7 +8,8 @@ export async function getWasmApi(): Promise<MotelyWasmApi> {
   if (initPromise) return initPromise;
   initPromise = (async () => {
     const { loadMotely } = await import('motely-wasm');
-    wasmApi = await loadMotely();
+    const base = import.meta.env.BASE_URL ?? '/';
+    wasmApi = await loadMotely({ baseUrl: `${base}_framework` });
     return wasmApi;
   })();
   return initPromise;
