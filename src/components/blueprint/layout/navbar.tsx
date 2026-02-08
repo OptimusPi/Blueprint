@@ -1,4 +1,4 @@
-import React from "react",{useState, useEffect} from "react";
+import React, {useState, useEffect} from "react";
 import {
     AppShell,
     Box,
@@ -13,7 +13,7 @@ import {
     Switch,
     Text,
     Tooltip,
-    useMantineTheme
+    useMantineColorScheme
 } from "@mantine/core";
 
 import { DeckBackIcon, StakeChipIcon } from "../../Rendering/deckStakeIcons.tsx";
@@ -34,8 +34,6 @@ import { useDebouncedCallback } from "@mantine/hooks";
 import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
 import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
 import { useBlueprintTheme } from "../../../modules/state/themeProvider.tsx";
-import type { KnownThemes } from "../../../modules/state/themeProvider.tsx";
-import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
 
 
 export default function NavBar() {
@@ -375,7 +373,7 @@ export default function NavBar() {
                     </Button>
                     <Button
                         id="features-button"
-                        color={theme.colors.grape[9]}
+                        color="grape"
                         onClick={() => {
                             GaEvent('view_features');
                             openFeaturesModal()
@@ -385,13 +383,13 @@ export default function NavBar() {
                     >
                         Features
                     </Button>
-                    <Button color={theme.colors.blue[9]} onClick={() => openSelectOptionModal()} size="sm" fullWidth>
+                    <Button color="blue" onClick={() => openSelectOptionModal()} size="sm" fullWidth>
                         Modify Unlocks
                     </Button>
                     <Group grow gap="xs" align="stretch">
                         <Button
                             id="snapshot-button"
-                            color={theme.colors.cyan[9]}
+                            color="cyan"
                             onClick={() => {
                                 openSnapshotModal();
                                 GaEvent('view_seed_snapshot');
@@ -400,7 +398,7 @@ export default function NavBar() {
                         >
                             Seed Summary
                         </Button>
-                        <Button color={theme.colors.red[9]} variant={'filled'} onClick={() => reset()} size="sm">
+                        <Button color="red" variant={'filled'} onClick={() => reset()} size="sm">
                             Reset
                         </Button>
                     </Group>

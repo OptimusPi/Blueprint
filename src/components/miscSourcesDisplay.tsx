@@ -173,7 +173,7 @@ export default function MiscCardSourcesDisplay({ miscSources, boosterQueue, boss
                                         slideSize={{ base: '50px', sm: '70px', md: '90px' }}
                                         slideGap={{ base: 'xs' }}
                                         withControls={false}
-                                        height={{ base: 120, sm: 150, md: 190 }}
+                                        h={{ base: 120, sm: 150, md: 190 }}
                                         emblaOptions={{
                                             dragFree: true,
                                             align: 'start'
@@ -355,7 +355,7 @@ export default function MiscCardSourcesDisplay({ miscSources, boosterQueue, boss
                                         slideSize={{ base: '50px', sm: '70px', md: '90px' }}
                                         slideGap={{ base: 'xs' }}
                                         withControls={false}
-                                        height={{ base: 120, sm: 150, md: 190 }}
+                                        h={{ base: 120, sm: 150, md: 190 }}
                                         emblaOptions={{
                                             dragFree: true,
                                             align: 'start'
@@ -402,7 +402,7 @@ export default function MiscCardSourcesDisplay({ miscSources, boosterQueue, boss
                                         slideSize={{ base: '50px', sm: '70px', md: '90px' }}
                                         slideGap={{ base: 'xs' }}
                                         withControls={false}
-                                        height={{ base: 120, sm: 150, md: 190 }}
+                                        h={{ base: 120, sm: 150, md: 190 }}
                                         emblaOptions={{
                                             dragFree: true,
                                             align: 'start'
@@ -503,7 +503,7 @@ export default function MiscCardSourcesDisplay({ miscSources, boosterQueue, boss
                                                 slideSize={{ base: '50px', sm: '70px', md: '90px' }}
                                                 slideGap={{ base: 'xs' }}
                                                 withControls={false}
-                                                height={{ base: 120, sm: 150, md: 190 }}
+                                                h={{ base: 120, sm: 150, md: 190 }}
                                                 emblaOptions={{
                                                     dragFree: true,
                                                     align: 'start'

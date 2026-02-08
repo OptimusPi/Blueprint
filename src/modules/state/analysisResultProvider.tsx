@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useMemo } from "react";
 
-import { analyzeSeed } from "../ImmolateWrapper";
+
 import { useCardStore } from "./store.ts";
 import { useSeedOptionsContainer } from "./optionsProvider.tsx";
-import type { SeedResultsContainer } from "../ImmolateWrapper/CardEngines/Cards.ts";
-
+import { SeedResultsContainer } from "../GameEngine/CardEngines/Cards.ts";
+import { analyzeSeed } from "../GameEngine/index.ts";
 
 export const SeedResultContext = createContext<SeedResultsContainer | null | undefined>(null);
 
@@ -46,7 +46,7 @@ export function SeedResultProvider({ children }: { children: React.ReactNode }) 
         // Analyze and cache
         const result = analyzeSeed(analyzeState, {
             ...options,
-            customDeck: deckState.cards
+            customDeck: analyzeState.deck
         });
         if (result) {
             resultCache.set(cacheKey, result);
