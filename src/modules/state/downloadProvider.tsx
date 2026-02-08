@@ -19,7 +19,7 @@ export function DownloadSeedResultProvider({ children }: { children: React.React
 
     const analyzeState = useCardStore(state => state.engineState);
     const options = useSeedOptionsContainer()
-    const SeedResults = useContext(SeedResultContext);
+    const SeedResults = useSeedResultsContainer();
 
     const downloadSeedResults = useCallback(() => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(

@@ -1,21 +1,4 @@
-import React from 'react';
-import { MiscCardSource } from "../modules/ImmolateWrapper";
-import { Accordion, Box, Center, Group, Paper, Text, Title } from "@mantine/core";
-import { useCardStore } from "../modules/state/store.ts";
-import { useEffect, useState } from "react";
-import { EmblaCarouselType } from 'embla-carousel';
-import { Carousel } from "@mantine/carousel";
-import { LOCATIONS } from "../modules/const.ts";
-import { toHeaderCase } from "js-convert-case";
-import { BuyWrapper } from "./buyerWrapper.tsx";
-import { GameCard } from "./Rendering/cards.tsx";
-import { BoosterPack, Voucher } from "./Rendering/gameElements.tsx";
-import { Boss } from "./Rendering/gameElements.tsx";
-import { Tag } from "./Rendering/gameElements.tsx";
-import { Joker_Final, StandardCard_Final } from "../modules/ImmolateWrapper/CardEngines/Cards.ts";
-
-import * as React from 'react';
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
     Accordion,
     Box,
@@ -32,7 +15,7 @@ import { type EmblaCarouselType } from 'embla-carousel';
 import { toHeaderCase } from "js-convert-case";
 import { LOCATIONS } from "../modules/const.ts";
 import { type MiscCardSource } from "../modules/GameEngine";
-import { type Joker_Final, type StandardCard_Final } from "../modules/GameEngine/CardEngines/Cards.ts";
+import { Joker_Final, StandardCard_Final } from "../modules/GameEngine/CardEngines/Cards.ts";
 import { BuyWrapper } from "./buyerWrapper.tsx";
 import { GameCard } from "./Rendering/cards.tsx";
 import { BoosterPack, Boss, Tag, Voucher } from "./Rendering/gameElements.tsx";

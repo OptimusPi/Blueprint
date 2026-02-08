@@ -490,7 +490,7 @@ export const getMiscCardSources: (maxCards: number) => Array<MiscCardSource> = (
     ])
 };
 
-export function analyzeSeed(settings: AnalyzeSettings, analyzeOptions: AnalyzeOptions) {
+export function analyzeSeed(settings: AnalyzeSettings, analyzeOptions: AnalyzeOptions): SeedResultsContainer | undefined {
 
     const seed = sanitizeSeed(settings.seed);
 
@@ -498,7 +498,6 @@ export function analyzeSeed(settings: AnalyzeSettings, analyzeOptions: AnalyzeOp
 
 
     const output = new SeedResultsContainer();
-    // isLoading starts true in constructor, analysis populates antes, provider sets false after
     const deck = new Deck(deckMap[settings.deck])
     const stake = new Stake(settings.stake as StakeType)
     const version = Number(settings.gameVersion)

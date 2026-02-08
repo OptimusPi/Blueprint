@@ -1,4 +1,4 @@
-import type { Card_Final, StandardCard_Final } from "./ImmolateWrapper/CardEngines/Cards.ts";
+import type { Card_Final, StandardCard_Final } from "./GameEngine/CardEngines/Cards.ts";
 import type { Card } from "./balatrots/enum/cards/Card.ts";
 
 // Standard deck suits and ranks

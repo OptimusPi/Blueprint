@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import React from "react";
 import {
     AppShell,
     Box,
@@ -30,7 +30,6 @@ import FeaturesModal from "../../FeaturesModal.tsx";
 
 import {RerollCalculatorModal} from "../../RerollCalculatorModal.tsx";
 import {GaEvent} from "../../../modules/useGA.ts";
-import { useDebouncedCallback } from "@mantine/hooks";
 import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
 import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
 import { useBlueprintTheme } from "../../../modules/state/themeProvider.tsx";
@@ -69,12 +68,6 @@ export default function NavBar() {
     const rerollCalculatorMetadata = useCardStore(state => state.applicationState.rerollCalculatorMetadata);
     const closeRerollCalculatorModal = useCardStore(state => state.closeRerollCalculatorModal);
     const reset = useCardStore(state => state.reset);
-
-    const [localAntes, setLocalAntes] = useState<number | string>(antes);
-    useEffect(() => { setLocalAntes(antes); }, [antes]);
-    const debouncedSetAntes = useDebouncedCallback((val: number) => {
-        if (val !== antes) setAntes(val);
-    }, 200);
 
     const handleAnalyzeClick = () => {
         setStart(true);
@@ -153,7 +146,7 @@ export default function NavBar() {
                             )
                         },
                         {
-                            value: 'custom',
+                            value: 'jaml',
                             label: (
                                 <Group gap={4} wrap="nowrap" align="center">
                                     <img
@@ -288,28 +281,28 @@ export default function NavBar() {
                     It is recommended to keep this number under 200.
                 </Text>
                 <Button.Group w={'100%'} mb="xs">
-                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setCardsPerAnte(50)}>50</Button>
-                    <Button variant="default" color="balatroRed" size="sm" onClick={() => setCardsPerAnte(Math.max(cardsPerAnte - 50, 0))}>-50</Button>
+                    <Button variant="default" size="sm" onClick={() => setCardsPerAnte(50)}>50</Button>
+                    <Button variant="default" size="sm" onClick={() => setCardsPerAnte(Math.max(cardsPerAnte - 50, 0))}>-50</Button>
                     <Button.GroupSection flex={1} variant="default" miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px', fontWeight: 800, textAlign: 'center' }}>
                         {cardsPerAnte}
                     </Button.GroupSection>
-                    <Button variant="default" color="balatroGreen" size="sm"
+                    <Button variant="default" size="sm"
                         onClick={() => setCardsPerAnte(Math.min(cardsPerAnte + 50, 1000))}>+50</Button>
-                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setCardsPerAnte(1000)}>1000</Button>
+                    <Button variant="default" size="sm" onClick={() => setCardsPerAnte(1000)}>1000</Button>
                 </Button.Group>
                 <InputLabel fz="sm" mb="xs"> Cards per Misc source</InputLabel>
                 <Text fz={'sm'} c={'dimmed'} mb="xs">
                     It is recommended to keep this number under 50.
                 </Text>
                 <Button.Group w={'100%'} mb="xs">
-                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setMiscMaxSource(15)}>15</Button>
-                    <Button variant="default" color="balatroRed" size="sm" onClick={() => setMiscMaxSource(Math.max(maxMiscCardSource - 5, 0))}>-5</Button>
+                    <Button variant="default" size="sm" onClick={() => setMiscMaxSource(15)}>15</Button>
+                    <Button variant="default" size="sm" onClick={() => setMiscMaxSource(Math.max(maxMiscCardSource - 5, 0))}>-5</Button>
                     <Button.GroupSection flex={1} variant="default" miw={60} style={{ fontSize: 'var(--mantine-font-size-sm)', padding: '2px 8px', fontWeight: 800, textAlign: 'center' }}>
                         {maxMiscCardSource}
                     </Button.GroupSection>
-                    <Button variant="default" color="balatroGreen" size="sm"
+                    <Button variant="default" size="sm"
                         onClick={() => setMiscMaxSource(Math.min(maxMiscCardSource + 5, 100))}>+5</Button>
-                    <Button variant="default" color="balatroBlue" size="sm" onClick={() => setMiscMaxSource(100)}>100</Button>
+                    <Button variant="default" size="sm" onClick={() => setMiscMaxSource(100)}>100</Button>
                 </Button.Group>
 
                 <Group grow gap="xs" mb="xs">
@@ -360,7 +353,7 @@ export default function NavBar() {
                     </Box>
                 </Group>
             </AppShell.Section>
-            <AppShell.Section id="tool-buttons" my="md">
+            <AppShell.Section id="tool-buttons" mt="auto" mb="xs" style={{ flex: '0 0 auto' }}>
                 <Stack gap="xs">
                     <Button
                         id="analyze-button"

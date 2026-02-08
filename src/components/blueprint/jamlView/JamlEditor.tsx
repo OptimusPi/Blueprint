@@ -157,7 +157,7 @@ export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
     }, []);
 
     return (
-        <Paper p="sm" radius="md" bg={theme.colors.dark[0]}>
+        <Paper p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
             <Stack gap="sm">
                 {/* Header */}
                 <Group justify="space-between" align="center">

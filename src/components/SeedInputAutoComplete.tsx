@@ -41,7 +41,7 @@ function SeedInputAutoComplete({ seed, setSeed, w, showDeckSelect, label = 'Seed
         isDirty.current = false;
     }, 160);
 
-    const deck = useCardStore(state => state.immolateState.deck);
+    const deck = useCardStore(state => state.engineState.deck);
     const setDeck = useCardStore(state => state.setDeck);
 
     const sectionWidth = 130;
@@ -104,7 +104,7 @@ function SeedInputAutoComplete({ seed, setSeed, w, showDeckSelect, label = 'Seed
 }
 
 export function QuickAnalyze() {
-    const seed = useCardStore(state => state.immolateState.seed);
+    const seed = useCardStore(state => state.engineState.seed);
     const setSeed = useCardStore(state => state.setSeed);
     const setStart = useCardStore(state => state.setStart);
 

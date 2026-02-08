@@ -4,7 +4,7 @@ import type {
     Planet_Final,
     Spectral_Final,
     Tarot_Final
-} from "../ImmolateWrapper/CardEngines/Cards.ts";
+} from "../GameEngine/CardEngines/Cards";
 import type { Blinds } from "../state/store.ts";
 
 

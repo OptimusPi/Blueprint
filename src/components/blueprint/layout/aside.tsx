@@ -19,7 +19,7 @@ import {
     Title,
     useMantineTheme
 } from "@mantine/core";
-import {IconCalendarEvent, IconCards, IconCheck, IconShoppingCart, IconX} from "@tabler/icons-react";
+import {IconCalendarEvent, IconCards, IconCheck, IconPlayCard, IconShoppingCart, IconX} from "@tabler/icons-react";
 import {useCardStore} from "../../../modules/state/store.ts";
 import SearchSeedInput from "../../searchInput.tsx";
 import MiscCardSourcesDisplay from "../../miscSourcesDisplay.tsx";
@@ -169,6 +169,29 @@ export function EventsPanel() {
 
 export function Aside() {
     const [addedSourceNames, setAddedSourceNames] = React.useState<Set<string>>(new Set());
+    const asideOpen = useCardStore(state => state.applicationState.asideOpen);
+    const viewMode = useCardStore(state => state.applicationState.viewMode);
+
+    // Resizable aside state
+    const asideRef = useRef<HTMLDivElement>(null);
+    const resizeHandleRef = useRef<HTMLDivElement>(null);
+    const [asideWidth, setAsideWidth] = useState(380);
+    const [isResizing, setIsResizing] = useState(false);
+
+    useEffect(() => {
+        if (!isResizing) return;
+        const handleMouseMove = (e: MouseEvent) => {
+            const newWidth = window.innerWidth - e.clientX;
+            setAsideWidth(Math.max(250, Math.min(800, newWidth)));
+        };
+        const handleMouseUp = () => setIsResizing(false);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing]);
 
     React.useEffect(() => {
         const handleCustomSourcesUpdated = (event: Event) => {
@@ -303,7 +326,7 @@ export function Aside() {
                                 auraQueue={auraQueue}
                                 boosterQueue={boosterQueue}
                                 draws={blinds}
-                                onAddSource={viewMode === 'custom' ? (sourceName, cards, sourceType) => {
+                                onAddSource={(viewMode === 'custom' || viewMode === 'jaml') ? (sourceName, cards, sourceType) => {
                                     // Dispatch custom event that Custom view can listen to
                                     // Use the currently selected ante from the store
                                     const currentAnte = selectedAnte || 1;
@@ -320,7 +343,7 @@ export function Aside() {
                                         }
                                     }));
                                 } : undefined}
-                                addedSourceNames={viewMode === 'custom' ? addedSourceNames : undefined}
+                                addedSourceNames={(viewMode === 'custom' || viewMode === 'jaml') ? addedSourceNames : undefined}
                             />
                         ) : (
                             <Center h={200}>

@@ -1,6 +1,6 @@
 import { describe, expect, suite, test } from "vitest";
-import { analyzeSeed } from "../src/modules/ImmolateWrapper";
-import { Ante, SeedResultsContainer } from "../src/modules/ImmolateWrapper/CardEngines/Cards";
+import { analyzeSeed } from "../src/modules/GameEngine";
+import { Ante, SeedResultsContainer } from "../src/modules/GameEngine/CardEngines/Cards";
 
 interface JSONSeedTest {
     analyzeState: any;
@@ -39,20 +39,16 @@ suite("Accuracy Panel", () => {
                 deck: Deck,
                 stake: Stake,
                 gameVersion: Version,
-                antes: MaxAnte,
+                minAnte: 1,
+                maxAnte: MaxAnte,
                 cardsPerAnte: cardsPerAnte
             },
             options
         ) as SeedResultsContainer;
-        if(!verifiedResults.antes[0]){
-            delete results.antes[0];
-        }
 
         describe("Ante Suite", () => {
-            const verifiedAntes = Object.values(verifiedResults.antes);
-
-            const generatedAntes = Object.values(results.antes);
-            const tests = verifiedAntes.map((verified: Ante, index: number) => ({ verified: verified, generated: generatedAntes[index] }))
+            const anteKeys = Object.keys(verifiedResults.antes).filter(k => results.antes[Number(k)]);
+            const tests = anteKeys.map(k => ({ anteNum: k, verified: verifiedResults.antes[Number(k)], generated: results.antes[Number(k)] }))
             describe
                 .each(tests)
                 ("Verified Ante %$ Antes should match %$ should match generated Ante", ({ verified, generated }) => {

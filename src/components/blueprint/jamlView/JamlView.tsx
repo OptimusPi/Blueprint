@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActionIcon,
-    Autocomplete,
+    TextInput,
     Badge,
     Box,
     Button,
@@ -15,8 +15,7 @@ import {
     useMantineTheme
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconCode, IconUpload } from "@tabler/icons-react";
-import { SeedsWithLegendary, popularSeeds } from "../../../modules/const.ts";
+import { IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconCode, IconSearch, IconUpload } from "@tabler/icons-react";
 import { prefetchSeedAnalysis, useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
 import { useSeedOptionsContainer } from "../../../modules/state/optionsProvider.tsx";
 import { useCardStore } from "../../../modules/state/store.ts";
@@ -252,6 +251,7 @@ const AnteSection = React.memo(({
     cardScale?: number;
 }) => {
     const [collapsed, setCollapsed] = useState(false);
+    const theme = useMantineTheme();
 
     // Get packs from each blind separately (keys are smallBlind, bigBlind, bossBlind)
     // Ante 0: No blinds shown
@@ -268,12 +268,9 @@ const AnteSection = React.memo(({
 
     // Show ALL shop cards (full shop), but filter displayed ones
     const allShop = anteData.queue || [];
-    const maxShopSlot = sourcesConfig.shopSlots.length > 0
-        ? Math.max(...sourcesConfig.shopSlots)
-        : 3; // Default to slots 0-3 (first 4)
 
-    // Ante 1 shows 10 shop cards, others show 15
-    const shopLimit = anteNum === 1 ? 10 : 15;
+    // Show more shop cards in the scrollable carousel
+    const shopLimit = anteNum === 1 ? 20 : 30;
     const displayShop = allShop.slice(0, shopLimit);
 
     // Total packs for hasContent check
@@ -283,181 +280,141 @@ const AnteSection = React.memo(({
     const hasContent = displayShop.length > 0 || totalPacks > 0 || sourcesConfig.showVoucher || sourcesConfig.miscSources.length > 0 || customSources.length > 0;
     if (!hasContent) return null;
 
-    // Balatro grey shades for flat panels (no borders) - only 2 levels needed
-    const PANEL_BG = {
-        outer: '#1e2b2d',    // darkGrey - outer panel
-        inner: '#33464b',    // mediumGrey - nested content (cards sit directly on this)
-    };
+    // Panel colors: use jimboPanel if available (Jaml theme), otherwise inherit from Mantine
+    const jimbo = theme.colors.jimboPanel;
+    const PANEL_BG = jimbo ? jimbo[3] : 'var(--mantine-color-dark-7)';
 
     return (
-        <Paper p="sm" radius="sm" style={{ backgroundColor: PANEL_BG.outer, border: 'none' }}>
-            {/* Grid layout: Left column (Ante label) | Main content | Collapse button */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '8px', alignItems: 'start' }}>
-                {/* LEFT COLUMN: Just the Ante label */}
-                <Stack align="center" gap={0} style={{ minWidth: '40px' }}>
-                    <Text size="xs" fw={700} c="dimmed" tt="uppercase" lh={1}>Ante</Text>
-                    <Text
-                        fw={700}
-                        size="xl"
-                        lh={1}
-                        style={{ whiteSpace: 'nowrap', textAlign: 'center' }}
+        <Paper p={6} radius="sm" style={{ backgroundColor: PANEL_BG, border: 'none' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr', gap: '4px', alignItems: 'start' }}>
+                {/* LEFT COLUMN: Collapse arrow + Ante label + Voucher (fixed width) */}
+                <Stack gap={2} align="center" style={{ width: '50px' }}>
+                    <ActionIcon
+                        variant="subtle"
+                        size="xs"
+                        onClick={() => setCollapsed(!collapsed)}
                     >
-                        {anteNum}
-                    </Text>
+                        {collapsed ? <IconChevronDown size={14} /> : <IconChevronUp size={14} />}
+                    </ActionIcon>
+                    <Text size="xs" fw={700} c="dimmed" tt="uppercase" lh={1}>Ante</Text>
+                    <Text fw={700} size="xl" lh={1}>{anteNum}</Text>
+                    {!collapsed && sourcesConfig.showVoucher && anteData.voucher && (
+                        <>
+                            <Voucher voucherName={anteData.voucher} />
+                            <Text size="9px" fw={600} c="dimmed" ta="center" lh={1}>Voucher</Text>
+                        </>
+                    )}
                 </Stack>
 
-                {/* MIDDLE COLUMN: Shop + Blind columns + Voucher (all collapsible) */}
+                {/* RIGHT COLUMN: Shop + Blinds (collapsible) */}
+                <Box style={{ minWidth: 0, overflow: 'hidden' }}>
                 <Collapse in={!collapsed}>
-                    <Stack gap="xs">
-                        {/* TOP: Shop - Show 12 cards, gray out ones not in JAML spec */}
+                    <Stack gap={4}>
+                        {/* Shop row */}
                         {sourcesConfig.showShop && displayShop.length > 0 && (
-                            <Box p="xs" style={{ backgroundColor: PANEL_BG.inner, borderRadius: '4px' }}>
-                                <Text size="xs" c="dimmed" mb={4}>Shop [0-{maxShopSlot}]</Text>
-                                <DragScroll hideScrollbar>
-                                    <Group wrap="nowrap" gap={4}>
-                                        {displayShop.map((card: any, index: number) => {
-                                            const isInJamlSlot = sourcesConfig.shopSlots.length === 0 || sourcesConfig.shopSlots.includes(index);
-                                            const glow = getCardGlow(card, jamlConfig, anteNum, index, 'shop');
-
-                                            return (
-                                                <Box
-                                                    key={index}
-                                                    style={{
-                                                        flexShrink: 0,
-                                                        opacity: isInJamlSlot ? 1 : 0.5,
-                                                        transition: 'opacity 0.2s'
-                                                    }}
-                                                >
-                                                    <GameCard card={card} glow={glow} scale={cardScale} />
-                                                </Box>
-                                            );
-                                        })}
-                                    </Group>
-                                </DragScroll>
-                            </Box>
+                            <DragScroll hideScrollbar>
+                                <Group wrap="nowrap" gap={3}>
+                                    {displayShop.map((card: any, index: number) => {
+                                        const isInJamlSlot = sourcesConfig.shopSlots.length === 0 || sourcesConfig.shopSlots.includes(index);
+                                        const glow = getCardGlow(card, jamlConfig, anteNum, index, 'shop');
+                                        return (
+                                            <Box key={index} style={{ flexShrink: 0, opacity: isInJamlSlot ? 1 : 0.5, transition: 'opacity 0.2s' }}>
+                                                <GameCard card={card} glow={glow} scale={cardScale} />
+                                            </Box>
+                                        );
+                                    })}
+                                </Group>
+                            </DragScroll>
                         )}
 
-                        {/* BOTTOM: Blinds + Voucher Row */}
-                        {(sourcesConfig.showPacks || sourcesConfig.showVoucher) && (
-                            <Group gap="xs" wrap="nowrap" align="stretch" style={{ width: '100%' }}>
-                                {/* Blinds columns */}
-                                {sourcesConfig.showPacks && (hasBigBlind || hasBossBlind) && (
-                                    <>
-                                        {/* SMALL BLIND */}
-                                        {showSmallBlindColumn && (
-                                            <Stack gap={2} justify="flex-end" p="xs" style={{ backgroundColor: PANEL_BG.inner, borderRadius: '4px', flex: 1 }}>
-                                                {smallBlindPacks.length > 0 && (
-                                                    <Stack gap="xs" mb="auto">
-                                                        {smallBlindPacks.map((pack: Pack, idx: number) => {
-                                                            const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx);
-                                                            return (
-                                                                <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-                                                                    <Group gap={4} mb={4} wrap="nowrap">
-                                                                        <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
-                                                                        <Badge size="xs" variant="filled" color="blue">{pack.size}</Badge>
-                                                                        <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
-                                                                    </Group>
-                                                                    <Group wrap="nowrap" gap={2}>
-                                                                        {pack.cards.map((card, cardIdx) => {
-                                                                            const glow = getCardGlow(card, jamlConfig, anteNum, 0, 'pack');
-                                                                            return (
-                                                                                <Box key={cardIdx}>
-                                                                                    <GameCard card={card!} glow={glow} scale={cardScale} />
-                                                                                </Box>
-                                                                            );
-                                                                        })}
-                                                                    </Group>
-                                                                </Box>
-                                                            );
-                                                        })}
-                                                    </Stack>
-                                                )}
-                                                <Group gap={4} align="center">
-                                                    {anteData.tags?.[0] && <RenderTag tagName={anteData.tags[0]} />}
-                                                    <Text size="xs" fw={600} c="dimmed">Small Blind</Text>
-                                                </Group>
+                        {/* Blind columns */}
+                        {sourcesConfig.showPacks && (hasBigBlind || hasBossBlind) && (
+                            <Group gap={4} wrap="nowrap" align="stretch" style={{ width: '100%' }}>
+                                {/* SMALL BLIND */}
+                                {showSmallBlindColumn && (
+                                    <Stack gap={2} justify="flex-end" style={{ flex: 1 }}>
+                                        {smallBlindPacks.length > 0 && (
+                                            <Stack gap={4} mb="auto">
+                                                {smallBlindPacks.map((pack: Pack, idx: number) => {
+                                                    const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx);
+                                                    return (
+                                                        <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
+                                                            <Group gap={3} mb={2} wrap="nowrap">
+                                                                <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
+                                                                <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
+                                                            </Group>
+                                                            <Group wrap="nowrap" gap={2}>
+                                                                {pack.cards.map((card, cardIdx) => (
+                                                                    <GameCard key={cardIdx} card={card!} glow={getCardGlow(card, jamlConfig, anteNum, 0, 'pack')} scale={cardScale} />
+                                                                ))}
+                                                            </Group>
+                                                        </Box>
+                                                    );
+                                                })}
                                             </Stack>
                                         )}
-
-                                        {/* BIG BLIND */}
-                                        <Stack gap={2} justify="flex-end" p="xs" style={{ backgroundColor: PANEL_BG.inner, borderRadius: '4px', flex: 1 }}>
-                                            {bigBlindPacks.length > 0 && (
-                                                <Stack gap="xs" mb="auto">
-                                                    {bigBlindPacks.map((pack: Pack, idx: number) => {
-                                                        const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx + 2);
-                                                        return (
-                                                            <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-                                                                <Group gap={4} mb={4} wrap="nowrap">
-                                                                    <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
-                                                                    <Badge size="xs" variant="filled" color="blue">{pack.size}</Badge>
-                                                                    <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
-                                                                </Group>
-                                                                <Group wrap="nowrap" gap={2}>
-                                                                    {pack.cards.map((card, cardIdx) => {
-                                                                        const glow = getCardGlow(card, jamlConfig, anteNum, 1, 'pack');
-                                                                        return (
-                                                                            <Box key={cardIdx}>
-                                                                                <GameCard card={card!} glow={glow} scale={cardScale} />
-                                                                            </Box>
-                                                                        );
-                                                                    })}
-                                                                </Group>
-                                                            </Box>
-                                                        );
-                                                    })}
-                                                </Stack>
-                                            )}
-                                            <Group gap={4} align="center">
-                                                {anteData.tags?.[1] && <RenderTag tagName={anteData.tags[1]} />}
-                                                <Text size="xs" fw={600} c="dimmed">Big Blind</Text>
-                                            </Group>
-                                        </Stack>
-
-                                        {/* BOSS BLIND */}
-                                        {hasBossBlind && (
-                                            <Stack gap={2} justify="flex-end" p="xs" style={{ backgroundColor: PANEL_BG.inner, borderRadius: '4px', flex: 1 }}>
-                                                {bossBlindPacks.length > 0 && (
-                                                    <Stack gap="xs" mb="auto">
-                                                        {bossBlindPacks.map((pack: Pack, idx: number) => {
-                                                            const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx + 4);
-                                                            return (
-                                                                <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-                                                                    <Group gap={4} mb={4} wrap="nowrap">
-                                                                        <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
-                                                                        <Badge size="xs" variant="filled" color="blue">{pack.size}</Badge>
-                                                                        <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
-                                                                    </Group>
-                                                                    <Group wrap="nowrap" gap={2}>
-                                                                        {pack.cards.map((card, cardIdx) => {
-                                                                            const glow = getCardGlow(card, jamlConfig, anteNum, 2, 'pack');
-                                                                            return (
-                                                                                <Box key={cardIdx}>
-                                                                                    <GameCard card={card!} glow={glow} scale={cardScale} />
-                                                                                </Box>
-                                                                            );
-                                                                        })}
-                                                                    </Group>
-                                                                </Box>
-                                                            );
-                                                        })}
-                                                    </Stack>
-                                                )}
-                                                <Group gap={4} align="center">
-                                                    {anteData.boss && <Boss bossName={anteData.boss} />}
-                                                    <Text size="xs" fw={600} c="dimmed">Boss Blind</Text>
-                                                </Group>
-                                            </Stack>
-                                        )}
-                                    </>
+                                        <Group gap={4} align="center">
+                                            {anteData.tags?.[0] && <RenderTag tagName={anteData.tags[0]} />}
+                                            <Text size="xs" fw={600} c="dimmed">Small Blind</Text>
+                                        </Group>
+                                    </Stack>
                                 )}
 
-                                {/* VOUCHER - integrated into row */}
-                                {sourcesConfig.showVoucher && anteData.voucher && (
-                                    <Stack gap={2} justify="flex-end" p="xs" style={{ backgroundColor: PANEL_BG.inner, borderRadius: '4px', minWidth: '80px' }}>
-                                        <Box style={{ margin: 'auto' }}>
-                                            <Voucher voucherName={anteData.voucher} />
-                                        </Box>
-                                        <Text size="xs" fw={600} c="dimmed" ta="center">Voucher</Text>
+                                {/* BIG BLIND */}
+                                <Stack gap={2} justify="flex-end" style={{ flex: 1 }}>
+                                    {bigBlindPacks.length > 0 && (
+                                        <Stack gap={4} mb="auto">
+                                            {bigBlindPacks.map((pack: Pack, idx: number) => {
+                                                const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx + 2);
+                                                return (
+                                                    <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
+                                                        <Group gap={3} mb={2} wrap="nowrap">
+                                                            <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
+                                                            <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
+                                                        </Group>
+                                                        <Group wrap="nowrap" gap={2}>
+                                                            {pack.cards.map((card, cardIdx) => (
+                                                                <GameCard key={cardIdx} card={card!} glow={getCardGlow(card, jamlConfig, anteNum, 1, 'pack')} scale={cardScale} />
+                                                            ))}
+                                                        </Group>
+                                                    </Box>
+                                                );
+                                            })}
+                                        </Stack>
+                                    )}
+                                    <Group gap={4} align="center">
+                                        {anteData.tags?.[1] && <RenderTag tagName={anteData.tags[1]} />}
+                                        <Text size="xs" fw={600} c="dimmed">Big Blind</Text>
+                                    </Group>
+                                </Stack>
+
+                                {/* BOSS BLIND */}
+                                {hasBossBlind && (
+                                    <Stack gap={2} justify="flex-end" style={{ flex: 1 }}>
+                                        {bossBlindPacks.length > 0 && (
+                                            <Stack gap={4} mb="auto">
+                                                {bossBlindPacks.map((pack: Pack, idx: number) => {
+                                                    const isInJamlSlots = sourcesConfig.packSlots.length === 0 || sourcesConfig.packSlots.includes(idx + 4);
+                                                    return (
+                                                        <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
+                                                            <Group gap={3} mb={2} wrap="nowrap">
+                                                                <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
+                                                                <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
+                                                            </Group>
+                                                            <Group wrap="nowrap" gap={2}>
+                                                                {pack.cards.map((card, cardIdx) => (
+                                                                    <GameCard key={cardIdx} card={card!} glow={getCardGlow(card, jamlConfig, anteNum, 2, 'pack')} scale={cardScale} />
+                                                                ))}
+                                                            </Group>
+                                                        </Box>
+                                                    );
+                                                })}
+                                            </Stack>
+                                        )}
+                                        <Group gap={4} align="center">
+                                            {anteData.boss && <Boss bossName={anteData.boss} />}
+                                            <Text size="xs" fw={600} c="dimmed">Boss Blind</Text>
+                                        </Group>
                                     </Stack>
                                 )}
                             </Group>
@@ -472,44 +429,32 @@ const AnteSection = React.memo(({
                             </Group>
                         )}
 
-                        {/* Custom Layout Sources - added via + button from misc sources display */}
+                        {/* Custom Layout Sources */}
                         {customSources.length > 0 && (
-                            <Box p="xs" style={{ backgroundColor: PANEL_BG.inner, borderRadius: '4px' }}>
-                                <Text size="xs" c="dimmed" mb={4}>Custom Sources</Text>
-                                <Stack gap="xs">
-                                    {customSources.map((source, idx) => (
-                                        <Box key={`${source.sourceType}-${source.sourceName}-${idx}`}>
-                                            <Badge size="xs" variant="filled" color="blue" mb={4}>
-                                                {source.sourceName} ({source.sourceType})
-                                            </Badge>
-                                            {source.cards && source.cards.length > 0 && (
-                                                <DragScroll hideScrollbar>
-                                                    <Group wrap="nowrap" gap={4}>
-                                                        {source.cards.map((card: any, cardIdx: number) => (
-                                                            <Box key={cardIdx} style={{ flexShrink: 0 }}>
-                                                                <GameCard card={card} scale={cardScale} />
-                                                            </Box>
-                                                        ))}
-                                                    </Group>
-                                                </DragScroll>
-                                            )}
-                                        </Box>
-                                    ))}
-                                </Stack>
-                            </Box>
+                            <Stack gap={4}>
+                                {customSources.map((source, idx) => (
+                                    <Box key={`${source.sourceType}-${source.sourceName}-${idx}`}>
+                                        <Badge size="xs" variant="filled" color="blue" mb={2}>
+                                            {source.sourceName} ({source.sourceType})
+                                        </Badge>
+                                        {source.cards && source.cards.length > 0 && (
+                                            <DragScroll hideScrollbar>
+                                                <Group wrap="nowrap" gap={3}>
+                                                    {source.cards.map((card: any, cardIdx: number) => (
+                                                        <Box key={cardIdx} style={{ flexShrink: 0 }}>
+                                                            <GameCard card={card} scale={cardScale} />
+                                                        </Box>
+                                                    ))}
+                                                </Group>
+                                            </DragScroll>
+                                        )}
+                                    </Box>
+                                ))}
+                            </Stack>
                         )}
                     </Stack>
                 </Collapse>
-
-                {/* RIGHT COLUMN: Collapse button */}
-                <ActionIcon
-                    variant="subtle"
-                    size="sm"
-                    onClick={() => setCollapsed(!collapsed)}
-                    style={{ alignSelf: 'start' }}
-                >
-                    {collapsed ? <IconChevronDown size={16} /> : <IconChevronUp size={16} />}
-                </ActionIcon>
+                </Box>
             </div>
         </Paper>
     );
@@ -517,10 +462,80 @@ const AnteSection = React.memo(({
 
 AnteSection.displayName = 'AnteSection';
 
+// Ante list view: renders all antes, scrollable. On mobile, supports swipe to jump between antes.
+const AntePageView = React.memo(({
+    selectedAntesArray,
+    pool,
+    sourcesConfig,
+    jamlConfig,
+    customSources,
+    touchStartRef,
+    goToNextPage,
+    goToPrevPage,
+}: {
+    selectedAntesArray: number[];
+    pool: Record<number, Ante>;
+    sourcesConfig: ReturnType<typeof extractSourcesFromJaml>;
+    jamlConfig: any;
+    customSources: Array<CustomSource>;
+    touchStartRef: React.MutableRefObject<{ y: number; time: number } | null>;
+    goToNextPage: () => void;
+    goToPrevPage: () => void;
+}) => {
+    // Touch swipe handlers (mobile only — desktop just scrolls)
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        touchStartRef.current = { y: e.touches[0].clientY, time: Date.now() };
+    }, [touchStartRef]);
+
+    const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+        if (!touchStartRef.current) return;
+        const deltaY = touchStartRef.current.y - e.changedTouches[0].clientY;
+        const deltaTime = Date.now() - touchStartRef.current.time;
+        touchStartRef.current = null;
+
+        // Swipe threshold: 50px or fast flick (30px in <300ms)
+        if (deltaY > 50 || (deltaY > 30 && deltaTime < 300)) {
+            goToNextPage();
+        } else if (deltaY < -50 || (deltaY < -30 && deltaTime < 300)) {
+            goToPrevPage();
+        }
+    }, [touchStartRef, goToNextPage, goToPrevPage]);
+
+    return (
+        <Box
+            data-ante-scroll
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', contain: 'layout style' }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+        >
+            <Stack gap={8}>
+                {selectedAntesArray.map((anteNum) => {
+                    const anteData = pool[anteNum];
+                    if (!anteData) return null;
+                    const anteCustomSources = customSources.filter(s => s.ante === anteNum);
+
+                    return (
+                        <AnteSection
+                            key={anteNum}
+                            anteNum={anteNum}
+                            anteData={anteData}
+                            sourcesConfig={sourcesConfig}
+                            jamlConfig={jamlConfig}
+                            customSources={anteCustomSources}
+                            cardScale={0.85}
+                        />
+                    );
+                })}
+            </Stack>
+        </Box>
+    );
+});
+
+AntePageView.displayName = 'AntePageView';
+
 function JamlView() {
     const theme = useMantineTheme();
     const SeedResults = useSeedResultsContainer();
-    const seed = useCardStore(state => state.engineState.seed);
     const analyzeState = useCardStore(state => state.engineState);
     const options = useSeedOptionsContainer();
     const currentSeed = analyzeState.seed;
@@ -528,7 +543,6 @@ function JamlView() {
     const setSeed = useCardStore(state => state.setSeed);
     const setStart = useCardStore(state => state.setStart);
     const setSelectedAnte = useCardStore(state => state.setSelectedAnte);
-    const searchResults = useSeedResultsContainer();
 
     // Multi-seed support - initialize with current seed if available
     const [seeds, setSeeds] = useState<Array<string>>(() => currentSeed ? [currentSeed] : []);
@@ -542,11 +556,16 @@ function JamlView() {
     const [jamlValid, setJamlValid] = useState<boolean>(false);
     const [wasmStatus, setWasmStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
     const [wasmError, setWasmError] = useState<string | null>(null);
-    const [wasmSeedsSearched, setWasmSeedsSearched] = useState(0);
-    const [wasmResultCount, setWasmResultCount] = useState(0);
     const [wasmResults, setWasmResults] = useState<Array<{ seed: string; score: number }>>([]);
     const wasmSearchIdRef = useRef<string | null>(null);
     const wasmSeenRef = useRef<Set<string>>(new Set());
+    // Progress: direct DOM updates, zero React re-renders
+    const wasmSeedsSearchedRef = useRef(0);
+    const wasmResultCountRef = useRef(0);
+    const wasmProgressElRef = useRef<HTMLSpanElement>(null);
+    const wasmProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Batch onResult into ref, flush periodically
+    const wasmResultBatchRef = useRef<Array<{ seed: string; score: number }>>([]);
 
     // Prefetch next seeds for smooth scrolling (Time-Sliced)
     useEffect(() => {
@@ -586,17 +605,19 @@ function JamlView() {
         };
     }, [currentSeed, seeds, analyzeState, options]);
 
-    // Handle bulk seeds import
+    // Handle bulk seeds import (supports plain list, CSV, quoted values)
     const handleBulkSeedsImport = useCallback(() => {
         const parsed = bulkSeedsText
-            .split(/[\n,]+/)
-            .map(s => {
-                // Handle CSV: extract first 8 characters or up to first comma
-                const trimmed = s.trim();
-                const match = trimmed.match(/^([A-Z0-9]{8})/);
-                return match ? match[1] : '';
+            .split(/\r?\n/)
+            .map(line => {
+                // Take first value before comma (handles CSV rows)
+                const firstCol = line.split(',')[0].trim();
+                // Strip surrounding quotes
+                const stripped = firstCol.replace(/^["']|["']$/g, '');
+                return stripped;
             })
-            .filter(s => s.length === 8 && /^[A-Z0-9]{8}$/.test(s));
+            .filter(s => s.length > 0 && /^[A-Z0-9]+$/i.test(s))
+            .map(s => s.toUpperCase());
 
         if (parsed.length > 0) {
             setSeeds(parsed);
@@ -624,10 +645,29 @@ function JamlView() {
 
         setWasmStatus('running');
         setWasmError(null);
-        setWasmSeedsSearched(0);
-        setWasmResultCount(0);
+        wasmSeedsSearchedRef.current = 0;
+        wasmResultCountRef.current = 0;
         setWasmResults([]);
         wasmSeenRef.current = new Set();
+        wasmResultBatchRef.current = [];
+        if (wasmProgressElRef.current) wasmProgressElRef.current.textContent = '';
+
+        // Direct DOM updates only — zero React re-renders during search
+        if (wasmProgressTimerRef.current) clearInterval(wasmProgressTimerRef.current);
+        wasmProgressTimerRef.current = setInterval(() => {
+            if (wasmProgressElRef.current) {
+                wasmProgressElRef.current.textContent = `${wasmSeedsSearchedRef.current.toLocaleString()} seeds \u2022 ${wasmResultCountRef.current.toLocaleString()} hits`;
+            }
+            // Flush batched results
+            if (wasmResultBatchRef.current.length > 0) {
+                const batch = wasmResultBatchRef.current;
+                wasmResultBatchRef.current = [];
+                setWasmResults(prev => {
+                    if (prev.length >= 200) return prev;
+                    return [...batch, ...prev].slice(0, 200);
+                });
+            }
+        }, 500);
 
         const jamlText = yaml.dump(jamlConfig, { indent: 2, lineWidth: -1 });
 
@@ -640,22 +680,30 @@ function JamlView() {
                 {
                     onProgress: (searchId, totalSeedsSearched, _matchingSeeds, _elapsedMs, resultCount) => {
                         if (!wasmSearchIdRef.current) wasmSearchIdRef.current = searchId;
-                        setWasmSeedsSearched(totalSeedsSearched);
-                        setWasmResultCount(resultCount);
+                        wasmSeedsSearchedRef.current = totalSeedsSearched;
+                        wasmResultCountRef.current = resultCount;
                     },
                     onResult: (searchId, seed, score) => {
                         if (!wasmSearchIdRef.current) wasmSearchIdRef.current = searchId;
                         if (wasmSeenRef.current.has(seed)) return;
                         wasmSeenRef.current.add(seed);
-                        setWasmResults(prev => {
-                            if (prev.length >= 200) return prev;
-                            return [{ seed, score }, ...prev];
-                        });
+                        wasmResultBatchRef.current.push({ seed, score });
                     },
                 }
             );
 
             const finalStatus = await completion;
+            // Final flush
+            if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
+            if (wasmProgressElRef.current) {
+                wasmProgressElRef.current.textContent = `${wasmSeedsSearchedRef.current.toLocaleString()} seeds \u2022 ${wasmResultCountRef.current.toLocaleString()} hits`;
+            }
+            // Flush remaining results
+            if (wasmResultBatchRef.current.length > 0) {
+                const batch = wasmResultBatchRef.current;
+                wasmResultBatchRef.current = [];
+                setWasmResults(prev => [...batch, ...prev].slice(0, 200));
+            }
             if (finalStatus.error) {
                 setWasmStatus('error');
                 setWasmError(finalStatus.error);
@@ -666,12 +714,23 @@ function JamlView() {
                 wasmSearchIdRef.current = null;
             }
         } catch (err: any) {
+            if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
             setWasmStatus('error');
             setWasmError(err?.message || String(err));
         }
     }, [jamlValid, jamlConfig]);
 
     const handleWasmStop = useCallback(async () => {
+        if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
+        if (wasmProgressElRef.current) {
+            wasmProgressElRef.current.textContent = `${wasmSeedsSearchedRef.current.toLocaleString()} seeds \u2022 ${wasmResultCountRef.current.toLocaleString()} hits`;
+        }
+        // Flush remaining results
+        if (wasmResultBatchRef.current.length > 0) {
+            const batch = wasmResultBatchRef.current;
+            wasmResultBatchRef.current = [];
+            setWasmResults(prev => [...batch, ...prev].slice(0, 200));
+        }
         const searchId = wasmSearchIdRef.current;
         if (!searchId) return;
         try {
@@ -695,9 +754,9 @@ function JamlView() {
             return {
                 showShop: true,
                 shopSlots: [],
-                showPacks: false,
+                showPacks: true,
                 packSlots: [],
-                showVoucher: false,
+                showVoucher: true,
                 miscSources: []
             };
         }
@@ -798,10 +857,22 @@ function JamlView() {
         });
     }, [seeds, setSeed, setStart]);
 
-    // Track focused ante index for keyboard navigation (used in scroll effect)
-    const [, setFocusedAnteIndex] = useState(0);
+    // Touch swipe state (mobile ante navigation)
+    const touchStartRef = useRef<{ y: number; time: number } | null>(null);
 
-    // Hotkeys for navigation: Left/Right = seeds, Up/Down = antes
+    // On mobile swipe, scroll to next/prev ante
+    const goToNextPage = useCallback(() => {
+        // Scroll down by one viewport height (approximate one ante)
+        const container = document.querySelector('[data-ante-scroll]');
+        container?.scrollBy({ top: container.clientHeight * 0.8, behavior: 'smooth' });
+    }, []);
+
+    const goToPrevPage = useCallback(() => {
+        const container = document.querySelector('[data-ante-scroll]');
+        container?.scrollBy({ top: -(container.clientHeight * 0.8), behavior: 'smooth' });
+    }, []);
+
+    // Hotkeys for navigation: Left/Right = seeds, Up/Down = ante pages
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Skip if typing in an input
@@ -819,30 +890,19 @@ function JamlView() {
                     goToNextSeed();
                 }
             }
-            // Up/Down: Navigate antes (scroll to focused ante) - instant, no animation
+            // Up/Down: Page through antes
             else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                setFocusedAnteIndex(prev => {
-                    const newIndex = Math.max(0, prev - 1);
-                    const anteElement = document.querySelector(`[data-ante-index="${newIndex}"]`);
-                    anteElement?.scrollIntoView({ behavior: 'auto', block: 'start' });
-                    return newIndex;
-                });
+                goToPrevPage();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                setFocusedAnteIndex(prev => {
-                    const maxIndex = selectedAntes.size - 1;
-                    const newIndex = Math.min(maxIndex, prev + 1);
-                    const anteElement = document.querySelector(`[data-ante-index="${newIndex}"]`);
-                    anteElement?.scrollIntoView({ behavior: 'auto', block: 'start' });
-                    return newIndex;
-                });
+                goToNextPage();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [goToPrevSeed, goToNextSeed, seeds.length, selectedAntes.size]);
+    }, [goToPrevSeed, goToNextSeed, seeds.length, goToPrevPage, goToNextPage]);
 
     if (!SeedResults) return null;
 
@@ -852,201 +912,176 @@ function JamlView() {
     const displayAntes = jamlAntes.filter(ante => availableAntes.includes(ante));
     const selectedAntesArray = Array.from(selectedAntes).filter(ante => availableAntes.includes(ante)).sort((a, b) => a - b);
 
-    // Balatro grey shades for flat panels (no borders)
-    const CONFIG_BG = {
-        bar: '#1e2b2d',      // darkGrey
-        nested: '#33464b',   // mediumGrey
-    };
-
     return (
         <Stack h="100%" gap={0} w="100%" style={{ overflow: 'hidden' }}>
 
-            <Paper p={4} mb="xs" style={{ backgroundColor: CONFIG_BG.bar, border: 'none' }}>
-                <Group justify="space-between" gap="xs" align="center">
-                    {/* Left: Actions */}
-                    <Group gap={4}>
-                        <Button
-                            variant="subtle"
-                            size="compact-xs"
-                            leftSection={<IconCode size={14} />}
-                            onClick={toggleEditor}
-                        >
-                            {editorOpened ? 'Hide' : 'Edit'}
-                        </Button>
-                        <Button
-                            variant="subtle"
-                            size="compact-xs"
-                            leftSection={<IconUpload size={14} />}
-                            onClick={openBulkSeeds}
-                        >
-                            Import
-                        </Button>
-                    </Group>
-
-                    {/* Center: Seed Navigation */}
-                    <Group gap={4}>
-                        <ActionIcon variant="subtle" size="xs" onClick={goToPrevSeed} disabled={currentSeedIndex === 0 || seeds.length <= 1} title="Prev seed (←)">
-                            <IconChevronLeft size={14} />
-                        </ActionIcon>
-                        <Autocomplete
-                            placeholder="Seed..."
-                            value={seeds[currentSeedIndex] || seed || ''}
-                            size="xs"
-                            onChange={(value) => {
-                                if (value) {
-                                    setSeeds([value]);
-                                    setCurrentSeedIndex(0);
-                                    setSeed(value);
-                                    setStart(true);
-                                }
-                            }}
-                            data={[
-                                { group: 'Popular Seeds', items: popularSeeds },
-                                { group: 'Legendary Joker Seeds', items: SeedsWithLegendary }
-                            ]}
-                            w={120}
-                            styles={{ input: { fontFamily: 'monospace', fontSize: 'var(--mantine-font-size-xs)', height: '22px', minHeight: '22px' } }}
-                        />
-                        <Text size="xs" c="dimmed" style={{ minWidth: '30px', textAlign: 'center', fontSize: '10px' }}>
-                            {seeds.length > 0 ? `${currentSeedIndex + 1}/${seeds.length}` : '0/0'}
-                        </Text>
-                        <ActionIcon variant="subtle" size="xs" onClick={goToNextSeed} disabled={currentSeedIndex >= seeds.length - 1 || seeds.length <= 1} title="Next seed (→)">
-                            <IconChevronRight size={14} />
-                        </ActionIcon>
-                    </Group>
-
-                    {/* Right: Ante Selection */}
-                    <Group gap={2}>
-                        {displayAntes.map((ante) => (
-                            <Button
-                                key={ante}
-                                size="compact-xs"
-                                variant={selectedAntes.has(ante) ? "filled" : "subtle"}
-                                color={selectedAntes.has(ante) ? "blue" : "gray"}
-                                onClick={() => toggleAnte(ante)}
-                                px={6}
-                                h={22}
-                                fz={10}
-                            >
-                                {ante}
-                            </Button>
-                        ))}
-                    </Group>
+            {/* Header bar: Hide/Import + Seed nav + Ante buttons */}
+            <Group justify="space-between" gap="xs" align="center" p={4} mb={2}>
+                {/* Left: Actions */}
+                <Group gap={4}>
+                    <Button
+                        variant="subtle"
+                        size="compact-xs"
+                        leftSection={<IconCode size={14} />}
+                        onClick={toggleEditor}
+                    >
+                        {editorOpened ? 'Hide' : 'Edit'}
+                    </Button>
+                    <Button
+                        variant="subtle"
+                        size="compact-xs"
+                        leftSection={<IconUpload size={14} />}
+                        onClick={openBulkSeeds}
+                    >
+                        Import
+                    </Button>
+                    {/* WASM Motely search */}
+                    <Button
+                        size="compact-xs"
+                        variant={wasmStatus === 'running' ? 'filled' : 'light'}
+                        color={wasmStatus === 'running' ? 'red' : 'green'}
+                        onClick={wasmStatus === 'running' ? handleWasmStop : handleWasmSearch}
+                        disabled={!jamlValid}
+                        leftSection={<IconSearch size={12} />}
+                    >
+                        {wasmStatus === 'running' ? 'Stop' : 'Motely Search'}
+                    </Button>
+                    <span ref={wasmProgressElRef} style={{ fontSize: '10px', color: 'var(--mantine-color-dimmed)' }} />
                 </Group>
-            </Paper>
 
-            {/* JAML Editor - Collapsible */}
+                {/* Center: Seed Add + Navigation */}
+                <Group gap={4}>
+                    <ActionIcon variant="subtle" size="xs" onClick={goToPrevSeed} disabled={currentSeedIndex === 0 || seeds.length <= 1} title="Prev seed (←)">
+                        <IconChevronLeft size={14} />
+                    </ActionIcon>
+                    <TextInput
+                        placeholder="Add seed..."
+                        size="xs"
+                        w={120}
+                        styles={{ input: { fontFamily: 'monospace', fontSize: 'var(--mantine-font-size-xs)', height: '22px', minHeight: '22px' } }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                const val = e.currentTarget.value.trim().toUpperCase();
+                                if (val && /^[A-Z0-9]+$/i.test(val)) {
+                                    setSeeds(prev => {
+                                        if (prev.includes(val)) {
+                                            // Jump to existing seed
+                                            const idx = prev.indexOf(val);
+                                            setCurrentSeedIndex(idx);
+                                            setSeed(val);
+                                            setStart(true);
+                                            return prev;
+                                        }
+                                        const next = [...prev, val];
+                                        setCurrentSeedIndex(next.length - 1);
+                                        setSeed(val);
+                                        setStart(true);
+                                        return next;
+                                    });
+                                    e.currentTarget.value = '';
+                                }
+                            }
+                        }}
+                    />
+                    <Text size="xs" fw={600} style={{ minWidth: '55px', textAlign: 'center', fontSize: '10px', fontFamily: 'monospace' }}>
+                        {seeds.length > 0 ? (
+                            <>{seeds[currentSeedIndex]} <Text span c="dimmed" fz={10}>{currentSeedIndex + 1}/{seeds.length}</Text></>
+                        ) : 'No seeds'}
+                    </Text>
+                    <ActionIcon variant="subtle" size="xs" onClick={goToNextSeed} disabled={currentSeedIndex >= seeds.length - 1 || seeds.length <= 1} title="Next seed (→)">
+                        <IconChevronRight size={14} />
+                    </ActionIcon>
+                </Group>
+
+                {/* Right: Page nav + Ante Selection */}
+                <Group gap={2}>
+                    <ActionIcon variant="subtle" size="xs" onClick={goToPrevPage} title="Scroll up (↑)">
+                        <IconChevronUp size={14} />
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" size="xs" onClick={goToNextPage} title="Next page (↓)">
+                        <IconChevronDown size={14} />
+                    </ActionIcon>
+                    {displayAntes.map((ante) => (
+                        <Button
+                            key={ante}
+                            size="compact-xs"
+                            variant={selectedAntes.has(ante) ? "filled" : "subtle"}
+                            color={selectedAntes.has(ante) ? "blue" : "gray"}
+                            onClick={() => toggleAnte(ante)}
+                            px={6}
+                            h={22}
+                            fz={10}
+                        >
+                            {ante}
+                        </Button>
+                    ))}
+                </Group>
+            </Group>
+
+            {/* JAML Editor - Collapsible, shares header above */}
             <Collapse in={editorOpened}>
-                <Box mb="sm">
+                <Box mb={4}>
                     <JamlEditor onJamlChange={handleJamlChange} />
                 </Box>
-                <Paper p="xs" radius="md" style={{ backgroundColor: CONFIG_BG.bar, border: 'none' }} mb="sm">
-                    <Group justify="space-between" align="center">
-                        <Group gap="xs">
-                            <Button
-                                size="xs"
-                                variant={wasmStatus === 'running' ? 'filled' : 'light'}
-                                color={wasmStatus === 'running' ? 'red' : 'blue'}
-                                onClick={wasmStatus === 'running' ? handleWasmStop : handleWasmSearch}
-                                disabled={!jamlValid}
-                            >
-                                {wasmStatus === 'running' ? 'Stop WASM Search' : 'Run WASM Search'}
-                            </Button>
-                            <Text size="xs" c="dimmed">
-                                Seeds: {wasmSeedsSearched.toLocaleString()} • Results: {wasmResultCount.toLocaleString()}
-                            </Text>
-                        </Group>
-                        <Group gap="xs">
-                            <Button
-                                size="xs"
-                                variant="subtle"
-                                onClick={() => {
-                                    if (!wasmResults.length || !navigator?.clipboard) return;
-                                    const text = wasmResults.map(r => r.seed).join('\n');
-                                    navigator.clipboard.writeText(text).catch(() => {});
-                                }}
-                            >
-                                Copy Seeds
-                            </Button>
-                            <Text size="xs" c="dimmed">
-                                Showing: {wasmResults.length}/200
-                            </Text>
-                        </Group>
-                        {wasmError && (
-                            <Text size="xs" c="red">
-                                {wasmError}
-                            </Text>
-                        )}
-                    </Group>
-                </Paper>
-                {wasmResults.length > 0 && (
-                    <Paper p="xs" radius="md" style={{ backgroundColor: CONFIG_BG.bar, border: 'none' }} mb="sm">
-                        <Stack gap={4}>
-                            {wasmResults.map((r) => (
-                                <Group key={`${r.seed}-${r.score}`} justify="space-between">
-                                    <Text size="xs">{r.seed}</Text>
-                                    <Text size="xs" c="dimmed">{r.score}</Text>
-                                </Group>
-                            ))}
-                        </Stack>
-                    </Paper>
-                )}
             </Collapse>
 
-            {/* CSS to hide scrollbars */}
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .no-scrollbar::-webkit-scrollbar {
-                    display: none;
-                }
-                .no-scrollbar {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-            `}} />
+            {/* WASM search results - always visible */}
+            {wasmError && (
+                <Text size="xs" c="red" mb={4} px={4}>{wasmError}</Text>
+            )}
+            {wasmResults.length > 0 && (
+                <Group gap={4} mb={4} px={4} align="center">
+                    <Button
+                        size="compact-xs"
+                        variant="light"
+                        color="green"
+                        onClick={() => {
+                            const newSeeds = wasmResults.map(r => r.seed);
+                            setSeeds(prev => {
+                                const existing = new Set(prev);
+                                const toAdd = newSeeds.filter(s => !existing.has(s));
+                                if (toAdd.length === 0) return prev;
+                                const next = [...prev, ...toAdd];
+                                setCurrentSeedIndex(prev.length); // jump to first new seed
+                                setSeed(toAdd[0]);
+                                setStart(true);
+                                return next;
+                            });
+                        }}
+                    >
+                        Add {wasmResults.length} to list
+                    </Button>
+                    <Button
+                        size="compact-xs"
+                        variant="subtle"
+                        onClick={() => {
+                            if (!wasmResults.length || !navigator?.clipboard) return;
+                            const text = wasmResults.map(r => r.seed).join('\n');
+                            navigator.clipboard.writeText(text).catch(() => {});
+                        }}
+                    >
+                        Copy
+                    </Button>
+                    <Text size="xs" c="dimmed">{wasmResults.length}/200</Text>
+                </Group>
+            )}
 
-            {/* Render sections for each selected ante - scroll snap container */}
+            {/* Paginated ante view with swipe */}
             {selectedAntesArray.length === 0 ? (
-                <Paper p="md" ta="center" style={{ backgroundColor: CONFIG_BG.bar, border: 'none' }}>
+                <Box p="md" ta="center">
                     <Text c="dimmed" size="sm">No antes selected. Configure your JAML filter.</Text>
-                </Paper>
+                </Box>
             ) : (
-                <Stack
-                    gap="xs"
-                    className="no-scrollbar"
-                    style={{
-                        flex: 1,
-                        minHeight: 0,
-                        scrollSnapType: 'y mandatory',
-                        scrollBehavior: 'smooth',
-                        overflowY: 'auto',
-                    }}
-                >
-                    {selectedAntesArray.map((anteNum, index) => {
-                        const anteData = pool[anteNum];
-                        if (!anteData) return null;
-
-                        // Filter custom sources for this ante
-                        const anteCustomSources = customSources.filter(s => s.ante === anteNum);
-
-                        return (
-                            <Box
-                                key={anteNum}
-                                data-ante-index={index}
-                                style={{ scrollSnapAlign: 'start' }}
-                            >
-                                <AnteSection
-                                    anteNum={anteNum}
-                                    anteData={anteData}
-                                    sourcesConfig={sourcesConfig}
-                                    jamlConfig={jamlConfig}
-                                    customSources={anteCustomSources}
-                                    cardScale={0.85}
-                                />
-                            </Box>
-                        );
-                    })}
-                </Stack>
+                <AntePageView
+                    selectedAntesArray={selectedAntesArray}
+                    pool={pool}
+                    sourcesConfig={sourcesConfig}
+                    jamlConfig={jamlConfig}
+                    customSources={customSources}
+                    touchStartRef={touchStartRef}
+                    goToNextPage={goToNextPage}
+                    goToPrevPage={goToPrevPage}
+                />
             )}
 
             {/* Bulk Seeds Modal - entire modal is a drop zone */}
@@ -1149,10 +1184,10 @@ function JamlView() {
 
                     <Group justify="space-between">
                         <Text size="xs" c="dimmed">
-                            {bulkSeedsText.split(/[\n,]+/).filter((s: string) => {
-                                const trimmed = s.trim();
-                                return trimmed.length > 0 && /^[A-Z0-9]{8}/.test(trimmed);
-                            }).length} seeds detected
+                            {bulkSeedsText.split(/\r?\n/).map((line: string) => {
+                                const firstCol = line.split(',')[0].trim().replace(/^["']|["']$/g, '');
+                                return firstCol;
+                            }).filter((s: string) => s.length > 0 && /^[A-Z0-9]+$/i.test(s)).length} seeds detected
                         </Text>
                         <Group gap="xs">
                             <Button variant="light" onClick={closeBulkSeeds}>Cancel</Button>

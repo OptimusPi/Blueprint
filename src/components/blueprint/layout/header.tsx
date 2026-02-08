@@ -1,12 +1,14 @@
 import React from "react";
 
 import { useViewportSize } from "@mantine/hooks";
-import { AppShell, ActionIcon, Box, Burger, Button, Center, Container, CopyButton, Group, Title } from "@mantine/core";
+import { AppShell, ActionIcon, Box, Burger, Button, Center, Container, CopyButton, Group, Select, Title, Tooltip, useMantineColorScheme } from "@mantine/core";
 import { useCardStore } from "../../../modules/state/store.ts";
 import SearchSeedInput from "../../searchInput.tsx";
 import { GaEvent } from "../../../modules/useGA.ts";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { IconInfoCircle, IconMoon, IconSun } from "@tabler/icons-react";
 import { useNextStep } from "nextstepjs";
+import { useBlueprintTheme } from "../../../modules/state/themeProvider.tsx";
+import type { KnownThemes } from "../../../modules/state/themeProvider.tsx";
 
 export default function Header() {
     const { width } = useViewportSize();
@@ -18,12 +20,16 @@ export default function Header() {
     const toggleOutput = useCardStore(state => state.toggleOutput);
 
     const { startNextStep, closeNextStep } = useNextStep();
+    const colorScheme = useMantineColorScheme();
+    const { theme: themeName, setTheme, themes } = useBlueprintTheme();
+    const themeNames = Object.keys(themes);
+    const isDark = colorScheme.colorScheme === 'dark';
     return (
         <AppShell.Header>
             <Container fluid h={'100%'}>
                 <Group h={'100%'} justify={'space-between'}>
                     <Group flex={1}>
-                        <Burger opened={settingsOpened} onClick={toggleSettings} hiddenFrom={'md'} size="sm" />
+                        <Burger opened={settingsOpened} onClick={toggleSettings} size="sm" />
                         <Center h={'100%'}>
                             <Group grow>
                                 <Box flex={1}>

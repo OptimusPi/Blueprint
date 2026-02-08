@@ -10,12 +10,17 @@ export default defineConfig({
     react(),
     motelyWasm(),
   ],
+  resolve: {
+    alias: {
+      'next/navigation': path.resolve(__dirname, 'src/mocks/next-navigation.ts'),
+    },
+  },
   base: env.BASE_PATH || './',
   server: {
     port: 3141,
     host: true,
     cors: true,
-    allowedHosts: true,
+    allowedHosts: ['*.8pi.me*', 'motelyjaml-pi.8pi.me']
   },
   optimizeDeps: {
     exclude: ['@aspect-build/bazel-lib'],
@@ -23,6 +28,6 @@ export default defineConfig({
   assetsInclude: ['**/*.wasm'],
   build: {
     target: 'esnext',
-  },
+  }
 })
 

@@ -1,34 +1,35 @@
 import { expect, test } from "vitest";
-import { analyzeSeed } from "../src/modules/ImmolateWrapper";
+import { AnalyzeOptions, AnalyzeSettings, analyzeSeed } from "../src/modules/GameEngine";
+import { SeedResultsContainer, Pack, CardTuple } from "../src/modules/GameEngine/CardEngines/Cards";
 import { options } from "../src/modules/const";
 
 function getAnte2BossArcanaSpoilerJokers(cardsPerAnte: number): string[] {
-  const results = analyzeSeed(
-    {
-      seed: "TYTWAA1P",
-      deck: "Plasma Deck",
-      stake: "White Stake",
-      gameVersion: "10106",
-      antes: 2,
-      cardsPerAnte,
-    },
-    {
-      buys: {},
-      sells: {},
-      showCardSpoilers: true,
-      unlocks: options,
-      events: [],
-      lockedCards: {},
-    }
-  ) as any;
+  const settings: AnalyzeSettings = {
+    seed: "TYTWAA1P",
+    deck: "Plasma Deck",
+    stake: "White Stake",
+    gameVersion: "10106",
+    minAnte: 1,
+    maxAnte: 2,
+    cardsPerAnte,
+  };
+  const analyzeOptions: AnalyzeOptions = {
+    buys: {},
+    sells: {},
+    showCardSpoilers: true,
+    unlocks: options,
+    events: [],
+    lockedCards: {},
+  };
+  const results: SeedResultsContainer | undefined = analyzeSeed(settings, analyzeOptions);
 
-  const packs = results?.antes?.[2]?.blinds?.bossBlind?.packs ?? [];
-  const arcanaPacks = packs.filter((p: any) => p?.name === "Arcana");
-  const jokerNames = arcanaPacks.flatMap((p: any) =>
-    (p?.cards ?? [])
-      .filter((c: any) => c?.type === "Joker")
-      .map((c: any) => c?.name)
-  );
+  const packs: Pack[] = results?.antes?.[2]?.blinds?.bossBlind?.packs ?? [];
+  const arcanaPacks = packs.filter((p: Pack) => p.name === "Arcana");
+  const jokerNames = arcanaPacks.flatMap((p: Pack) =>
+    (p.cards ?? [])
+      .filter((c: CardTuple | undefined) => c?.type === "Joker")
+      .map((c: CardTuple | undefined) => c?.name)
+  ).filter((name: string | undefined) => name !== undefined) as string[];
 
   return jokerNames;
 }

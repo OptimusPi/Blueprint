@@ -42,7 +42,7 @@ import { useSeedResultsContainer } from "../../../modules/state/analysisResultPr
 import { useDownloadSeedResults } from "../../../modules/state/downloadProvider.tsx";
 import type { Blinds } from "../../../modules/state/store.ts";
 import type { Tag } from "../../../modules/balatrots/enum/Tag.ts";
-import type { Ante, Pack } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
+import type { Ante, Pack } from "../../../modules/GameEngine/CardEngines/Cards.ts";
 import type { EmblaCarouselType } from 'embla-carousel';
 
 
@@ -557,11 +557,7 @@ function Main() {
             {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
-            {SeedResults && viewMode === 'custom' && (
-                <MantineProvider theme={JamlTheme} defaultColorScheme="dark">
-                    <JamlView />
-                </MantineProvider>
-            )}
+            {SeedResults && viewMode === 'jaml' && <JamlView />}
             {SeedResults && <SnapshotModal />}
         </AppShell.Main>
     )

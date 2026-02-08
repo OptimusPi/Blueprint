@@ -204,7 +204,7 @@ const blueprintStorage: StateStorage = {
     // @ts-ignore
     getItem: (): string => {
         const engineState = getEngineStateFromUrl();
-        const hasSeed = !!immolateState.seed;
+        const hasSeed = !!engineState.seed;
 
         // Also read viewMode and selectedAnte from URL
         const params = new URLSearchParams(window.location.search);
@@ -294,40 +294,40 @@ export const useCardStore = create<CardStore>()(
                     }, undefined, 'Global/SetViewMode'),
                     setSeed: (seed) => set((prev) => {
                         const sanitized = sanitizeSeed(seed);
-                        prev.immolateState.seed = sanitized;
+                        prev.engineState.seed = sanitized;
                         prev.shoppingState = initialState.shoppingState
                         prev.searchState = initialState.searchState;
                         prev.applicationState.hasSettingsChanged = true;
 
-                        const deckType = deckMap[prev.immolateState.deck];
-                        const stakeType = stakeMap[prev.immolateState.stake];
+                        const deckType = deckMap[prev.engineState.deck];
+                        const stakeType = stakeMap[prev.engineState.stake];
                         const params = new InstanceParams(
                             new Deck(deckType),
                             new Stake(stakeType),
-                            prev.immolateState.showmanOwned,
-                            Number(prev.immolateState.gameVersion)
+                            prev.engineState.showmanOwned,
+                            Number(prev.engineState.gameVersion)
                         );
-                        const game = new Game(prev.immolateState.seed, params);
+                        const game = new Game(prev.engineState.seed, params);
                         const gameCards = game.initDeck();
                         prev.deckState.cards = gameCards.map((card, i) => convertGameCardToDeckCard(card, i));
                         prev.deckState.isInitialized = true;
                     }, undefined, 'Global/SetSeed'),
                     setDeck: (deck: string) => set((prev) => {
-                        prev.immolateState.deck = deck
+                        prev.engineState.deck = deck
                         prev.applicationState.hasSettingsChanged = true;
 
                         // Create Game instance for deck initialization
                         // Only if we have a seed, otherwise use standard generation
-                        if (prev.immolateState.seed) {
+                        if (prev.engineState.seed) {
                             const deckType = deckMap[deck];
-                            const stakeType = stakeMap[prev.immolateState.stake];
+                            const stakeType = stakeMap[prev.engineState.stake];
                             const params = new InstanceParams(
                                 new Deck(deckType),
                                 new Stake(stakeType),
-                                prev.immolateState.showmanOwned,
-                                Number(prev.immolateState.gameVersion)
+                                prev.engineState.showmanOwned,
+                                Number(prev.engineState.gameVersion)
                             );
-                            const game = new Game(prev.immolateState.seed, params);
+                            const game = new Game(prev.engineState.seed, params);
 
                             const gameCards = game.initDeck();
                             prev.deckState.cards = gameCards.map((card, i) => convertGameCardToDeckCard(card, i));
@@ -342,23 +342,27 @@ export const useCardStore = create<CardStore>()(
                         prev.applicationState.useCardPeek = useCardPeek
                     }, undefined, 'Global/SetCardPeek'),
                     setCardsPerAnte: (cardsPerAnte) => set((prev) => {
-                        prev.immolateState.cardsPerAnte = cardsPerAnte
+                        prev.engineState.cardsPerAnte = cardsPerAnte
                         prev.applicationState.hasSettingsChanged = true;
                     }, undefined, 'Global/SetCardsPerAnte'),
-                    setAntes: (antes) => set((prev) => {
-                        prev.immolateState.antes = antes
+                    setMinAnte: (minAnte: number) => set((prev) => {
+                        prev.engineState.minAnte = minAnte;
                         prev.applicationState.hasSettingsChanged = true;
-                    }, undefined, 'Global/SetAntes'),
+                    }, undefined, 'Global/SetMinAnte'),
+                    setMaxAnte: (maxAnte: number) => set((prev) => {
+                        prev.engineState.maxAnte = maxAnte;
+                        prev.applicationState.hasSettingsChanged = true;
+                    }, undefined, 'Global/SetMaxAnte'),
                     setStake: (stake) => set((prev) => {
-                        prev.immolateState.stake = stake
+                        prev.engineState.stake = stake
                         prev.applicationState.hasSettingsChanged = true;
                     }, undefined, 'Global/SetStake'),
                     setGameVersion: (gameVersion) => set((prev) => {
-                        prev.immolateState.gameVersion = gameVersion
+                        prev.engineState.gameVersion = gameVersion
                         prev.applicationState.hasSettingsChanged = true;
                     }, undefined, 'Global/SetGameVersion'),
                     setSelectedOptions: (selectedOptions) => set((prev) => {
-                        prev.immolateState.selectedOptions = selectedOptions
+                        prev.engineState.selectedOptions = selectedOptions
                         prev.applicationState.hasSettingsChanged = true;
                     }, undefined, 'Global/SetSelectedOptions'),
 
@@ -502,15 +506,15 @@ export const useCardStore = create<CardStore>()(
                             const gameCards = game.getShuffledDeck(get().applicationState.selectedAnte);
                             starterDeck = gameCards.map((card: any, i: number) => convertGameCardToDeckCard(card, i));
                         } else {
-                            const paramsDeckType = deckType || prev.immolateState.deck;
-                            const seed = prev.immolateState.seed;
+                            const paramsDeckType = deckType || prev.engineState.deck;
+                            const seed = prev.engineState.seed;
 
                             if (seed) {
                                 try {
                                     const d = new Deck(deckMap[paramsDeckType] || deckMap['Red Deck']);
-                                    const s = new Stake(stakeMap[prev.immolateState.stake || 'White Stake']);
-                                    const v = Number(prev.immolateState.gameVersion || '10106');
-                                    const p = new InstanceParams(d, s, prev.immolateState.showmanOwned, v);
+                                    const s = new Stake(stakeMap[prev.engineState.stake || 'White Stake']);
+                                    const v = Number(prev.engineState.gameVersion || '10106');
+                                    const p = new InstanceParams(d, s, prev.engineState.showmanOwned, v);
                                     const tempGame = new Game(seed, p);
 
                                     // Use the game engine to get the correct starting deck order

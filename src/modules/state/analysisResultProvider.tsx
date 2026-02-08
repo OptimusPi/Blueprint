@@ -30,6 +30,7 @@ function getCacheKey(state: any, options: any, seed: string) {
 export function SeedResultProvider({ children }: { children: React.ReactNode }) {
     const start = useCardStore(state => state.applicationState.start);
     const analyzeState = useCardStore(state => state.engineState);
+    const deckCards = useCardStore(state => state.deckState.cards);
     const options = useSeedOptionsContainer();
 
     const seedResult = useMemo(() => {
@@ -46,13 +47,13 @@ export function SeedResultProvider({ children }: { children: React.ReactNode }) 
         // Analyze and cache
         const result = analyzeSeed(analyzeState, {
             ...options,
-            customDeck: analyzeState.deck
+            customDeck: deckCards
         });
         if (result) {
             resultCache.set(cacheKey, result);
         }
         return result;
-    }, [analyzeState, deckState.cards, options, start]);
+    }, [analyzeState, deckCards, options, start]);
 
     // Expose a way to pre-warm the cache from other components
     // We attach this to the window or export a hook, but for now, 

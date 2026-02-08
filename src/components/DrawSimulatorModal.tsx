@@ -190,11 +190,11 @@ export function DrawSimulatorModal() {
     const selectedBlind = useCardStore(state => state.applicationState.selectedBlind);
 
     // Game State Inputs
-    const seed = useCardStore(state => state.immolateState.seed);
-    const deckType = useCardStore(state => state.immolateState.deck);
-    const stake = useCardStore(state => state.immolateState.stake);
-    const gameVersion = useCardStore(state => state.immolateState.gameVersion);
-    const showmanOwned = useCardStore(state => state.immolateState.showmanOwned);
+    const seed = useCardStore(state => state.engineState.seed);
+    const deckType = useCardStore(state => state.engineState.deck);
+    const stake = useCardStore(state => state.engineState.stake);
+    const gameVersion = useCardStore(state => state.engineState.gameVersion);
+    const showmanOwned = useCardStore(state => state.engineState.showmanOwned);
     const customDeck = useCardStore(state => state.deckState.cards);
 
     // Simulation State

@@ -295,11 +295,9 @@ export class Pack {
 }
 
 export class SeedResultsContainer {
-    isLoading: boolean;
     antes: { [key: number]: Ante };
     constructor() {
         this.antes = {}
-        this.isLoading = true;
     }
 }
 export interface Blind {

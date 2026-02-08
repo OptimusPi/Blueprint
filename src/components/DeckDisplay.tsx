@@ -249,22 +249,22 @@ function DeckStats({ cards }: { cards: DeckCard[] }) {
             </Group>
             <SimpleGrid cols={4} spacing="xs">
                 <Tooltip label="Hearts">
-                    <Paper withBorder p={4} ta="center" bg='white'>
+                    <Paper withBorder p={4} ta="center" style={{ backgroundColor: 'white' }}>
                         <Text c="#e03131" fw={700}>♥ {stats.bySuit['Hearts'] || 0}</Text>
                     </Paper>
                 </Tooltip>
                 <Tooltip label="Diamonds">
-                    <Paper withBorder p={4} ta="center" bg='white'>
+                    <Paper withBorder p={4} ta="center" style={{ backgroundColor: 'white' }}>
                         <Text c="#1971c2" fw={700}>♦ {stats.bySuit['Diamonds'] || 0}</Text>
                     </Paper>
                 </Tooltip>
                 <Tooltip label="Clubs">
-                    <Paper withBorder p={4} ta="center" bg='white'>
+                    <Paper withBorder p={4} ta="center" style={{ backgroundColor: 'white' }}>
                         <Text c="#2f9e44" fw={700}>♣ {stats.bySuit['Clubs'] || 0}</Text>
                     </Paper>
                 </Tooltip>
                 <Tooltip label="Spades">
-                    <Paper withBorder p={4} ta="center" bg='white'>
+                    <Paper withBorder p={4} ta="center" style={{ backgroundColor: 'white' }}>
                         <Text c="#1c1c1c" fw={700}>♠ {stats.bySuit['Spades'] || 0}</Text>
                     </Paper>
                 </Tooltip>
@@ -404,7 +404,7 @@ export function DeckDisplay() {
     const undoDeckChange = useCardStore(state => state.undoDeckChange);
     const redoDeckChange = useCardStore(state => state.redoDeckChange);
 
-    const seed = useCardStore(state => state.immolateState.seed);
+    const seed = useCardStore(state => state.engineState.seed);
 
     // Auto-initialize deck when we have a seed but deck isn't initialized
     useEffect(() => {

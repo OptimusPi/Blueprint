@@ -174,6 +174,70 @@ function AntesToggle({
 
 // Smart popover position logic removed in favor of Mantine's built-in collision detection
 
+// "+ Add Criteria" button shown at the end of each must/should/mustNot section
+function SectionAddButton({ sectionKey, clauseTypes, onAdd }: {
+  sectionKey: string;
+  clauseTypes: string[];
+  onAdd: (clauseType: string) => void;
+}) {
+  const [opened, setOpened] = useState(false);
+  const sectionColor = sectionKey === 'must'
+    ? 'var(--mantine-color-jamlRed-6, var(--mantine-color-red-6))'
+    : 'var(--mantine-color-jamlBlue-6, var(--mantine-color-blue-6))';
+
+  return (
+    <Popover opened={opened} onChange={setOpened} position="bottom-start" offset={4} shadow="md" withArrow>
+      <Popover.Target>
+        <Box
+          onClick={() => setOpened(!opened)}
+          style={{
+            padding: '2px 8px 2px 32px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            opacity: 0.6,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; }}
+        >
+          <IconPlus size={12} style={{ color: sectionColor }} />
+          <Text size="xs" fw={500} style={{ color: sectionColor, fontFamily: MONO_FONT }}>
+            add criteria
+          </Text>
+        </Box>
+      </Popover.Target>
+      <Popover.Dropdown p={6} style={{ minWidth: '200px' }}>
+        <Text size="xs" fw={600} c="dimmed" mb={4}>Choose type:</Text>
+        <Group gap={4} wrap="wrap">
+          {clauseTypes.map(ct => (
+            <Box
+              key={ct}
+              onClick={() => { onAdd(ct); setOpened(false); }}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontFamily: MONO_FONT,
+                fontWeight: 500,
+                backgroundColor: 'var(--mantine-color-dark-6, #f0f0f0)',
+                color: 'var(--mantine-color-text)',
+                transition: 'background-color 0.1s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-5, #e0e0e0)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-6, #f0f0f0)'; }}
+            >
+              {ct}
+            </Box>
+          ))}
+        </Group>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 export function InteractiveJamlEditor({ initialJaml, onJamlChange }: InteractiveJamlEditorProps) {
   const [lines, setLines] = useState<Array<ParsedLine>>([]);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
@@ -473,6 +537,67 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
   }, [linesToJaml, onJamlChange]);
 
 
+  // Add a new clause to a section (must/should/mustNot)
+  const addClauseToSection = useCallback((sectionKey: string, clauseType: string) => {
+    setLines(prev => {
+      // Find the section header line
+      const sectionIndex = prev.findIndex(l => l.key === sectionKey && !l.value);
+      if (sectionIndex === -1) return prev;
+
+      // Find the end of this section (next section header or end of file)
+      let insertIndex = prev.length;
+      for (let i = sectionIndex + 1; i < prev.length; i++) {
+        const l = prev[i];
+        if (l.indent === 0 && l.key && !l.isComment && l.key !== sectionKey) {
+          insertIndex = i;
+          break;
+        }
+      }
+
+      // Build the new clause line
+      const newLineRaw = `  - ${clauseType}: `;
+      const newLine: ParsedLine = {
+        id: `line-new-${Date.now()}`,
+        raw: newLineRaw,
+        indent: 2,
+        key: clauseType,
+        value: undefined,
+        isComment: false,
+        isArrayItem: true,
+        lineNumber: insertIndex,
+        clauseType: clauseType,
+        validationState: 'required-incomplete',
+        isInvalidValue: false,
+        isArrayValue: false,
+        arrayValues: undefined,
+      };
+
+      const newLines = [...prev];
+      newLines.splice(insertIndex, 0, newLine);
+      const renumbered = newLines.map((l, i) => ({ ...l, lineNumber: i, id: `line-${i}` }));
+
+      const jamlText = linesToJaml(renumbered);
+      if (onJamlChange) {
+        try {
+          const parsed = yaml.load(jamlText);
+          onJamlChange(jamlText, parsed, true);
+        } catch {
+          onJamlChange(jamlText, null, false);
+        }
+      }
+
+      // Auto-focus the new line's value field
+      const newId = `line-${insertIndex}`;
+      setTimeout(() => {
+        setEditingLineId(newId);
+        setEditingPart('value');
+        setEditingArrayIndex(null);
+      }, 50);
+
+      return renumbered;
+    });
+  }, [linesToJaml, onJamlChange]);
+
   // Find next editable line/field
   const findNextEditable = useCallback((currentLineIndex: number): { lineId: string; part: 'key' | 'value' | 'arrayItem'; arrayIndex?: number } | null => {
     for (let i = currentLineIndex + 1; i < lines.length; i++) {
@@ -570,7 +695,7 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
       style={{
         flex: 1,
         minWidth: 0,
-        backgroundColor: 'var(--mantine-color-polaroidBg-0)',
+        backgroundColor: 'var(--mantine-color-polaroidBg-0, var(--mantine-color-dark-7))',
         fontFamily: MONO_FONT,
         fontSize: '13px',
         fontWeight: 500,
@@ -579,33 +704,72 @@ export function InteractiveJamlEditor({ initialJaml, onJamlChange }: Interactive
       }}
     >
       <Stack gap={2}>
-        {lines.map((line, index) => (
-          <JamlLine
-            key={line.id}
-            line={line}
-            keyWidth={maxKeyLengthByIndent[line.indent] || 8}
-            isEditing={editingLineId === line.id}
-            editingPart={editingLineId === line.id ? editingPart : null}
-            editingArrayIndex={editingLineId === line.id ? editingArrayIndex : null}
-            onStartEdit={(part, arrayIndex) => {
-              setEditingLineId(line.id);
-              setEditingPart(part);
-              setEditingArrayIndex(arrayIndex ?? null);
-              setFocusedLineIndex(index);
-            }}
-            onEndEdit={() => {
-              setEditingLineId(null);
-              setEditingPart(null);
-              setEditingArrayIndex(null);
-            }}
-            onChange={(part, newValue) => updateLineValue(line.id, part, newValue)}
-            onArrayItemChange={(idx, newValue) => updateArrayItem(line.id, idx, newValue)}
-            onArrayItemAdd={(newValue) => addArrayItem(line.id, newValue)}
-            onArrayItemRemove={(idx) => removeArrayItem(line.id, idx)}
-            onEnter={() => handleEnterAdvance(line.id)}
-            onDelete={() => deleteLine(line.id)}
-          />
-        ))}
+        {(() => {
+          const elements: React.ReactNode[] = [];
+          const sectionKeys = ['must', 'should', 'mustNot'];
+          const clauseTypeOptions = getClauseTypeKeys();
+
+          for (let index = 0; index < lines.length; index++) {
+            const line = lines[index];
+
+            elements.push(
+              <JamlLine
+                key={line.id}
+                line={line}
+                keyWidth={maxKeyLengthByIndent[line.indent] || 8}
+                isEditing={editingLineId === line.id}
+                editingPart={editingLineId === line.id ? editingPart : null}
+                editingArrayIndex={editingLineId === line.id ? editingArrayIndex : null}
+                onStartEdit={(part, arrayIndex) => {
+                  setEditingLineId(line.id);
+                  setEditingPart(part);
+                  setEditingArrayIndex(arrayIndex ?? null);
+                  setFocusedLineIndex(index);
+                }}
+                onEndEdit={() => {
+                  setEditingLineId(null);
+                  setEditingPart(null);
+                  setEditingArrayIndex(null);
+                }}
+                onChange={(part, newValue) => updateLineValue(line.id, part, newValue)}
+                onArrayItemChange={(idx, newValue) => updateArrayItem(line.id, idx, newValue)}
+                onArrayItemAdd={(newValue) => addArrayItem(line.id, newValue)}
+                onArrayItemRemove={(idx) => removeArrayItem(line.id, idx)}
+                onEnter={() => handleEnterAdvance(line.id)}
+                onDelete={() => deleteLine(line.id)}
+              />
+            );
+
+            // Insert "+ Add" button at the boundary between sections
+            const nextLine = lines[index + 1];
+            const isEndOfSection = line.indent > 0 && (!nextLine || (nextLine.indent === 0 && nextLine.key && !nextLine.isComment));
+            // Also detect: current line is a section header with no clauses yet
+            const isEmptySection = sectionKeys.includes(line.key || '') && !line.value && (!nextLine || (nextLine.indent === 0 && nextLine.key));
+
+            if (isEndOfSection || isEmptySection) {
+              // Find which section we're in
+              let sectionKey = '';
+              for (let j = index; j >= 0; j--) {
+                if (lines[j].indent === 0 && sectionKeys.includes(lines[j].key || '') && !lines[j].value) {
+                  sectionKey = lines[j].key!;
+                  break;
+                }
+              }
+
+              if (sectionKey) {
+                elements.push(
+                  <SectionAddButton
+                    key={`add-${sectionKey}-${index}`}
+                    sectionKey={sectionKey}
+                    clauseTypes={clauseTypeOptions}
+                    onAdd={(clauseType) => addClauseToSection(sectionKey, clauseType)}
+                  />
+                );
+              }
+            }
+          }
+          return elements;
+        })()}
       </Stack>
 
       <Box mt="md" p="sm" className={styles.legendBox}>

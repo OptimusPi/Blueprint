@@ -14,6 +14,20 @@ export async function getWasmApi(): Promise<MotelyWasmApi> {
   return initPromise;
 }
 
+export async function getWasmCapabilities() {
+  const api = await getWasmApi();
+  return api.getCapabilities();
+}
+
+// Expose to browser console for easy testing
+if (typeof window !== 'undefined') {
+  (window as any).__motelyCheck = async () => {
+    const caps = await getWasmCapabilities();
+    console.table(caps);
+    return caps;
+  };
+}
+
 export async function startJamlSearchWasm(
   jamlContent: string,
   options?: SearchOptions,
