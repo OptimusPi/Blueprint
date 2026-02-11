@@ -72,6 +72,7 @@ function QueueCarousel({ queue, tabName }: { queue: Array<any>, tabName: string 
                 slideSize={85}
                 withControls={false}
                 height={175}
+                styles={{ viewport: { overflow: 'visible' }, slide: { overflow: 'visible' } }}
                 emblaOptions={{ dragFree: true, containScroll: "keepSnaps" }}
                 type={'container'}
             >
