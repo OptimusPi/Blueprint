@@ -15,7 +15,10 @@ import { BlueprintThemeProvider, useBlueprintTheme } from "./modules/state/theme
 import { NextStepProvider, NextStepReact, type Tour, type Step } from 'nextstepjs';
 import { useCardStore } from "./modules/state/store.ts";
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 import { JamlSearchProvider } from "./modules/state/jamlSearchContext.tsx";
 
 >>>>>>> Stashed changes
@@ -344,16 +347,22 @@ export default function App() {
     return (
         <BlueprintThemeProvider>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             <ProviderContainer>
                 <Blueprint />
                 <Space my={'xl'} />
             </ProviderContainer>
 =======
+=======
+>>>>>>> Stashed changes
             <JamlSearchProvider>
                 <ProviderContainer>
                     <Blueprint/>
                 </ProviderContainer>
             </JamlSearchProvider>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         </BlueprintThemeProvider>
     );

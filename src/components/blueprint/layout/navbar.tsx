@@ -18,11 +18,15 @@ import {
 =======
     Textarea,
     TextInput,
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Tooltip,
     useMantineColorScheme,
     useMantineTheme
 } from "@mantine/core";
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 import React, {useState, useEffect} from "react";
 import {
@@ -38,10 +42,15 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 
 >>>>>>> Stashed changes
+=======
+import { useDisclosure } from "@mantine/hooks";
+
+>>>>>>> Stashed changes
 import { useCardStore } from "../../../modules/state/store.ts";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import UnlocksModal from "../../unlocksModal.tsx";
 import FeaturesModal from "../../FeaturesModal.tsx";
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 import {RerollCalculatorModal} from "../../RerollCalculatorModal.tsx";
 import {GaEvent} from "../../../modules/useGA.ts";
@@ -71,6 +80,59 @@ import {
     IconUpload,
     IconSearch
 } from "@tabler/icons-react";
+=======
+import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
+import { GaEvent } from "../../../modules/useGA.ts";
+import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
+import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
+import { DeckBackIcon, StakeChipIcon } from "../../Rendering/deckStakeIcons.tsx";
+import {
+    IconJoker,
+    IconLayout,
+    IconPlayCard,
+    IconSettings,
+    IconUpload,
+    IconSearch
+} from "@tabler/icons-react";
+
+export default function Navbar() {
+    const theme = useMantineTheme();
+    const { colorScheme } = useMantineColorScheme();
+    const viewMode = useCardStore(state => state.applicationState.viewMode);
+    const isJamlView = viewMode === 'jaml';
+    
+    // JAML search state from context
+    const {
+        searchMode,
+        searchEngineMode,
+        apiEndpoint,
+        wasmThreadCount,
+        wasmBatchSize,
+        quickSeedCount,
+        quickSeedInput,
+        sequentialStartSeed,
+        sequentialEndSeed,
+        funnyMode,
+        funnyKeywords,
+        setSearchMode,
+        setSearchEngineMode,
+        setApiEndpoint,
+        setWasmThreadCount,
+        setWasmBatchSize,
+        setQuickSeedCount,
+        setQuickSeedInput,
+        setSequentialStartSeed,
+        setSequentialEndSeed,
+        setFunnyMode,
+        setFunnyKeywords,
+        selectedFilterKey,
+        setSelectedFilterKey,
+        setCustomJamlText,
+    } = useJamlSearch();
+    const jamlFileInputRef = React.useRef<HTMLInputElement>(null);
+    const setViewMode = useCardStore(state => state.setViewMode);
+    const settingsOpen = useCardStore(state => state.applicationState.settingsOpen);
+>>>>>>> Stashed changes
 
 export default function Navbar() {
     const theme = useMantineTheme();
@@ -152,6 +214,12 @@ export default function Navbar() {
         setStart(true);
     }
 
+    const handleJamlSearchClick = () => {
+        // In JAML mode, trigger the search by setting start=true
+        // The JamlView component will detect this and start the search
+        setStart(true);
+    }
+
     const handleAnalyzeClick = () => {
         setStart(true);
     }
@@ -219,6 +287,7 @@ export default function Navbar() {
                         },
                         {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                             value: 'simple',
                             label: (
                                 <Group gap="xs">
@@ -234,6 +303,8 @@ export default function Navbar() {
                                     <IconFileText size={16} />
                                     <Text>Text</Text>
 =======
+=======
+>>>>>>> Stashed changes
                             value: 'jaml',
                             label: (
                                 <Group gap={4} wrap="nowrap" align="center">
@@ -257,11 +328,21 @@ export default function Navbar() {
                                     <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Settings</Text>
                                 </Group>
                             )
+                        },
+                        {
+                            value: 'settings',
+                            label: (
+                                <Group gap={4} wrap="nowrap" align="center">
+                                    <IconSettings size={12} />
+                                    <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Settings</Text>
+                                </Group>
+                            )
                         }
                     ]}
                     mb="sm"
                 />
                 <Divider mb='md' />
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                 <Group align={'flex-end'}>
                     <Select
@@ -400,6 +481,68 @@ export default function Navbar() {
                                 size={'xl'}
                                 checked={useCardPeek}
                                 onChange={() => setUseCardPeek(!useCardPeek)}
+=======
+                {isJamlView && (
+                    <>
+                        {/* Game Config: Filter, Deck, Stake */}
+                        <Select
+                            label="JAML Filter"
+                            size="xs"
+                            placeholder="Select a filter..."
+                            value={selectedFilterKey}
+                            mb="xs"
+                            data={[
+                                {
+                                    group: 'Filters',
+                                    items: [
+                                        { value: 'default', label: 'Default (Generic)' },
+                                        { value: 'speedtest', label: 'Speedtest (Benchmark)' },
+                                    ]
+                                },
+                                {
+                                    group: 'Actions',
+                                    items: [
+                                        { value: '__create_new__', label: 'Create New...' },
+                                        { value: '__upload__', label: 'Upload .jaml File...' },
+                                    ]
+                                }
+                            ]}
+                            onChange={(value) => {
+                                if (!value) return;
+                                if (value === '__upload__') {
+                                    jamlFileInputRef.current?.click();
+                                    return;
+                                }
+                                setSelectedFilterKey(value);
+                            }}
+                        />
+                        <input
+                            type="file"
+                            ref={jamlFileInputRef}
+                            accept=".jaml,.yaml,.yml"
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                        const content = ev.target?.result as string;
+                                        if (content) {
+                                            setCustomJamlText(content);
+                                            setSelectedFilterKey('__custom__');
+                                        }
+                                    };
+                                    reader.readAsText(file);
+                                }
+                                e.target.value = '';
+                            }}
+                        />
+                        <Group align={'flex-end'} grow mb="xs">
+                            <Select
+                                label={'Deck'}
+                                value={deck}
+                                onChange={(value) => {
+                                    if (value) setDeck(value);
 =======
                 {isJamlView && (
                     <>
@@ -722,6 +865,268 @@ export default function Navbar() {
                                 value={stake}
                                 onChange={(value) => {
                                     if (value) setStake(value);
+>>>>>>> Stashed changes
+                                }}
+                                size="sm"
+                                flex={1}
+                                data={[
+<<<<<<< Updated upstream
+                                    "Red Deck",
+                                    "Blue Deck",
+                                    "Yellow Deck",
+                                    "Green Deck",
+                                    "Black Deck",
+                                    "Magic Deck",
+                                    "Nebula Deck",
+                                    "Ghost Deck",
+                                    "Abandoned Deck",
+                                    "Checkered Deck",
+                                    "Zodiac Deck",
+                                    "Painted Deck",
+                                    "Anaglyph Deck",
+                                    "Plasma Deck",
+                                    "Erratic Deck"
+                                ]}
+                                leftSection={deck ? <DeckBackIcon deckName={deck} /> : null}
+                            />
+                            <Select
+                                label={'Stake'}
+                                value={stake}
+                                onChange={(value) => {
+                                    if (value) setStake(value);
+                                }}
+                                size="sm"
+                                flex={1}
+                                data={[
+                                    "White Stake",
+                                    "Red Stake",
+                                    "Green Stake",
+                                    "Black Stake",
+                                    "Blue Stake",
+                                ]}
+                                leftSection={stake ? <StakeChipIcon stakeName={stake} /> : null}
+                            />
+                        </Group>
+
+                    </>
+                )}
+                {viewMode === 'settings' && (
+                    <>
+                        {/* Search Config */}
+                        <Paper p={6} radius="sm" mb={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
+                            <Stack gap={6}>
+                                <Text size="sm" fw={600}>JAML Search Settings</Text>
+                                <SegmentedControl
+                                    size="xs"
+                                    value={searchEngineMode}
+                                    onChange={(value) => setSearchEngineMode(value as 'browser-wasm' | 'public-api')}
+                                    data={[
+                                        { label: 'Browser WASM', value: 'browser-wasm' },
+                                        { label: 'Public API', value: 'public-api' },
+                                    ]}
+                                />
+
+                                <SegmentedControl
+                                    size="xs"
+                                    value={searchMode}
+                                    onChange={(value) => setSearchMode(value as 'quick' | 'sequential' | 'funny')}
+                                    data={[
+                                        { label: 'Quick Search', value: 'quick' },
+                                        { label: 'Full Sequential', value: 'sequential' },
+                                        { label: 'Funny Search', value: 'funny' },
+                                    ]}
+                                />
+
+                                {searchEngineMode === 'public-api' && (
+                                    <TextInput
+                                        label="Motely API endpoint"
+                                        size="xs"
+                                        value={apiEndpoint}
+                                        onChange={(e) => setApiEndpoint(e.currentTarget.value)}
+                                        placeholder="https://motelyjaml-pi.8pi.me"
+                                    />
+                                )}
+
+                                {searchEngineMode === 'browser-wasm' && searchMode !== 'funny' && (
+                                    <Group grow gap="xs">
+                                        <TextInput
+                                            label="Threads"
+                                            size="xs"
+                                            value={String(wasmThreadCount)}
+                                            onChange={(e) => {
+                                                const v = parseInt(e.currentTarget.value, 10);
+                                                if (Number.isNaN(v)) return;
+                                                const clamped = Math.max(1, Math.min(v, 32));
+                                                setWasmThreadCount(clamped);
+                                            }}
+                                        />
+                                    </Group>
+                                )}
+
+                                {searchMode === 'quick' && (
+                                    <Group grow gap="xs">
+                                        <Select
+                                            label="Seed count"
+                                            size="xs"
+                                            value={quickSeedCount}
+                                            onChange={(value) => setQuickSeedCount((value as typeof quickSeedCount) ?? '1k')}
+                                            data={[
+                                                { value: 'single', label: 'Single' },
+                                                { value: '1k', label: '1K' },
+                                                { value: '100k', label: '100K' },
+                                                { value: '1m', label: '1M' },
+                                                { value: '10m', label: '10M' },
+                                            ]}
+                                        />
+                                        {quickSeedCount === 'single' && (
+                                            <TextInput
+                                                label="Seed"
+                                                size="xs"
+                                                value={quickSeedInput}
+                                                onChange={(e) => setQuickSeedInput(e.currentTarget.value.toUpperCase())}
+                                                placeholder="TACO1111"
+                                            />
+                                        )}
+                                        <TextInput
+                                            label="Batch size"
+                                            size="xs"
+                                            value={String(wasmBatchSize)}
+                                            onChange={(e) => {
+                                                const v = parseInt(e.currentTarget.value, 10);
+                                                if (Number.isNaN(v)) return;
+                                                const clamped = Math.max(1, Math.min(v, 4));
+                                                setWasmBatchSize(clamped);
+                                            }}
+                                        />
+                                    </Group>
+                                )}
+
+                                {searchMode === 'sequential' && (
+                                    <Group grow gap="xs">
+                                        <TextInput
+                                            label="Batch size"
+                                            size="xs"
+                                            value={String(wasmBatchSize)}
+                                            onChange={(e) => {
+                                                const v = parseInt(e.currentTarget.value, 10);
+                                                if (Number.isNaN(v)) return;
+                                                const clamped = Math.max(1, Math.min(v, 4));
+                                                setWasmBatchSize(clamped);
+                                            }}
+                                        />
+                                        <TextInput
+                                            label="Start seed"
+                                            size="xs"
+                                            value={sequentialStartSeed}
+                                            onChange={(e) => setSequentialStartSeed(e.currentTarget.value.toUpperCase())}
+                                        />
+                                        <TextInput
+                                            label="End seed"
+                                            size="xs"
+                                            value={sequentialEndSeed}
+                                            onChange={(e) => setSequentialEndSeed(e.currentTarget.value.toUpperCase())}
+                                        />
+                                    </Group>
+                                )}
+
+                                {searchMode === 'funny' && (
+                                    <Stack gap={6}>
+                                        <SegmentedControl
+                                            size="xs"
+                                            value={funnyMode}
+                                            onChange={(value) => setFunnyMode(value as 'palindrome' | 'keyword')}
+                                            data={[
+                                                { label: 'Palindromes', value: 'palindrome' },
+                                                { label: 'Keywords', value: 'keyword' },
+                                            ]}
+                                        />
+                                        {funnyMode === 'keyword' && (
+                                            <Stack gap={4}>
+                                                {funnyKeywords.map((keyword, idx) => (
+                                                    <TextInput
+                                                        key={`keyword-${idx}`}
+                                                        size="xs"
+                                                        label={idx === 0 ? 'Keyword(s)' : undefined}
+                                                        value={keyword}
+                                                        onChange={(e) => {
+                                                            const next = [...funnyKeywords];
+                                                            next[idx] = e.currentTarget.value.toUpperCase();
+                                                            setFunnyKeywords(next);
+                                                        }}
+                                                        placeholder="JOKER"
+                                                    />
+                                                ))}
+                                                <Button
+                                                    size="xs"
+                                                    variant="light"
+                                                    onClick={() => setFunnyKeywords([...funnyKeywords, ''])}
+                                                >
+                                                    + add another
+                                                </Button>
+                                            </Stack>
+                                        )}
+                                    </Stack>
+                                )}
+                            </Stack>
+                        </Paper>
+                    </>
+                )}
+                {!isJamlView && (
+                    <>
+                        <Group grow gap="xs" mb="xs">
+                            <Box flex={1}>
+                                <SeedInputAutoComplete
+                                    seed={seed}
+                                    setSeed={setSeed}
+                                />
+                            </Box>
+                            <Box flex={1}>
+                                <NumberInput
+                                    label={'Max Ante'}
+                                    value={maxAnte}
+                                    onChange={(val) => {
+                                        const newMax = Number(val) || 8;
+                                        setMaxAnte(Math.max(minAnte, Math.min(newMax, 39)));
+                                    }}
+                                    min={minAnte}
+                                    max={39}
+                                    size="sm"
+                                />
+                            </Box>
+                        </Group>
+                        <Group align={'flex-end'} grow>
+                            <Select
+                                label={'Choose Deck'}
+                                value={deck}
+                                onChange={(value) => {
+                                    if (value) setDeck(value);
+                                }}
+                                size="sm"
+                                flex={1}
+                                data={[
+                                    "Red Deck",
+                                    "Blue Deck",
+                                    "Yellow Deck",
+                                    "Green Deck",
+                                    "Black Deck",
+                                    "Magic Deck",
+                                    "Nebula Deck",
+                                    "Ghost Deck",
+                                    "Abandoned Deck",
+                                    "Checkered Deck",
+                                    "Zodiac Deck",
+                                    "Painted Deck",
+                                    "Anaglyph Deck",
+                                    "Plasma Deck",
+                                    "Erratic Deck"
+                                ]}
+                                leftSection={deck ? <DeckBackIcon deckName={deck} /> : null}
+                            />
+                            <Select
+                                label={'Choose Stake'}
+                                value={stake}
+                                onChange={(value) => {
+                                    if (value) setStake(value);
                                 }}
                                 size="sm"
                                 flex={1}
@@ -735,6 +1140,16 @@ export default function Navbar() {
                                 leftSection={stake ? <StakeChipIcon stakeName={stake} /> : null}
 >>>>>>> Stashed changes
                             />
+=======
+                                    "White Stake",
+                                    "Red Stake",
+                                    "Green Stake",
+                                    "Black Stake",
+                                    "Blue Stake",
+                                ]}
+                                leftSection={stake ? <StakeChipIcon stakeName={stake} /> : null}
+                            />
+>>>>>>> Stashed changes
                         </Group>
                         <InputLabel>Cards per Ante</InputLabel>
                         <Button.Group w={'100%'} mb="xs">
@@ -849,6 +1264,7 @@ export default function Navbar() {
                             color="green"
                             size="sm"
                             fullWidth
+<<<<<<< Updated upstream
 >>>>>>> Stashed changes
                         >
                             Analyze Seed
@@ -858,6 +1274,79 @@ export default function Navbar() {
                             Reset
                         </Button>
                     </Group>
+=======
+                        >
+                            Analyze Seed
+                        </Button>
+                    )}
+                    {isJamlView && (
+                        <>
+                            <Button
+                                id="analyze-button"
+                                onClick={handleJamlSearchClick}
+                                color="green"
+                                size="sm"
+                                fullWidth
+                                leftSection={<IconSearch size={16} />}
+                            >
+                                Search Seeds
+                            </Button>
+                            <Button
+                                id="import-seeds-button"
+                                onClick={openBulkSeeds}
+                                color="blue"
+                                variant="light"
+                                size="sm"
+                                fullWidth
+                                leftSection={<IconUpload size={16} />}
+                            >
+                                Import Seeds
+                            </Button>
+                        </>
+                    )}
+                    {!isJamlView && (
+                        <>
+                            <Button
+                                id="features-button"
+                                color="grape"
+                                onClick={() => {
+                                    GaEvent('view_features');
+                                    openFeaturesModal()
+                                }}
+                                size="sm"
+                                fullWidth
+                            >
+                                Features
+                            </Button>
+                            <Button color="blue" onClick={() => openSelectOptionModal()} size="sm" fullWidth>
+                                Modify Unlocks
+                            </Button>
+                            <Group grow gap="xs" align="stretch">
+                                <Button
+                                    id="snapshot-button"
+                                    color="cyan"
+                                    onClick={() => {
+                                        openSnapshotModal();
+                                        GaEvent('view_seed_snapshot');
+                                    }}
+                                    size="sm"
+                                >
+                                    Seed Summary
+                                </Button>
+                                <Button color="red" variant={'filled'} onClick={() => reset()} size="sm">
+                                    Reset
+                                </Button>
+                            </Group>
+                        </>
+                    )}
+                    {isJamlView && (
+                        <Button color="red" variant={'filled'} onClick={() => reset()} size="sm" fullWidth>
+                            Reset
+                        </Button>
+                    )}
+                </Stack>
+            </AppShell.Section>
+>>>>>>> Stashed changes
 
 =======
                     )}

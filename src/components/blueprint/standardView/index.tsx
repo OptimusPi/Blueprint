@@ -32,9 +32,12 @@ import { Aside } from "../layout/aside.tsx";
 import Footer from "../layout/footer.tsx";
 import HomePage from "../homePage/homepage.tsx";
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import Index from "../textView";
 import Simple from "../simpleView/simple.tsx";
 =======
+=======
+>>>>>>> Stashed changes
 import JamlView from "../jamlView/JamlView.tsx";
 >>>>>>> Stashed changes
 import SnapshotModal from "../snapshotView/SnapshotView.tsx";
@@ -551,9 +554,13 @@ function Main() {
         <AppShell.Main>
             {!SeedResults && <HomePage />}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
+=======
+            {SeedResults && (viewMode === 'blueprint' || viewMode === 'settings') && <SeedExplorer />}
+>>>>>>> Stashed changes
 =======
             {SeedResults && (viewMode === 'blueprint' || viewMode === 'settings') && <SeedExplorer />}
 >>>>>>> Stashed changes
