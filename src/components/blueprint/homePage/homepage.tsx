@@ -10,7 +10,7 @@ import {Container, Paper, SimpleGrid, Space, Stack, Text, ThemeIcon, Title} from
 import React from "react";
 import {QuickAnalyze} from "../../SeedInputAutoComplete.tsx";
 import classes from './Homepage.module.css';
-import HeroClasses from "./Hero.module.css"
+import HeroClasses from "./Hero.module.scss"
 import type {
     Icon,
     IconProps} from '@tabler/icons-react';

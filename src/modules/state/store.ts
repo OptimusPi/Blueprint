@@ -49,6 +49,7 @@ export interface InitialState {
         maxMiscCardSource: number;
         rerollStartIndex: number;
         conversionSourceId: string | null;
+        apiEndpoint: string;
     };
     searchState: {
         searchTerm: string;
@@ -86,7 +87,7 @@ interface StoreActions {
     setGameVersion: (gameVersion: string) => void;
     setSelectedOptions: (selectedOptions: Array<string>) => void;
     setUseCardPeek: (useCardPeek: boolean) => void;
-    setStart: (start: boolean) => void;
+    setStart: (start: boolean, keepSettingsOpen?: boolean) => void;
     setShowCardSpoilers: (showCardSpoilers: boolean) => void;
     openSelectOptionModal: () => void;
     closeSelectOptionModal: () => void;
@@ -102,6 +103,7 @@ interface StoreActions {
     setSelectedBlind: (selectedBlind: Blinds) => void;
     toggleSettings: () => void;
     toggleOutput: () => void;
+    setApiEndpoint: (apiEndpoint: string) => void;
     setMiscSource: (source: string) => void;
     setAsideTab: (tab: string) => void;
     setSearchString: (searchString: string) => void;
@@ -169,7 +171,8 @@ const initialState: InitialState = {
         maxMiscCardSource: 15,
         rerollStartIndex: 0,
         drawSimulatorModalOpen: false,
-        conversionSourceId: null
+        conversionSourceId: null,
+        apiEndpoint: 'https://motelyjaml-pi.8pi.me'
     },
     searchState: {
         searchTerm: '',
@@ -340,9 +343,12 @@ export const useCardStore = create<CardStore>()(
                         prev.applicationState.hasSettingsChanged = true;
                     }, undefined, 'Global/SetSelectedOptions'),
 
-                    setStart: (start) => set((prev) => {
+                    setStart: (start, keepSettingsOpen) => set((prev) => {
                         prev.applicationState.start = start
-                        prev.applicationState.settingsOpen = false
+                        // Don't close settings in JAML mode unless explicitly requested
+                        if (!keepSettingsOpen && prev.applicationState.viewMode !== 'jaml') {
+                            prev.applicationState.settingsOpen = false
+                        }
                     }, undefined, 'Global/SetStart'),
 
                     setShowCardSpoilers: (showCardSpoilers) => set((prev) => {
@@ -394,6 +400,9 @@ export const useCardStore = create<CardStore>()(
                     toggleOutput: () => set((prev) => {
                         prev.applicationState.asideOpen = !prev.applicationState.asideOpen;
                     }, undefined, 'Global/ToggleOutput'),
+                    setApiEndpoint: (apiEndpoint) => set((prev) => {
+                        prev.applicationState.apiEndpoint = apiEndpoint;
+                    }, undefined, 'Global/SetApiEndpoint'),
                     setMiscSource: (source) => set((prev) => {
                         prev.applicationState.miscSource = source
                     }, undefined, "Global/SetMiscSource"),
