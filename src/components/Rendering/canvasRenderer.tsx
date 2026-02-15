@@ -2,6 +2,7 @@ import {Layer} from "../../modules/classes/Layer.ts";
 import {useEffect, useRef, useState} from "react";
 import {useForceUpdate, useHover, useMergedRef, useMouse, useResizeObserver} from "@mantine/hooks";
 import {AspectRatio} from "@mantine/core";
+import React from "react";
 
 const globalImageCache = new Map<string, HTMLImageElement>();
 interface RenderCanvasProps {
@@ -230,7 +231,7 @@ export function RenderImagesWithCanvas({layers, invert = false, spacing = false}
             }))
 
         if (invert) {
-            canvas.style.filter = 'invert(0.8)';
+            canvas.style.filter = 'invert(0.94)';
         }
     }, [layers, elapsed, forceUpdate]);
 

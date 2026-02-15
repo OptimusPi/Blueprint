@@ -7,6 +7,7 @@ import {
     InputLabel,
     NativeSelect,
     NumberInput,
+    Paper,
     SegmentedControl,
     Select,
     Stack,
@@ -26,26 +27,16 @@ import { useCardStore } from "../../../modules/state/store.ts";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import UnlocksModal from "../../unlocksModal.tsx";
 import FeaturesModal from "../../FeaturesModal.tsx";
-import {RerollCalculatorModal} from "../../RerollCalculatorModal.tsx";
-import {GaEvent} from "../../../modules/useGA.ts";
-import { useDebouncedCallback } from "@mantine/hooks";
-import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
-import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
-
-
-import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
-import { GaEvent } from "../../../modules/useGA.ts";
-import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
-import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
-import { DeckBackIcon, StakeChipIcon } from "../../Rendering/deckStakeIcons.tsx";
 import {
-    IconJoker,
-    IconLayout,
-    IconPlayCard,
     IconSettings,
     IconUpload,
     IconSearch
 } from "@tabler/icons-react";
+import { useDebouncedCallback } from "@mantine/hooks";
+import { GaEvent } from "../../../modules/useGA.ts";
+import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
+import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
+import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
 
 export default function Navbar() {
     const theme = useMantineTheme();
@@ -82,10 +73,11 @@ export default function Navbar() {
         setCustomJamlText,
     } = useJamlSearch();
     const jamlFileInputRef = React.useRef<HTMLInputElement>(null);
-    const setViewMode = useCardStore(state => state.setViewMode);en = useCardStore(state => state.applicationState.settingsOpen);es
+    const setViewMode = useCardStore(state => state.setViewMode);
+    const jamlSettingsOpen = useCardStore(state => state.applicationState.settingsOpen);
 
     const analyzeState = useCardStore(state => state.immolateState);
-    const { seed, deck, stake, gameVersion: version, antes, cardsPerAnte } = analyzeState;
+    const { seed, deck, stake, gameVersion: version, cardsPerAnte } = analyzeState;
     const showCardSpoilers = useCardStore(state => state.applicationState.showCardSpoilers);
     const useCardPeek = useCardStore(state => state.applicationState.useCardPeek);
     const setUseCardPeek = useCardStore(state => state.setUseCardPeek);
@@ -108,13 +100,6 @@ export default function Navbar() {
     const rerollCalculatorMetadata = useCardStore(state => state.applicationState.rerollCalculatorMetadata);
     const closeRerollCalculatorModal = useCardStore(state => state.closeRerollCalculatorModal);
     const reset = useCardStore(state => state.reset);
-    const hasSettingsChanged = useCardStore((state) => state.applicationState.hasSettingsChanged);
-
-    const [localAntes, setLocalAntes] = useState<number | string>(antes);
-    useEffect(() => { setLocalAntes(antes); }, [antes]);
-    const debouncedSetAntes = useDebouncedCallback((val: number) => {
-        if (val !== antes) setAntes(val);
-    }, 200);
 
     const handleJamlSearchClick = () => {
         // In JAML mode, trigger the search by setting start=true
@@ -126,35 +111,7 @@ export default function Navbar() {
         setStart(true);
     }
 
-    const handleBulkSeedsImport = () => {
-        const parsed = bulkSeedsText
-            .split(/\r?\n/)
-            .map(line => {
-                const firstCol = line.split(',')[0].trim();
-                const stripped = firstCol.replace(/^["']|["']$/g, '');
-                return stripped;
-            })
-            .filter(s => s.length > 0 && /^[A-Z0-9]+$/i.test(s))
-            .map(s => s.toUpperCase());
 
-        if (parsed.length > 0) {
-            setSeed(parsed[0]);
-            setStart(true);
-            closeBulkSeeds();
-            setBulkSeedsText('');
-        }
-    }
-
-    const handleViewModeChange = (value: string) => {
-        if (value === 'jaml') {
-            setViewMode('jaml');
-            // Force these ON for JAML mode
-            setShowCardSpoilers(true);
-            setUseCardPeek(true);
-            return;
-        }
-        setViewMode(value);
-    }
     return (
         <AppShell.Navbar p="md">
             <UnlocksModal />
@@ -543,7 +500,6 @@ export default function Navbar() {
                                     "Blue Stake",
                                 ]}
                                 leftSection={stake ? <StakeChipIcon stakeName={stake} /> : null}
->>>>>>> Stashed changes
                             />
                         </Group>
                         <InputLabel>Cards per Ante</InputLabel>

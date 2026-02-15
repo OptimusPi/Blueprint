@@ -16,7 +16,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconCode, IconSearch, IconUpload } from "@tabler/icons-react";
-import { prefetchSeedAnalysis, useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
+import { useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
 import { useSeedOptionsContainer } from "../../../modules/state/optionsProvider.tsx";
 import { useCardStore } from "../../../modules/state/store.ts";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
@@ -24,9 +24,7 @@ import { DragScroll } from "../../DragScroller.tsx";
 import { GameCard } from "../../Rendering/cards.tsx";
 import { Boss, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
 import { JamlEditor } from "./JamlEditor.tsx";
-import yaml from "js-yaml";
-import { getWasmCapabilities, startJamlSearchWasm, cancelSearchWasm } from "../../../lib/motelyWasm.ts";
-import type { Ante, Pack } from "../../../modules/GameEngine/CardEngines/Cards.ts";
+import { Ante } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
 
 // JAML filter presets keyed by dropdown value
 const JAML_PRESETS: Record<string, string> = {
@@ -645,7 +643,7 @@ const AnteSection = React.memo(({
 
                         {sourcesConfig.showShop && displayShop.length > 0 && (
 
-                            <DragScroll hideScrollbar>
+                            <DragScroll>
 
                                 <Group wrap="nowrap" gap={3}>
 
@@ -897,7 +895,7 @@ const AnteSection = React.memo(({
 
                                         {source.cards && source.cards.length > 0 && (
 
-                                            <DragScroll hideScrollbar>
+                                            <DragScroll>
 
                                                 <Group wrap="nowrap" gap={3}>
 

@@ -542,8 +542,8 @@ function Main() {
             {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
-            {SeedResults && (viewMode === 'jaml' || viewMode === 'jaml-settings') && <JamlView />}
-            {SeedResults && (viewMode === 'blueprint' || viewMode === 'bp-settings') && <SeedExplorer />}
+            {SeedResults && viewMode === 'jaml' && <JamlView />}
+            {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && <SnapshotModal />}
         </AppShell.Main>
     )
