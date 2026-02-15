@@ -14,14 +14,8 @@ import { DownloadSeedResultProvider } from "./modules/state/downloadProvider.tsx
 import { BlueprintThemeProvider, useBlueprintTheme } from "./modules/state/themeProvider.tsx";
 import { NextStepProvider, NextStepReact, type Tour, type Step } from 'nextstepjs';
 import { useCardStore } from "./modules/state/store.ts";
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> Stashed changes
 import { JamlSearchProvider } from "./modules/state/jamlSearchContext.tsx";
 
->>>>>>> Stashed changes
 const queryClient = new QueryClient()
 
 const steps: Array<Tour> = [
@@ -346,24 +340,12 @@ function ProviderContainer({ children }: { children: React.ReactNode }) {
 export default function App() {
     return (
         <BlueprintThemeProvider>
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            <ProviderContainer>
-                <Blueprint />
-                <Space my={'xl'} />
-            </ProviderContainer>
-=======
-=======
->>>>>>> Stashed changes
             <JamlSearchProvider>
                 <ProviderContainer>
-                    <Blueprint/>
+                    <Blueprint />
+                    <Space my={'xl'} />
                 </ProviderContainer>
             </JamlSearchProvider>
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         </BlueprintThemeProvider>
     );
 }

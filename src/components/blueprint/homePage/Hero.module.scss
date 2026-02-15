@@ -3,7 +3,7 @@
     /*padding-top: 120px;*/
     padding-bottom: 80px;
 
-    @media (max-width: $mantine-breakpoint-sm) {
+    @media (max-width: 576px) {
         /*padding-top: 80px;*/
         padding-bottom: 60px;
     }
@@ -18,7 +18,7 @@
     position: absolute;
     color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
 
-    @media (max-width: $mantine-breakpoint-sm) {
+    @media (max-width: 576px) {
         display: none;
     }
 }
@@ -39,7 +39,7 @@
             Greycliff CF,
             var(--mantine-font-family);
 
-    @media (max-width: $mantine-breakpoint-xs) {
+    @media (max-width: 576px) {
         font-size: 28px;
         text-align: left;
     }
@@ -52,7 +52,7 @@
 .description {
     text-align: center;
 
-    @media (max-width: $mantine-breakpoint-xs) {
+    @media (max-width: 576px) {
         text-align: left;
         font-size: var(--mantine-font-size-md);
     }
@@ -63,7 +63,7 @@
     display: flex;
     justify-content: center;
 
-    @media (max-width: $mantine-breakpoint-xs) {
+    @media (max-width: 576px) {
         flex-direction: column;
     }
 }
@@ -73,7 +73,7 @@
         margin-left: var(--mantine-spacing-md);
     }
 
-    @media (max-width: $mantine-breakpoint-xs) {
+    @media (max-width: 576px) {
         height: 42px;
         font-size: var(--mantine-font-size-md);
 

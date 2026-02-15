@@ -31,15 +31,8 @@ import NavBar from "../layout/navbar.tsx";
 import { Aside } from "../layout/aside.tsx";
 import Footer from "../layout/footer.tsx";
 import HomePage from "../homePage/homepage.tsx";
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 import Index from "../textView";
 import Simple from "../simpleView/simple.tsx";
-=======
-=======
->>>>>>> Stashed changes
-import JamlView from "../jamlView/JamlView.tsx";
->>>>>>> Stashed changes
 import SnapshotModal from "../snapshotView/SnapshotView.tsx";
 import { useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
 import { useDownloadSeedResults } from "../../../modules/state/downloadProvider.tsx";
@@ -540,30 +533,12 @@ function SeedExplorer() {
 function Main() {
     const SeedResults = useSeedResultsContainer()
     const viewMode = useCardStore(state => state.applicationState.viewMode);
-    
-    // JAML view can render without SeedResults (it's for searching)
-    if (viewMode === 'jaml') {
-        return (
-            <AppShell.Main style={{ overflow: 'hidden', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
-                <JamlView />
-            </AppShell.Main>
-        )
-    }
-    
     return (
         <AppShell.Main>
             {!SeedResults && <HomePage />}
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
             {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
-=======
-            {SeedResults && (viewMode === 'blueprint' || viewMode === 'settings') && <SeedExplorer />}
->>>>>>> Stashed changes
-=======
-            {SeedResults && (viewMode === 'blueprint' || viewMode === 'settings') && <SeedExplorer />}
->>>>>>> Stashed changes
             {SeedResults && <SnapshotModal />}
         </AppShell.Main>
     )
