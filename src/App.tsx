@@ -342,8 +342,7 @@ export default function App() {
         <BlueprintThemeProvider>
             <JamlSearchProvider>
                 <ProviderContainer>
-                    <Blueprint />
-                    <Space my={'xl'} />
+                    <Blueprint/>
                 </ProviderContainer>
             </JamlSearchProvider>
         </BlueprintThemeProvider>
