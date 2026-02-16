@@ -1,7 +1,7 @@
-import React, {useState, useRef} from "react";
+import React, {useRef, useState} from "react";
 import { Autocomplete, Button, Group, NativeSelect, Paper } from "@mantine/core";
 import { useDebouncedCallback } from "@mantine/hooks";
-import {popularSeeds, SeedsWithLegendary} from "../modules/const.ts";
+import {SeedsWithLegendary, popularSeeds} from "../modules/const.ts";
 import {useCardStore} from "../modules/state/store.ts";
 import {sanitizeSeed} from "../modules/utils.ts";
 
@@ -30,10 +30,11 @@ function SeedInputAutoComplete({ seed, setSeed, w, showDeckSelect, label = 'Seed
     const [localSeed, setLocalSeed] = useState(seed);
     const isDirty = useRef(false);
 
-    // Sync from store when not actively editing
-    if (!isDirty.current && localSeed !== seed) {
-        setLocalSeed(seed);
-    }
+    React.useEffect(() => {
+        if (!isDirty.current && localSeed !== seed) {
+            setLocalSeed(seed);
+        }
+    }, [seed, localSeed]);
 
     const debouncedSetSeed = useDebouncedCallback((value: string) => {
         setLocalSeed(sanitizeSeed(value));

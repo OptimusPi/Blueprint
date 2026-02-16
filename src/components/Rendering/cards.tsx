@@ -1,18 +1,20 @@
+import {Paper} from "@mantine/core";
 import {
     Joker_Final,
-    Planet_Final,
-    Spectral_Final,
-    StandardCard_Final, Tarot_Final
+    StandardCard_Final
 } from "../../modules/ImmolateWrapper/CardEngines/Cards.ts";
 import {consumablesFaces, editionMap, jokerFaces, jokers, stickerMap, tarotsAndPlanets} from "../../modules/const.ts";
 import {Layer} from "../../modules/classes/Layer.ts";
 import {getEnhancerPosition, getSealPosition, getStandardCardPosition} from "../../modules/utils.ts";
-import {Paper} from "@mantine/core";
 import {RenderImagesWithCanvas} from "./canvasRenderer.tsx";
+import type {
+    Planet_Final,
+    Spectral_Final, Tarot_Final
+} from "../../modules/ImmolateWrapper/CardEngines/Cards.ts";
 
 
 export function JokerCard({card}: { card: Joker_Final }) {
-    let layers = [];
+    const layers = [];
     const jokerData = jokers.find((joker: any) => joker.name === card.name);
     if (jokerData) layers.push(new Layer({...jokerData, source: 'images/Jokers.png', order: 0, columns: 10, rows: 16}));
     const face = jokerFaces.find((joker: any) => joker.name === card.name);
@@ -68,9 +70,9 @@ export function JokerCard({card}: { card: Joker_Final }) {
 export function PlayingCard({card}: { card: StandardCard_Final }) {
     if(!card?.rank || !card?.suit) return null;
     const position = getStandardCardPosition(card.rank, card.suit);
-    //getEnhancerPosition
+    // getEnhancerPosition
     const background = getEnhancerPosition([card?.enhancements ?? '']);
-    let layers = [
+    const layers = [
         new Layer({
             pos: background,
             name: 'background',
@@ -116,7 +118,7 @@ export function PlayingCard({card}: { card: StandardCard_Final }) {
 )
 }
 export function Consumables({card}: { card: Planet_Final | Spectral_Final | Tarot_Final }) {
-    let layers = [
+    const layers = [
         new Layer({
             ...tarotsAndPlanets.find((t: any) => t.name === card.name),
             order: 0,
@@ -125,7 +127,7 @@ export function Consumables({card}: { card: Planet_Final | Spectral_Final | Taro
             columns: 10
         })
     ]
-    let consumablesFace = consumablesFaces.find((t: any) => t.name === card.name);
+    const consumablesFace = consumablesFaces.find((t: any) => t.name === card.name);
     if (consumablesFace) {
         layers.push(new Layer({
             ...consumablesFace,
@@ -146,21 +148,15 @@ export function Consumables({card}: { card: Planet_Final | Spectral_Final | Taro
 export interface GameCardProps {
     card: Planet_Final | Spectral_Final | Tarot_Final | Joker_Final | StandardCard_Final
 }
-export function GameCard({card}: GameCardProps) {
-    let Card = () => {
-        if (card instanceof StandardCard_Final) {
-            return <PlayingCard card={card}/>
-        }
-        else if (card instanceof Joker_Final) {
-            return <JokerCard card={card}/>
-        }
-        else {
-            return <Consumables card={card}/>
-        }
-    }
+export function GameCard({ card }: GameCardProps) {
+    const content = card instanceof StandardCard_Final
+        ? <PlayingCard card={card} />
+        : card instanceof Joker_Final
+            ? <JokerCard card={card} />
+            : <Consumables card={card} />;
     return (
         <Paper maw={'71px'}>
-            <Card/>
-            </Paper>
-    )
+            {content}
+        </Paper>
+    );
 }

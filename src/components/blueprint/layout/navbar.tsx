@@ -4,6 +4,7 @@ import {
     Button,
     Divider,
     Group,
+    Image,
     InputLabel,
     NativeSelect,
     NumberInput,
@@ -15,32 +16,28 @@ import {
     Text,
     TextInput,
     Tooltip,
-    useMantineColorScheme,
-    useMantineTheme
+    useMantineTheme,
 } from "@mantine/core";
-import React, {useState, useEffect} from "react";
 import {
     IconJoker,
     IconLayout,
-    IconPlayCard} from "@tabler/icons-react";
-import { useCardStore } from "../../../modules/state/store.ts";
-import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
-import UnlocksModal from "../../unlocksModal.tsx";
-import FeaturesModal from "../../FeaturesModal.tsx";
-import {
+    IconPlayCard,
+    IconSearch,
     IconSettings,
     IconUpload,
-    IconSearch
 } from "@tabler/icons-react";
-import { useDebouncedCallback } from "@mantine/hooks";
+import React from "react";
+import { useCardStore } from "../../../modules/state/store.ts";
+import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import { GaEvent } from "../../../modules/useGA.ts";
+import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
+import UnlocksModal from "../../unlocksModal.tsx";
+import FeaturesModal from "../../FeaturesModal.tsx";
 import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
 import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
-import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
 
 export default function Navbar() {
     const theme = useMantineTheme();
-    const { colorScheme } = useMantineColorScheme();
     const viewMode = useCardStore(state => state.applicationState.viewMode);
     const isJamlView = viewMode === 'jaml';
     
@@ -74,7 +71,6 @@ export default function Navbar() {
     } = useJamlSearch();
     const jamlFileInputRef = React.useRef<HTMLInputElement>(null);
     const setViewMode = useCardStore(state => state.setViewMode);
-    const jamlSettingsOpen = useCardStore(state => state.applicationState.settingsOpen);
 
     const analyzeState = useCardStore(state => state.immolateState);
     const { seed, deck, stake, gameVersion: version, cardsPerAnte } = analyzeState;
@@ -83,13 +79,12 @@ export default function Navbar() {
     const setUseCardPeek = useCardStore(state => state.setUseCardPeek);
     const maxMiscCardSource = useCardStore(state => state.applicationState.maxMiscCardSource);
     const setMiscMaxSource = useCardStore(state => state.setMiscMaxSource);
-
+    const maxAnte = useCardStore(state => state.applicationState.selectedAnte ?? 8);
 
     const setSeed = useCardStore(state => state.setSeed);
     const setDeck = useCardStore(state => state.setDeck);
     const setStake = useCardStore(state => state.setStake);
     const setVersion = useCardStore(state => state.setGameVersion);
-    const setAntes = useCardStore(state => state.setAntes);
     const setCardsPerAnte = useCardStore(state => state.setCardsPerAnte);
     const setShowCardSpoilers = useCardStore(state => state.setShowCardSpoilers);
     const setStart = useCardStore(state => state.setStart);
@@ -100,6 +95,7 @@ export default function Navbar() {
     const rerollCalculatorMetadata = useCardStore(state => state.applicationState.rerollCalculatorMetadata);
     const closeRerollCalculatorModal = useCardStore(state => state.closeRerollCalculatorModal);
     const reset = useCardStore(state => state.reset);
+    const setSelectedAnte = useCardStore(state => state.setSelectedAnte);
 
     const handleJamlSearchClick = () => {
         // In JAML mode, trigger the search by setting start=true
@@ -109,8 +105,11 @@ export default function Navbar() {
 
     const handleAnalyzeClick = () => {
         setStart(true);
-    }
+    };
 
+    const openBulkSeeds = () => {
+        // TODO: wire bulk seed import modal (e.g. useDisclosure + Modal with textarea)
+    };
 
     return (
         <AppShell.Navbar p="md">
@@ -249,7 +248,6 @@ export default function Navbar() {
                                     "Plasma Deck",
                                     "Erratic Deck"
                                 ]}
-                                leftSection={deck ? <DeckBackIcon deckName={deck} /> : null}
                             />
                             <Select
                                 label={'Stake'}
@@ -266,7 +264,6 @@ export default function Navbar() {
                                     "Black Stake",
                                     "Blue Stake",
                                 ]}
-                                leftSection={stake ? <StakeChipIcon stakeName={stake} /> : null}
                             />
                         </Group>
 
@@ -447,10 +444,10 @@ export default function Navbar() {
                                     label={'Max Ante'}
                                     value={maxAnte}
                                     onChange={(val) => {
-                                        const newMax = Number(val) || 8;
-                                        setMaxAnte(Math.max(minAnte, Math.min(newMax, 39)));
+                                        const n = Number(val) || 8;
+                                        setSelectedAnte(Math.max(1, Math.min(n, 39)));
                                     }}
-                                    min={minAnte}
+                                    min={1}
                                     max={39}
                                     size="sm"
                                 />
@@ -482,7 +479,6 @@ export default function Navbar() {
                                     "Plasma Deck",
                                     "Erratic Deck"
                                 ]}
-                                leftSection={deck ? <DeckBackIcon deckName={deck} /> : null}
                             />
                             <Select
                                 label={'Choose Stake'}
@@ -499,7 +495,6 @@ export default function Navbar() {
                                     "Black Stake",
                                     "Blue Stake",
                                 ]}
-                                leftSection={stake ? <StakeChipIcon stakeName={stake} /> : null}
                             />
                         </Group>
                         <InputLabel>Cards per Ante</InputLabel>

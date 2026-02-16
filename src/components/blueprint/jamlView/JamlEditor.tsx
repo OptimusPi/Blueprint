@@ -1,32 +1,30 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
+    ActionIcon,
+    Alert,
+    Badge,
+    CopyButton,
     Group,
+    Paper,
+    SegmentedControl,
     Stack,
     Text,
     Textarea,
-    Paper,
-    Badge,
     Tooltip,
-    ActionIcon,
-    Alert,
-    CopyButton,
-    SegmentedControl,
-    useMantineTheme
+    useMantineTheme,
 } from '@mantine/core';
-import { 
-    IconUpload, 
-    IconDownload, 
-    IconRefresh,
-    IconCheck,
-    IconCopy,
+import {
     IconAlertCircle,
+    IconCheck,
+    IconClipboard,
+    IconCopy,
+    IconDownload,
     IconFileText,
-    IconClipboard
+    IconRefresh,
+    IconUpload,
 } from '@tabler/icons-react';
 import yaml from 'js-yaml';
-import { InteractiveJamlEditor } from './InteractiveJamlEditor';
-import { BubbleJamlEditor } from './BubbleJamlEditor';
-import { SimpleBubbleEditor } from './SimpleBubbleEditor';
+import { JamlConfigurator } from './JamlConfigurator';
 
 // Default JAML template - loads from default.jaml
 const DEFAULT_JAML = `# Default.jaml
@@ -65,7 +63,7 @@ interface ValidationResult {
 export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
     const theme = useMantineTheme();
     const [jamlText, setJamlText] = useState<string>(initialJaml || DEFAULT_JAML);
-    const [editorMode, setEditorMode] = useState<'text' | 'interactive' | 'bubble' | 'simple'>('simple');
+    const [editorMode, setEditorMode] = useState<'form' | 'text'>('form');
 
     // Validate and parse JAML
     const validation = useMemo((): ValidationResult => {
@@ -125,7 +123,7 @@ export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
     }, []);
 
     return (
-        <Paper p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
+        <Paper p="sm" radius="md" bg={theme.colors.dark[7]}>
             <Stack gap="sm">
                 {/* Header */}
                 <Group justify="space-between" align="center">
@@ -177,61 +175,29 @@ export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
                     </Group>
                 </Group>
 
-                {/* Editor Mode Toggle - small switch in corner */}
+                {/* Form = noob-friendly configurator; Text = plain YAML */}
                 <Group justify="flex-end" mb={4}>
                     <SegmentedControl
                         value={editorMode}
-                        onChange={(value) => setEditorMode(value as 'text' | 'interactive' | 'bubble' | 'simple')}
+                        onChange={(value) => setEditorMode(value as 'form' | 'text')}
                         data={[
-                            { label: '🫧 Simple', value: 'simple' },
-                            { label: '🫧 Bubble', value: 'bubble' },
-                            { label: '✨ Interactive', value: 'interactive' },
-                            { label: '📝 Raw', value: 'text' },
+                            { label: 'Form', value: 'form' },
+                            { label: 'Plain text', value: 'text' },
                         ]}
                         size="xs"
                     />
                 </Group>
 
-                {/* Simple Mode (most accessible, tap-friendly, no useEffect) */}
-                {editorMode === 'simple' && (
-                    <SimpleBubbleEditor
+                {editorMode === 'form' && (
+                    <JamlConfigurator
                         initialJaml={jamlText}
                         onJamlChange={(yamlStr, parsed, isValid) => {
                             setJamlText(yamlStr);
-                            if (onJamlChange) {
-                                onJamlChange(parsed, isValid);
-                            }
+                            if (onJamlChange) onJamlChange(parsed, isValid);
                         }}
                     />
                 )}
 
-                {/* Bubble Mode (accessible, tap-friendly) */}
-                {editorMode === 'bubble' && (
-                    <BubbleJamlEditor
-                        initialJaml={jamlText}
-                        onJamlChange={(yamlStr, parsed, isValid) => {
-                            setJamlText(yamlStr);
-                            if (onJamlChange) {
-                                onJamlChange(parsed, isValid);
-                            }
-                        }}
-                    />
-                )}
-
-                {/* Dream Editor (Interactive) */}
-                {editorMode === 'interactive' && (
-                    <InteractiveJamlEditor
-                        initialJaml={jamlText}
-                        onJamlChange={(yamlStr, parsed, isValid) => {
-                            setJamlText(yamlStr);
-                            if (onJamlChange) {
-                                onJamlChange(parsed, isValid);
-                            }
-                        }}
-                    />
-                )}
-
-                {/* Raw Text Mode (fallback) */}
                 {editorMode === 'text' && (
                     <Paper p="xs" radius="sm" bg={theme.colors.dark[8]}>
                         <Textarea

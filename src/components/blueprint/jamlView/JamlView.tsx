@@ -10,8 +10,8 @@ import {
     Paper,
     Stack,
     Text,
-    Textarea,
     TextInput,
+    Textarea,
     useMantineTheme
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -24,7 +24,7 @@ import { DragScroll } from "../../DragScroller.tsx";
 import { GameCard } from "../../Rendering/cards.tsx";
 import { Boss, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
 import { JamlEditor } from "./JamlEditor.tsx";
-import { Ante } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
+import type { Ante } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
 
 // JAML filter presets keyed by dropdown value
 const JAML_PRESETS: Record<string, string> = {
@@ -709,7 +709,7 @@ const AnteSection = React.memo(({
 
                                                                 {pack.cards.map((card, cardIdx) => (
 
-                                                                    <GameCard key={cardIdx} card={card!} glow={getCardGlow(card, jamlConfig, anteNum, 0, 'pack')} scale={cardScale} />
+                                                                    <GameCard key={cardIdx} card={card} glow={getCardGlow(card, jamlConfig, anteNum, 0, 'pack')} scale={cardScale} />
 
                                                                 ))}
 
@@ -767,7 +767,7 @@ const AnteSection = React.memo(({
 
                                                             {pack.cards.map((card, cardIdx) => (
 
-                                                                <GameCard key={cardIdx} card={card!} glow={getCardGlow(card, jamlConfig, anteNum, 1, 'pack')} scale={cardScale} />
+                                                                <GameCard key={cardIdx} card={card} glow={getCardGlow(card, jamlConfig, anteNum, 1, 'pack')} scale={cardScale} />
 
                                                             ))}
 
@@ -825,7 +825,7 @@ const AnteSection = React.memo(({
 
                                                                 {pack.cards.map((card, cardIdx) => (
 
-                                                                    <GameCard key={cardIdx} card={card!} glow={getCardGlow(card, jamlConfig, anteNum, 2, 'pack')} scale={cardScale} />
+                                                                    <GameCard key={cardIdx} card={card} glow={getCardGlow(card, jamlConfig, anteNum, 2, 'pack')} scale={cardScale} />
 
                                                                 ))}
 
@@ -965,7 +965,7 @@ const AntePageView = React.memo(({
 
 }: {
 
-    selectedAntesArray: number[];
+    selectedAntesArray: Array<number>;
 
     pool: Record<number, Ante>;
 
@@ -1145,18 +1145,23 @@ function JamlView() {
     // JAML search state from context
     const {
         searchMode,
-        apiEndpoint,
+        apiEndpoint: _apiEndpoint,
         wasmThreadCount,
         wasmBatchSize,
-        quickSeedCount,
-        quickSeedInput,
-        sequentialStartSeed,
-        sequentialEndSeed,
+        quickSeedCount: _quickSeedCount,
+        quickSeedInput: _quickSeedInput,
+        sequentialStartSeed: _sequentialStartSeed,
+        sequentialEndSeed: _sequentialEndSeed,
         funnyMode,
         funnyKeywords,
         selectedFilterKey,
         customJamlText,
     } = useJamlSearch();
+    void _apiEndpoint;
+    void _quickSeedCount;
+    void _quickSeedInput;
+    void _sequentialStartSeed;
+    void _sequentialEndSeed;
 
     const [wasmVersion, setWasmVersion] = useState<string | null>(null);
 
@@ -1253,7 +1258,7 @@ function JamlView() {
 
 
 
-        const processNext = (remainingSeeds: string[]) => {
+        const processNext = (remainingSeeds: Array<string>) => {
 
             if (cancelled || remainingSeeds.length === 0) return;
 
@@ -1559,7 +1564,7 @@ function JamlView() {
 
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
 
-                // eslint-disable-next-line no-console
+                 
 
                 console.log('[MotelySearchPerf]', {
 
@@ -1651,7 +1656,7 @@ function JamlView() {
                 const searched = wasmSeedsSearchedRef.current;
                 const elapsedS = wasmElapsedMsRef.current / 1000;
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
-                // eslint-disable-next-line no-console
+                 
                 console.log('[MotelySearchPerf][final]', {
                     workerCount: wasmThreadCount,
                     speedSeedsPerSec: speed,

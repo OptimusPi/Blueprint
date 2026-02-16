@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-    Paper,
-    Textarea,
-    Text,
     Alert,
-    useMantineTheme
+    Paper,
+    Text,
+    Textarea,
+    useMantineTheme,
 } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import yaml from 'js-yaml';

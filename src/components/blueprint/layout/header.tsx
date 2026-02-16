@@ -30,9 +30,9 @@ export default function Header() {
                     </Group>
 
                     <Group align={'center'}>
-                        {/*<ActionIcon onClick={() => startNextStep('onboarding-tour')}>*/}
-                        {/*    <IconInfoCircle />*/}
-                        {/*</ActionIcon>*/}
+                        {/* <ActionIcon onClick={() => startNextStep('onboarding-tour')}> */}
+                        {/*     <IconInfoCircle /> */}
+                        {/* </ActionIcon> */}
                         {width > 600 && start && <Box id="search-input-header"><SearchSeedInput /></Box>}
                         {width > 700 && start && (
                             <CopyButton value={new URL(window.location.href).toString()}>
