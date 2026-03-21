@@ -46,7 +46,6 @@ export default function Navbar() {
         searchMode,
         searchEngineMode,
         apiEndpoint,
-        wasmThreadCount,
         wasmBatchSize,
         quickSeedCount,
         quickSeedInput,
@@ -57,7 +56,6 @@ export default function Navbar() {
         setSearchMode,
         setSearchEngineMode,
         setApiEndpoint,
-        setWasmThreadCount,
         setWasmBatchSize,
         setQuickSeedCount,
         setQuickSeedInput,
@@ -304,22 +302,6 @@ export default function Navbar() {
                                         onChange={(e) => setApiEndpoint(e.currentTarget.value)}
                                         placeholder="https://motelyjaml-pi.8pi.me"
                                     />
-                                )}
-
-                                {searchEngineMode === 'browser-wasm' && searchMode !== 'funny' && (
-                                    <Group grow gap="xs">
-                                        <TextInput
-                                            label="Threads"
-                                            size="xs"
-                                            value={String(wasmThreadCount)}
-                                            onChange={(e) => {
-                                                const v = parseInt(e.currentTarget.value, 10);
-                                                if (Number.isNaN(v)) return;
-                                                const clamped = Math.max(1, Math.min(v, 32));
-                                                setWasmThreadCount(clamped);
-                                            }}
-                                        />
-                                    </Group>
                                 )}
 
                                 {searchMode === 'quick' && (

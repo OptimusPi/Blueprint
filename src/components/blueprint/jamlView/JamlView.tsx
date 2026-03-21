@@ -24,6 +24,8 @@ import { DragScroll } from "../../DragScroller.tsx";
 import { GameCard } from "../../Rendering/cards.tsx";
 import { Boss, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
 import { JamlEditor } from "./JamlEditor.tsx";
+import yaml from 'js-yaml';
+import { boot, MotelyWasm } from "../../../modules/motely-st";
 import type { Ante } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
 
 // JAML filter presets keyed by dropdown value
@@ -1139,14 +1141,10 @@ function JamlView() {
 
 
 
-    // WASM search tuning controls - now from context
-    const defaultThreads = typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4;
-
     // JAML search state from context
     const {
         searchMode,
         apiEndpoint: _apiEndpoint,
-        wasmThreadCount,
         wasmBatchSize,
         quickSeedCount: _quickSeedCount,
         quickSeedInput: _quickSeedInput,
@@ -1167,16 +1165,8 @@ function JamlView() {
 
     const [wasmSimdEnabled, setWasmSimdEnabled] = useState<boolean | null>(null);
 
-    const wasmCoiStatus = typeof window !== 'undefined'
-        ? {
-            coi: (navigator as any).crossOriginIsolated === true,
-            sab: typeof (window as any).SharedArrayBuffer === 'function'
-        }
-        : { coi: false, sab: false };
-
-    // isThreadable requires SharedArrayBuffer. coi-serviceworker.js can provide SAB
-    // without actual COOP/COEP headers, so crossOriginIsolated may be false while SAB works.
-    const isThreadable = wasmCoiStatus.sab;
+    // Single-threaded WASM — no SharedArrayBuffer / COEP headers needed
+    const wasmInstanceRef = useRef<number | null>(null);
 
     // JAML Editor state
 
@@ -1268,9 +1258,8 @@ function JamlView() {
 
 
 
-            // Process ONE seed synchronously
-
-            prefetchSeedAnalysis(nextSeed, analyzeState, options);
+            // TODO: prefetch seed analysis for smooth scrolling
+            void nextSeed;
 
 
 
@@ -1315,37 +1304,21 @@ function JamlView() {
 
 
     useEffect(() => {
-
         let mounted = true;
-
-        getWasmCapabilities()
-
-            .then((caps) => {
-
+        boot()
+            .then(async () => {
                 if (!mounted) return;
-
-                setWasmVersion(caps.version);
-
-                setWasmSimdEnabled(caps.simd);
-
+                const version = await MotelyWasm.MotelyWasmBackend.getVersion();
+                const simd = await MotelyWasm.MotelyWasmBackend.isSimdEnabled();
+                setWasmVersion(version);
+                setWasmSimdEnabled(simd);
             })
-
             .catch(() => {
-
                 if (!mounted) return;
-
                 setWasmVersion(null);
-
                 setWasmSimdEnabled(null);
-
             });
-
-        return () => {
-
-            mounted = false;
-
-        };
-
+        return () => { mounted = false; };
     }, []);
 
 
@@ -1518,7 +1491,7 @@ function JamlView() {
 
                 wasmProgressElRef.current.textContent =
 
-                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s \u2022 ${wasmThreadCount}w`;
+                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s`;
 
             }
 
@@ -1568,7 +1541,7 @@ function JamlView() {
 
                 console.log('[MotelySearchPerf]', {
 
-                    workerCount: wasmThreadCount,
+                    mode: 'single-threaded',
 
                     speedSeedsPerSec: speed,
 
@@ -1603,52 +1576,64 @@ function JamlView() {
 
 
         try {
+            await boot();
+            const instanceId = MotelyWasm.MotelyWasmBackend.createInstance();
+            wasmInstanceRef.current = instanceId;
+            wasmSearchIdRef.current = 'active';
 
-            if (!isThreadable) {
-                setWasmStatus('error');
-                setWasmError('WASM search requires SharedArrayBuffer. Ensure COOP/COEP headers or coi-serviceworker.');
-                return;
+            // Subscribe to progress & result events
+            const progressHandler = (payload: any) => {
+                if (payload.instanceId !== instanceId) return;
+                const t0 = performance.now();
+                wasmSeedsSearchedRef.current = Number(payload.a);
+                wasmResultCountRef.current = Number(payload.b);
+                wasmElapsedMsRef.current = Number(payload.c);
+                const perf = wasmPerfRef.current;
+                perf.onProgressCalls += 1;
+                perf.onProgressMs += performance.now() - t0;
+            };
+            const progressId = MotelyWasm.MotelyJsUi.onSearchProgress.subscribe(progressHandler);
+
+            const resultHandler = (payload: any) => {
+                if (payload.instanceId !== instanceId) return;
+                const t0 = performance.now();
+                if (wasmSeenRef.current.has(payload.seed)) return;
+                wasmSeenRef.current.add(payload.seed);
+                wasmResultBatchRef.current.push({ seed: payload.seed, score: payload.matchCount });
+                const perf = wasmPerfRef.current;
+                perf.onResultCalls += 1;
+                perf.onResultMs += performance.now() - t0;
+            };
+            const resultId = MotelyWasm.MotelyJsUi.onSearchResult.subscribe(resultHandler);
+
+            // Run the search (single-threaded: threadCount=1)
+            const isPalindrome = searchMode === 'funny' && funnyMode === 'palindrome';
+            let resultJson: string;
+            if (isPalindrome) {
+                resultJson = await MotelyWasm.MotelyWasmBackend.startPalindromeSearch(instanceId, jamlText, 1, wasmBatchSize);
+            } else if (searchMode === 'funny' && funnyMode === 'keyword' && funnyKeywords.length > 0) {
+                resultJson = await MotelyWasm.MotelyWasmBackend.startKeywordSearch(instanceId, jamlText, 1, wasmBatchSize, funnyKeywords, '');
+            } else {
+                resultJson = await MotelyWasm.MotelyWasmBackend.startJamlSearch(instanceId, jamlText, 1, wasmBatchSize, 0, 0);
             }
 
-            // Single WASM instance search — .NET threading via WasmEnableThreads
-            const finalStatus = await startJamlSearchWasm(jamlText, {
-                threadCount: wasmThreadCount > 0 ? wasmThreadCount : defaultThreads,
-                batchCharCount: wasmBatchSize,
-                palindrome: (searchMode === 'funny' && funnyMode === 'palindrome') ? true : undefined,
-            }, {
-                onProgress: (totalSeedsSearched: number, _matchingSeeds: number, elapsedMs: number, resultCount: number) => {
-                    wasmSearchIdRef.current = 'active';  // Just mark as running
-                    const t0 = performance.now();
-                    wasmSeedsSearchedRef.current = totalSeedsSearched;
-                    wasmResultCountRef.current = resultCount;
-                    wasmElapsedMsRef.current = elapsedMs;
+            // Unsubscribe events
+            MotelyWasm.MotelyJsUi.onSearchProgress.unsubscribeById(progressId);
+            MotelyWasm.MotelyJsUi.onSearchResult.unsubscribeById(resultId);
 
-                    const perf = wasmPerfRef.current;
-                    perf.onProgressCalls += 1;
-                    perf.onProgressMs += performance.now() - t0;
-                },
-                onResult: (seed: string, score: number) => {
-                    const t0 = performance.now();
-                    if (wasmSeenRef.current.has(seed)) return;
-                    wasmSeenRef.current.add(seed);
-                    wasmResultBatchRef.current.push({ seed, score });
-
-                    const perf = wasmPerfRef.current;
-                    perf.onResultCalls += 1;
-                    perf.onResultMs += performance.now() - t0;
-                },
-            });
-
-            // Process final results
-            if (finalStatus.results && finalStatus.results.length > 0) {
-                const newResults = finalStatus.results
-                    .filter((r: any) => !wasmSeenRef.current.has(r.seed))
-                    .slice(0, 200 - wasmResults.length);
-                if (newResults.length > 0) {
-                    setWasmResults(prev => [...prev, ...newResults]);
-                    newResults.forEach((r: any) => wasmSeenRef.current.add(r.seed));
+            // Process final results from JSON
+            try {
+                const parsed = JSON.parse(resultJson);
+                if (parsed.results && parsed.results.length > 0) {
+                    const newResults = parsed.results
+                        .filter((r: any) => !wasmSeenRef.current.has(r.seed))
+                        .slice(0, 200 - wasmResults.length);
+                    if (newResults.length > 0) {
+                        setWasmResults(prev => [...prev, ...newResults]);
+                        newResults.forEach((r: any) => wasmSeenRef.current.add(r.seed));
+                    }
                 }
-            }
+            } catch { /* result JSON parse optional */ }
 
             // Final perf log
             {
@@ -1658,7 +1643,7 @@ function JamlView() {
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
 
                 console.log('[MotelySearchPerf][final]', {
-                    workerCount: wasmThreadCount,
+                    mode: 'single-threaded',
                     speedSeedsPerSec: speed,
                     searched,
                     hits: wasmResultCountRef.current,
@@ -1687,7 +1672,7 @@ function JamlView() {
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
                 const hitsPerSec = elapsedS > 0 ? (hits / elapsedS).toFixed(2) : '0';
                 el.textContent =
-                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s \u2022 ${wasmThreadCount}w`;
+                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s`;
             }
 
             // Flush remaining results
@@ -1697,6 +1682,11 @@ function JamlView() {
                 setWasmResults(prev => [...batch, ...prev].slice(0, 200));
             }
 
+            // Cleanup instance
+            if (wasmInstanceRef.current !== null) {
+                MotelyWasm.MotelyWasmBackend.destroyInstance(wasmInstanceRef.current);
+                wasmInstanceRef.current = null;
+            }
             wasmSearchIdRef.current = null;
             setWasmStatus('done');
 
@@ -1704,6 +1694,10 @@ function JamlView() {
 
             if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
 
+            if (wasmInstanceRef.current !== null) {
+                try { MotelyWasm.MotelyWasmBackend.destroyInstance(wasmInstanceRef.current); } catch { /* ignore */ }
+                wasmInstanceRef.current = null;
+            }
             wasmSearchIdRef.current = null;
 
             setWasmStatus('error');
@@ -1712,7 +1706,7 @@ function JamlView() {
 
         }
 
-    }, [jamlValid, jamlConfig, searchMode, funnyMode, funnyKeywords, wasmThreadCount, wasmBatchSize, defaultThreads]);
+    }, [jamlValid, jamlConfig, searchMode, funnyMode, funnyKeywords, wasmBatchSize]);
 
 
 
@@ -1747,10 +1741,12 @@ function JamlView() {
         }
 
         // Cancel the running WASM search
-        if (wasmSearchIdRef.current) {
-            cancelSearchWasm().catch(() => { });
-            wasmSearchIdRef.current = null;
+        if (wasmInstanceRef.current !== null) {
+            MotelyWasm.MotelyWasmBackend.stopSearch(wasmInstanceRef.current).catch(() => { });
+            try { MotelyWasm.MotelyWasmBackend.destroyInstance(wasmInstanceRef.current); } catch { /* ignore */ }
+            wasmInstanceRef.current = null;
         }
+        wasmSearchIdRef.current = null;
 
         setWasmStatus('idle');
 
@@ -2182,9 +2178,9 @@ function JamlView() {
 
                     </Text>
 
-                    <Text size="xs" c={wasmCoiStatus.sab ? 'green' : 'red'}>
+                    <Text size="xs" c={wasmVersion ? 'green' : 'gray'}>
 
-                        COI:{wasmCoiStatus.coi ? 'on' : 'off'} SAB:{wasmCoiStatus.sab ? 'on' : 'off'}
+                        ST mode
 
                     </Text>
 

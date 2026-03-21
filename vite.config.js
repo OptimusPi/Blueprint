@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       'next/navigation': path.resolve(process.cwd(), 'src/mocks/next-navigation.ts'),
+      'motely-wasm-st': path.resolve(process.cwd(), 'node_modules/motely-wasm/bootsharp_st/index.mjs'),
     },
   },
   server: {
@@ -15,20 +16,10 @@ export default defineConfig({
     host: true,
     cors: true,
     allowedHosts: ['*.8pi.me*', 'motelyjaml-pi.8pi.me'],
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'cross-origin'
-    }
   },
   preview: {
     port: 3000,
     host: true,
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'cross-origin'
-    }
   },
   optimizeDeps: {
     exclude: ['@aspect-build/bazel-lib'],
