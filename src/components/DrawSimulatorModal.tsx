@@ -232,31 +232,7 @@ export function DrawSimulatorModal() {
         });
     }, []);
 
-    // Re-sort hand when sortMode changes
-    useEffect(() => {
-        setHand(prev => sortCards(prev, sortMode));
-    }, [sortMode, sortCards]);
-
-    // Sync state and simulate when opening
-    useEffect(() => {
-        if (opened) {
-            const blindMap: Record<string, string> = {
-                'smallBlind': '1',
-                'bigBlind': '2',
-                'bossBlind': '3'
-            };
-            const initialAnte = selectedAnte.toString();
-            const initialBlind = blindMap[selectedBlind] || '1';
-
-            setAnte(initialAnte);
-            setBlind(initialBlind);
-
-            // Pass values directly because state updates are async
-            simulate(initialAnte, initialBlind);
-        }
-    }, [opened, selectedAnte, selectedBlind]);
-
-    const simulate = (overrideAnte?: string, overrideBlind?: string) => {
+    const simulate = useCallback((overrideAnte?: string, overrideBlind?: string) => {
         if (!seed) return;
 
         const currentAnte = overrideAnte || ante;
@@ -313,14 +289,38 @@ export function DrawSimulatorModal() {
         setDeckPointer(handSize);
         setSelectedCards([]);
         setDiscardsUsed(0);
-    };
+    }, [seed, ante, blind, deckType, stake, gameVersion, showmanOwned, customDeck, handSize, sortMode, sortCards]);
+
+    // Re-sort hand when sortMode changes
+    useEffect(() => {
+        setHand(prev => sortCards(prev, sortMode));
+    }, [sortMode, sortCards]);
+
+    // Sync state and simulate when opening
+    useEffect(() => {
+        if (opened) {
+            const blindMap: Record<string, string> = {
+                'smallBlind': '1',
+                'bigBlind': '2',
+                'bossBlind': '3'
+            };
+            const initialAnte = selectedAnte.toString();
+            const initialBlind = blindMap[selectedBlind] || '1';
+
+            setAnte(initialAnte);
+            setBlind(initialBlind);
+
+            // Pass values directly because state updates are async
+            simulate(initialAnte, initialBlind);
+        }
+    }, [opened, selectedAnte, selectedBlind, simulate]);
 
     // Auto-simulate when critical params change while modal is open
     useEffect(() => {
         if (opened) {
             simulate();
         }
-    }, [handSize, customDeck]); // Re-simulate if hand size or deck composition changes
+    }, [opened, simulate]); // Re-simulate if hand size or deck composition changes
 
     const toggleSelection = (id: string) => {
         if (selectedCards.includes(id)) {

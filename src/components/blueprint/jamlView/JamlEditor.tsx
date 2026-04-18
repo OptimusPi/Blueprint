@@ -147,7 +147,7 @@ export function JamlEditor({ onJamlChange, initialJaml }: JamlEditorProps) {
                                 <IconUpload size={14} />
                                 <input
                                     type="file"
-                                    accept=".jaml,.yaml,.yml"
+                                    accept=".jaml"
                                     onChange={handleFileUpload}
                                     style={{ display: 'none' }}
                                 />

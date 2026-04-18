@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd X:\\\\\\\\Blueprint)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl -s http://localhost:3141/)",
+      "Bash(curl -s \"http://localhost:3141/?seed=U8RJYV6N&deck=Ghost+Deck&minAnte=0&maxAnte=8&stake=White+Stake&view=blueprint&ante=1\")",
+      "Bash(sort -t: -k3)",
+      "Bash(curl -s http://localhost:3141/src/main.jsx)",
+      "Bash(curl -s \"http://localhost:3141/src/components/blueprint/layout/navbar.tsx\")"
+    ]
+  }
+}

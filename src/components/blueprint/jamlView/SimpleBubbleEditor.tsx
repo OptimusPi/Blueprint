@@ -275,7 +275,7 @@ export function SimpleBubbleEditor({ initialJaml, onJamlChange }: SimpleBubbleEd
       </Paper>
 
       <Text size="sm" style={{ color: COLORS.textMuted, textAlign: 'center' }}>
-        Tap a bubble to select • Tap X to remove • Tap "Add Filter" to add new criteria
+        Tap a bubble to select • Tap X to remove • Tap {`"Add Filter"`} to add new criteria
       </Text>
     </Stack>
   );

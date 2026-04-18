@@ -13,7 +13,7 @@ import {
     Tooltip
 } from "@mantine/core";
 import React, { useEffect, useRef, useState } from "react";
-import { useDebouncedCallback, useIntersection } from "@mantine/hooks";
+import { useIntersection } from "@mantine/hooks";
 import { IconLockOpen } from "@tabler/icons-react";
 import {
     bosses,

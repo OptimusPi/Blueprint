@@ -23,8 +23,12 @@ import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import { DragScroll } from "../../DragScroller.tsx";
 import { GameCard } from "../../Rendering/cards.tsx";
 import { Boss, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
+import yaml from "js-yaml";
+import {  getVersion, startJamlSearch } from "../../../lib/motelyWasm.ts";
+import { prefetchSeedAnalysis } from "../../../modules/state/analysisResultProvider.tsx";
 import { JamlEditor } from "./JamlEditor.tsx";
-import type { Ante } from "../../../modules/ImmolateWrapper/CardEngines/Cards.ts";
+import type {SearchMode} from "../../../lib/motelyWasm.ts";
+import type { Ante, Pack } from "../../../modules/GameEngine/CardEngines/Cards.ts";
 
 // JAML filter presets keyed by dropdown value
 const JAML_PRESETS: Record<string, string> = {
@@ -1139,44 +1143,18 @@ function JamlView() {
 
 
 
-    // WASM search tuning controls - now from context
-    const defaultThreads = typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4;
-
     // JAML search state from context
     const {
         searchMode,
-        apiEndpoint: _apiEndpoint,
-        wasmThreadCount,
-        wasmBatchSize,
-        quickSeedCount: _quickSeedCount,
-        quickSeedInput: _quickSeedInput,
-        sequentialStartSeed: _sequentialStartSeed,
-        sequentialEndSeed: _sequentialEndSeed,
         funnyMode,
         funnyKeywords,
         selectedFilterKey,
         customJamlText,
     } = useJamlSearch();
-    void _apiEndpoint;
-    void _quickSeedCount;
-    void _quickSeedInput;
-    void _sequentialStartSeed;
-    void _sequentialEndSeed;
 
     const [wasmVersion, setWasmVersion] = useState<string | null>(null);
 
     const [wasmSimdEnabled, setWasmSimdEnabled] = useState<boolean | null>(null);
-
-    const wasmCoiStatus = typeof window !== 'undefined'
-        ? {
-            coi: (navigator as any).crossOriginIsolated === true,
-            sab: typeof (window as any).SharedArrayBuffer === 'function'
-        }
-        : { coi: false, sab: false };
-
-    // isThreadable requires SharedArrayBuffer. coi-serviceworker.js can provide SAB
-    // without actual COOP/COEP headers, so crossOriginIsolated may be false while SAB works.
-    const isThreadable = wasmCoiStatus.sab;
 
     // JAML Editor state
 
@@ -1318,15 +1296,15 @@ function JamlView() {
 
         let mounted = true;
 
-        getWasmCapabilities()
+        getVersion()
 
-            .then((caps) => {
+            .then((version) => {
 
                 if (!mounted) return;
 
-                setWasmVersion(caps.version);
+                setWasmVersion(version);
 
-                setWasmSimdEnabled(caps.simd);
+                setWasmSimdEnabled(null);
 
             })
 
@@ -1518,7 +1496,7 @@ function JamlView() {
 
                 wasmProgressElRef.current.textContent =
 
-                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s \u2022 ${wasmThreadCount}w`;
+                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s \u2022 1t`;
 
             }
 
@@ -1568,7 +1546,7 @@ function JamlView() {
 
                 console.log('[MotelySearchPerf]', {
 
-                    workerCount: wasmThreadCount,
+                    workerCount: 1,
 
                     speedSeedsPerSec: speed,
 
@@ -1603,25 +1581,27 @@ function JamlView() {
 
 
         try {
-
-            if (!isThreadable) {
-                setWasmStatus('error');
-                setWasmError('WASM search requires SharedArrayBuffer. Ensure COOP/COEP headers or coi-serviceworker.');
-                return;
+            // motely-wasm 11.x+ (NativeAOT-LLVM) works without SharedArrayBuffer
+            // Determine search mode based on user input
+            let mode: SearchMode;
+            if (searchMode === 'funny' && funnyMode === 'keyword') {
+                mode = { kind: 'keyword', keywordsCsv: funnyKeywords || '', paddingChars: '' };
+            } else if (searchMode === 'funny' && funnyMode === 'palindrome') {
+                // Palindrome search: use keyword mode with empty keywords (motely v11 doesn't have palindrome mode)
+                mode = { kind: 'random', count: 1000000 };
+            } else {
+                // Default random search
+                mode = { kind: 'random', count: 1000000 };
             }
 
-            // Single WASM instance search — .NET threading via WasmEnableThreads
-            const finalStatus = await startJamlSearchWasm(jamlText, {
-                threadCount: wasmThreadCount > 0 ? wasmThreadCount : defaultThreads,
-                batchCharCount: wasmBatchSize,
-                palindrome: (searchMode === 'funny' && funnyMode === 'palindrome') ? true : undefined,
-            }, {
-                onProgress: (totalSeedsSearched: number, _matchingSeeds: number, elapsedMs: number, resultCount: number) => {
-                    wasmSearchIdRef.current = 'active';  // Just mark as running
+            // Start the new WASM search
+            const searchHandle = await startJamlSearch(jamlText, mode, {
+                onProgress: (totalSeedsSearched: number, matchingSeeds: number) => {
+                    wasmSearchIdRef.current = 'active';
                     const t0 = performance.now();
                     wasmSeedsSearchedRef.current = totalSeedsSearched;
-                    wasmResultCountRef.current = resultCount;
-                    wasmElapsedMsRef.current = elapsedMs;
+                    wasmResultCountRef.current = matchingSeeds;
+                    wasmElapsedMsRef.current = Math.round(performance.now() - wasmPerfRef.current.searchStartAt);
 
                     const perf = wasmPerfRef.current;
                     perf.onProgressCalls += 1;
@@ -1639,16 +1619,10 @@ function JamlView() {
                 },
             });
 
-            // Process final results
-            if (finalStatus.results && finalStatus.results.length > 0) {
-                const newResults = finalStatus.results
-                    .filter((r: any) => !wasmSeenRef.current.has(r.seed))
-                    .slice(0, 200 - wasmResults.length);
-                if (newResults.length > 0) {
-                    setWasmResults(prev => [...prev, ...newResults]);
-                    newResults.forEach((r: any) => wasmSeenRef.current.add(r.seed));
-                }
-            }
+            wasmSearchIdRef.current = searchHandle;
+
+            // Wait for search completion
+            await searchHandle.done;
 
             // Final perf log
             {
@@ -1658,7 +1632,7 @@ function JamlView() {
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
 
                 console.log('[MotelySearchPerf][final]', {
-                    workerCount: wasmThreadCount,
+                    workerCount: 1,
                     speedSeedsPerSec: speed,
                     searched,
                     hits: wasmResultCountRef.current,
@@ -1687,7 +1661,7 @@ function JamlView() {
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
                 const hitsPerSec = elapsedS > 0 ? (hits / elapsedS).toFixed(2) : '0';
                 el.textContent =
-                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s \u2022 ${wasmThreadCount}w`;
+                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s \u2022 1t`;
             }
 
             // Flush remaining results
@@ -1712,7 +1686,7 @@ function JamlView() {
 
         }
 
-    }, [jamlValid, jamlConfig, searchMode, funnyMode, funnyKeywords, wasmThreadCount, wasmBatchSize, defaultThreads]);
+    }, [jamlValid, jamlConfig, searchMode, funnyMode, funnyKeywords]);
 
 
 
@@ -1747,10 +1721,10 @@ function JamlView() {
         }
 
         // Cancel the running WASM search
-        if (wasmSearchIdRef.current) {
-            cancelSearchWasm().catch(() => { });
-            wasmSearchIdRef.current = null;
+        if (wasmSearchIdRef.current && typeof wasmSearchIdRef.current === 'object' && 'cancel' in wasmSearchIdRef.current) {
+            wasmSearchIdRef.current.cancel();
         }
+        wasmSearchIdRef.current = null;
 
         setWasmStatus('idle');
 
@@ -2182,9 +2156,9 @@ function JamlView() {
 
                     </Text>
 
-                    <Text size="xs" c={wasmCoiStatus.sab ? 'green' : 'red'}>
+                    <Text size="xs" c="green">
 
-                        COI:{wasmCoiStatus.coi ? 'on' : 'off'} SAB:{wasmCoiStatus.sab ? 'on' : 'off'}
+                        NativeAOT (1 thread, no SAB required)
 
                     </Text>
 

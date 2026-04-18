@@ -5,11 +5,11 @@ import { Carousel } from "@mantine/carousel";
 import { toHeaderCase } from "js-convert-case";
 import { LOCATIONS } from "../modules/const.ts";
 import { useCardStore } from "../modules/state/store.ts";
-import { Joker_Final, StandardCard_Final } from "../modules/ImmolateWrapper/CardEngines/Cards.ts";
+import { Joker_Final, StandardCard_Final } from "../modules/GameEngine/CardEngines/Cards.ts";
 import { BuyWrapper } from "./buyerWrapper.tsx";
 import { GameCard } from "./Rendering/cards.tsx";
 import { BoosterPack, Boss, Tag , Voucher  } from "./Rendering/gameElements.tsx";
-import type { MiscCardSource } from "../modules/ImmolateWrapper";
+import type { MiscCardSource } from "../modules/GameEngine";
 import type { EmblaCarouselType } from 'embla-carousel';
 
 

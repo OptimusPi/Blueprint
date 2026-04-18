@@ -1,7 +1,7 @@
 import React from "react";
 import {Box} from "@mantine/core";
-import {SimpleRenderCanvas} from "./canvasRenderer.tsx";
 import {createDeckBackLayer, createStakeChipLayer} from "../../modules/deckStakeHelpers.ts";
+import {SimpleRenderCanvas} from "./canvasRenderer.tsx";
 
 export function DeckBackIcon({deckName}: { deckName: string }) {
     const layer = createDeckBackLayer(deckName);

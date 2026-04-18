@@ -306,9 +306,6 @@ function DeckBySuit({ cards }: { cards: Array<DeckCard> }) {
     const setConversionSource = useCardStore(state => state.setConversionSource);
     const conversionSourceId = useCardStore(state => state.applicationState.conversionSourceId);
 
-    const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
-    const rankOrder = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
-
     const handleCardClick = (targetCard: DeckCard) => {
         if (conversionSourceId && conversionSourceId !== targetCard.id) {
             const sourceCard = cards.find(c => c.id === conversionSourceId);
@@ -328,6 +325,8 @@ function DeckBySuit({ cards }: { cards: Array<DeckCard> }) {
     };
 
     const cardsBySuit = useMemo(() => {
+        const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+        const rankOrder = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
         const grouped: Record<string, Array<DeckCard>> = {};
         for (const suit of suits) {
             grouped[suit] = cards

@@ -2,7 +2,7 @@ import {Paper} from "@mantine/core";
 import {
     Joker_Final,
     StandardCard_Final
-} from "../../modules/ImmolateWrapper/CardEngines/Cards.ts";
+} from "../../modules/GameEngine/CardEngines/Cards.ts";
 import {consumablesFaces, editionMap, jokerFaces, jokers, stickerMap, tarotsAndPlanets} from "../../modules/const.ts";
 import {Layer} from "../../modules/classes/Layer.ts";
 import {getEnhancerPosition, getSealPosition, getStandardCardPosition} from "../../modules/utils.ts";
@@ -10,7 +10,7 @@ import {RenderImagesWithCanvas} from "./canvasRenderer.tsx";
 import type {
     Planet_Final,
     Spectral_Final, Tarot_Final
-} from "../../modules/ImmolateWrapper/CardEngines/Cards.ts";
+} from "../../modules/GameEngine/CardEngines/Cards.ts";
 
 
 export function JokerCard({card}: { card: Joker_Final }) {

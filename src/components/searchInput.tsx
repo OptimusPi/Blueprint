@@ -20,10 +20,10 @@ import { LOCATIONS } from "../modules/const.ts";
 import { useCardStore } from "../modules/state/store.ts";
 import { GaEvent } from "../modules/useGA.ts";
 import { useSeedResultsContainer } from "../modules/state/analysisResultProvider.tsx";
-import type { BuyMetaData } from "../modules/classes/BuyMetaData.ts";
-import type { Ante } from "../modules/GameEngine/CardEngines/Cards.ts";
 import { POKER_HANDS } from "../modules/balatrots/enum/PokerHands.ts";
 import { StandardCard_Final } from "../modules/GameEngine/CardEngines/Cards.ts";
+import type { BuyMetaData } from "../modules/classes/BuyMetaData.ts";
+import type { Ante } from "../modules/GameEngine/CardEngines/Cards.ts";
 
 const registeredMiscSources = getMiscCardSources(15).map(source => source.name)
 
@@ -44,7 +44,7 @@ function evaluatePokerHand(cards: Array<StandardCard_Final>): string | null {
     // Count ranks and suits
     const rankCounts: { [key: string]: number } = {};
     const suitCounts: { [key: string]: number } = {};
-    const ranks: number[] = [];
+    const ranks: Array<number> = [];
 
     playingCards.forEach(card => {
         const rank = card.rank;
@@ -55,7 +55,6 @@ function evaluatePokerHand(cards: Array<StandardCard_Final>): string | null {
     });
 
     ranks.sort((a, b) => a - b);
-    const uniqueRanks = Object.keys(rankCounts);
     const maxSuitCount = Math.max(...Object.values(suitCounts));
     const rankCountValues = Object.values(rankCounts).sort((a, b) => b - a);
 

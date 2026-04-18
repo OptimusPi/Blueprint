@@ -1,12 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Box, Group, TextInput, Popover, Stack, Text, ActionIcon, Divider } from '@mantine/core';
-import { IconTrash, IconInfoCircle } from '@tabler/icons-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActionIcon, Box, Divider, Group, Popover, Stack, Text, TextInput } from '@mantine/core';
+import { IconTrash } from '@tabler/icons-react';
 import { useHover } from '@mantine/hooks';
 import {
   getValidValuesFor,
-  getSuggestedPropertiesFor,
-  isPropertyValidForClauseType,
-  CLAUSE_TYPES,
 } from '../../../utils/jamlValues';
 
 interface JamlNode {
@@ -16,7 +13,7 @@ interface JamlNode {
   value?: any;
   indent: number;
   parent?: string;
-  children: string[];
+  children: Array<string>;
   isEditing: boolean;
   isValid: boolean;
   validationState: 'required-incomplete' | 'optional-incomplete' | 'complete' | 'invalid' | 'metadata';
@@ -40,7 +37,7 @@ export function JamlEditorLine({
   children,
 }: JamlEditorLineProps) {
   const [inputValue, setInputValue] = useState(node.value?.toString() || '');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<Array<string>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   

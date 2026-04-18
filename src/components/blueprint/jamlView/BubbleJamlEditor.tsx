@@ -328,7 +328,7 @@ export function BubbleJamlEditor({ initialJaml, onJamlChange }: BubbleJamlEditor
 
       {/* Instructions */}
       <Text size="sm" style={{ color: ACCESSIBLE_COLORS.textSecondary, textAlign: 'center' }}>
-        Tap a bubble to select • Tap X to remove • Tap "Add Filter" to add new criteria
+        Tap a bubble to select • Tap X to remove • Tap {`"Add Filter"`} to add new criteria
       </Text>
     </Stack>
   );

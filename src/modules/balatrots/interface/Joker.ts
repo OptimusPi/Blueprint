@@ -23,7 +23,7 @@ export class JokerImpl implements Joker {
     }
 
     // Implementation of overloaded method
-    inBuffonPack(ante?: number): Filter {
+    inBuffonPack(_ante?: number): Filter {
         // Implement your logic here
         return {} as Filter; // Replace with actual implementation
     }
@@ -57,17 +57,17 @@ export class JokerImpl implements Joker {
         return this.getName() === value;
     }
 
-    inPack(ante?: number): Filter {
+    inPack(_ante?: number): Filter {
         // Implement your logic here
         return {} as Filter; // Replace with actual implementation
     }
 
-    inShop(ante?: number): Filter {
+    inShop(_ante?: number): Filter {
         // Implement your logic here
         return {} as Filter; // Replace with actual implementation
     }
 
-    inSpectral(ante?: number): Filter {
+    inSpectral(_ante?: number): Filter {
         // Implement your logic here
         return {} as Filter; // Replace with actual implementation
     }

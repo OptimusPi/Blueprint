@@ -2,7 +2,7 @@ import type { Run } from "./Run";
 
 export class Filter {
 
-    filter(run: Run): boolean {
+    filter(_run: Run): boolean {
         return true;
     }
 }

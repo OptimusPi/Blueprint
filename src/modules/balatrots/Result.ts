@@ -1,4 +1,4 @@
-import type {MiscCardSource} from "../ImmolateWrapper";
+import type {MiscCardSource} from "../GameEngine";
 import type { Card } from "./enum/cards/Card";
 // import { Edition } from "./enum/Edition";
 import type { PackKind } from "./enum/packs/PackKind";

@@ -29,6 +29,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.85.9
         version: 5.90.21(react@18.3.1)
+      coi-serviceworker:
+        specifier: ^0.1.7
+        version: 0.1.7
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@18.3.1)
@@ -41,12 +44,9 @@ importers:
       js-yaml:
         specifier: ^4.1.1
         version: 4.1.1
-      motely-node:
-        specifier: 3.0.13
-        version: 3.0.13
       motely-wasm:
-        specifier: 3.0.13
-        version: 3.0.13
+        specifier: ^11.3.2
+        version: 11.3.2
       motion:
         specifier: ^12.29.2
         version: 12.35.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -75,6 +75,9 @@ importers:
       '@tanstack/eslint-config':
         specifier: ^0.3.4
         version: 0.3.4(@typescript-eslint/utils@8.57.0(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/react':
         specifier: ^18.0.0
         version: 18.3.28
@@ -802,6 +805,9 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/js-yaml@4.0.9':
+    resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -1143,6 +1149,9 @@ packages:
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
+
+  coi-serviceworker@0.1.7:
+    resolution: {integrity: sha512-bjSUqEngCPOkErY2vbyWsaIGCNRODYzlNycaREVw5s12/C8SM+RnRUUeX6pZbTtov6C52ZLY/+tvHK+BDxuUuA==}
 
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
@@ -1774,12 +1783,8 @@ packages:
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
 
-  motely-node@3.0.13:
-    resolution: {integrity: sha512-C4wZ9wYN+JkSe6oQbLDxy0810wPc1c236KxYy5Fxl81QaA9F6oIeaY/RqXW/6VNMBYRZtuu1Gee+JKKgwp108w==}
-    engines: {node: '>=22.0.0'}
-
-  motely-wasm@3.0.13:
-    resolution: {integrity: sha512-AviI8W13x9kkRovug+L/dUZbBI4vnC0Mxs4shOPoH1CfrGqkHBjdBdOkaMx4M4s+F5LeioFbB5ZZdl1ngTGhSw==}
+  motely-wasm@11.3.2:
+    resolution: {integrity: sha512-DJMRHS3gTIiyopaHI2rJeVZA3QCwwWcKjUcSrdcTbo/9ZanELeQXti7FpVPkyr/jILIOESiqhU5vDfGvr++lUA==}
 
   motion-dom@12.35.2:
     resolution: {integrity: sha512-pWXFMTwvGDbx1Fe9YL5HZebv2NhvGBzRtiNUv58aoK7+XrsuaydQ0JGRKK2r+bTKlwgSWwWxHbP5249Qr/BNpg==}
@@ -3194,6 +3199,8 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/js-yaml@4.0.9': {}
+
   '@types/json-schema@7.0.15': {}
 
   '@types/prop-types@15.7.15': {}
@@ -3564,6 +3571,8 @@ snapshots:
     optional: true
 
   clsx@2.1.1: {}
+
+  coi-serviceworker@0.1.7: {}
 
   color-convert@2.0.1:
     dependencies:
@@ -4318,9 +4327,7 @@ snapshots:
     dependencies:
       brace-expansion: 1.1.12
 
-  motely-node@3.0.13: {}
-
-  motely-wasm@3.0.13: {}
+  motely-wasm@11.3.2: {}
 
   motion-dom@12.35.2:
     dependencies:

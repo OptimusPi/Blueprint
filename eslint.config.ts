@@ -17,6 +17,12 @@ export default defineConfig([
     pluginReact.configs.flat.recommended,
     pluginReactHook.configs.flat.recommended,
     tanstackConfig,
+    {
+        rules: {
+            "react/react-in-jsx-scope": "off",
+            "react-hooks/set-state-in-effect": "warn"
+        }
+    },
     // Vite config is JS and lives outside tsconfig.json include
     {
         files: ["vite.config.js"],
@@ -41,7 +47,11 @@ export default defineConfig([
         rules: {
             "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/ban-ts-comment": "off",
-            "@typescript-eslint/no-unnecessary-condition": "off"
+            "@typescript-eslint/no-unnecessary-condition": "off",
+            "@typescript-eslint/no-duplicate-enum-values": "off",
+            "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_" }],
+            "@typescript-eslint/consistent-type-imports": "off",
+            "no-case-declarations": "off"
         }
     },
 

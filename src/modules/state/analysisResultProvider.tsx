@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useMemo } from "react";
 
 
+import { analyzeSeed } from "../GameEngine/index.ts";
 import { useCardStore } from "./store.ts";
 import { useSeedOptionsContainer } from "./optionsProvider.tsx";
-import { SeedResultsContainer } from "../GameEngine/CardEngines/Cards.ts";
-import { analyzeSeed } from "../GameEngine/index.ts";
+import type { SeedResultsContainer } from "../GameEngine/CardEngines/Cards.ts";
 
 export const SeedResultContext = createContext<SeedResultsContainer | null | undefined>(null);
 
@@ -23,7 +23,7 @@ const resultCache = new Map<string, SeedResultsContainer>();
 // Helper to generate a cache key from all influential state
 function getCacheKey(state: any, options: any, seed: string) {
     // We exclude seed from the base state object and append it explicitly
-    const { seed: _, ...restState } = state;
+    const { seed: _seed, ...restState } = state;
     return JSON.stringify({ ...restState, options, seed });
 }
 

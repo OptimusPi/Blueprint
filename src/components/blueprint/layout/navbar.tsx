@@ -72,7 +72,7 @@ export default function Navbar() {
     const jamlFileInputRef = React.useRef<HTMLInputElement>(null);
     const setViewMode = useCardStore(state => state.setViewMode);
 
-    const analyzeState = useCardStore(state => state.immolateState);
+    const analyzeState = useCardStore(state => state.engineState);
     const { seed, deck, stake, gameVersion: version, cardsPerAnte } = analyzeState;
     const showCardSpoilers = useCardStore(state => state.applicationState.showCardSpoilers);
     const useCardPeek = useCardStore(state => state.applicationState.useCardPeek);

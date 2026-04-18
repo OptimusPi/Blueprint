@@ -154,7 +154,7 @@ const steps: Array<Tour> = [
                 icon: "",
                 content: (
                     <Stack gap="xs">
-                        <Text>Keep track of every card you've "purchased" during your analysis, use it to map out runs.</Text>
+                        <Text>Keep track of every card you{`'`}ve {`"`}purchased{`"`} during your analysis, use it to map out runs.</Text>
                     </Stack>
                 ),
                 showControls: true,

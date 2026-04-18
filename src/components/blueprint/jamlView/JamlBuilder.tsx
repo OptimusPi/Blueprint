@@ -1,37 +1,32 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-    Box,
-    Button,
-    Group,
-    Stack,
-    Text,
-    Paper,
-    Badge,
     ActionIcon,
-    Modal,
-    TextInput,
-    Select,
-    NumberInput,
+    Badge,
+    Button,
     Checkbox,
-    Tabs,
-    Fieldset,
-    SimpleGrid,
-    Tooltip,
-    Divider,
     Code,
-    ScrollArea,
+    Divider,
+    Fieldset,
+    Group,
+    Modal,
     MultiSelect,
-    SegmentedControl
+    NumberInput,
+    Paper,
+    ScrollArea,
+    Select,
+    SimpleGrid,
+    Stack,
+    Tabs,
+    Text,
+    TextInput,
+    Tooltip
 } from '@mantine/core';
 import {
-    IconPlus,
-    IconTrash,
-    IconEdit,
     IconCopy,
     IconDownload,
-    IconSearch,
-    IconCheck,
-    IconX
+    IconEdit,
+    IconPlus,
+    IconTrash,
 } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import yaml from 'js-yaml';
@@ -69,14 +64,14 @@ interface Clause {
     type: string;
     value: string;
     edition?: string;
-    antes: number[];
-    shopSlots?: number[];
-    packSlots?: number[];
+    antes: Array<number>;
+    shopSlots?: Array<number>;
+    packSlots?: Array<number>;
     score?: number;
     sources?: {
-        judgement?: number[];
-        riffRaff?: number[];
-        [key: string]: number[] | undefined;
+        judgement?: Array<number>;
+        riffRaff?: Array<number>;
+        [key: string]: Array<number> | undefined;
     };
 }
 
@@ -102,12 +97,12 @@ function ClauseEditorModal({
     const [type, setType] = useState(clause?.type || 'joker');
     const [value, setValue] = useState(clause?.value || 'Any');
     const [edition, setEdition] = useState(clause?.edition || '');
-    const [antes, setAntes] = useState<string[]>(clause?.antes?.map(String) || ['1']);
-    const [shopSlots, setShopSlots] = useState<number[]>(clause?.shopSlots || []);
-    const [packSlots, setPackSlots] = useState<number[]>(clause?.packSlots || []);
+    const [antes, setAntes] = useState<Array<string>>(clause?.antes?.map(String) || ['1']);
+    const [shopSlots, setShopSlots] = useState<Array<number>>(clause?.shopSlots || []);
+    const [packSlots, setPackSlots] = useState<Array<number>>(clause?.packSlots || []);
     const [score, setScore] = useState<number>(clause?.score || 1);
     const [useJudgement, setUseJudgement] = useState(!!clause?.sources?.judgement?.length);
-    const [judgementSlots, setJudgementSlots] = useState<number[]>(clause?.sources?.judgement || [0, 1]);
+    const [judgementSlots, setJudgementSlots] = useState<Array<number>>(clause?.sources?.judgement || [0, 1]);
 
     // Get value options based on type
     const valueOptions = useMemo(() => {
@@ -347,9 +342,9 @@ export function JamlBuilder({ onJamlGenerated, initialJaml }: JamlBuilderProps) 
     const [filterStake, setFilterStake] = useState(initialJaml?.stake || 'White');
 
     // Clauses
-    const [mustClauses, setMustClauses] = useState<Clause[]>([]);
-    const [shouldClauses, setShouldClauses] = useState<Clause[]>([]);
-    const [mustNotClauses, setMustNotClauses] = useState<Clause[]>([]);
+    const [mustClauses, setMustClauses] = useState<Array<Clause>>([]);
+    const [shouldClauses, setShouldClauses] = useState<Array<Clause>>([]);
+    const [mustNotClauses, setMustNotClauses] = useState<Array<Clause>>([]);
 
     // Editor modal state
     const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
@@ -401,7 +396,7 @@ export function JamlBuilder({ onJamlGenerated, initialJaml }: JamlBuilderProps) 
             try {
                 const parsed = yaml.load(generatedJaml);
                 onJamlGenerated(generatedJaml, parsed);
-            } catch (e) {
+            } catch {
                 // Invalid YAML, don't notify
             }
         }

@@ -176,7 +176,7 @@ export const ARRAY_KEYS = ['antes', 'shopSlots', 'packSlots'];
 /**
  * Get valid values for a given clause type and property
  */
-export function getValidValuesFor(clauseType: string, propertyKey?: string): string[] {
+export function getValidValuesFor(clauseType: string, propertyKey?: string): Array<string> {
   // If no property specified, return clause type values (the right-hand value after the colon)
   if (!propertyKey) {
     switch (clauseType) {
@@ -264,8 +264,8 @@ export function getValidValuesFor(clauseType: string, propertyKey?: string): str
 /**
  * Generate smart StandardCard suggestions like "2 of Hearts", "Polychrome King of Spades"
  */
-function generateStandardCardSuggestions(): string[] {
-  const suggestions: string[] = [];
+function generateStandardCardSuggestions(): Array<string> {
+  const suggestions: Array<string> = [];
 
   // Basic formatted cards
   for (const rank of ALL_RANKS) {
@@ -291,7 +291,7 @@ function generateStandardCardSuggestions(): string[] {
  * Check if a property is valid for a given clause type
  */
 export function isPropertyValidForClauseType(clauseType: string, propertyKey: string): boolean {
-  const invalidCombinations: Record<string, string[]> = {
+  const invalidCombinations: Record<string, Array<string>> = {
     'standardCard': ['sources'], // StandardCards typically don't use sources in the same way
     'voucher': ['rank', 'suit', 'seal', 'enhancement'], // Vouchers can't have playing card properties
     'joker': ['rank', 'suit'], // Jokers don't have rank/suit
@@ -378,14 +378,14 @@ export const LAYOUT_SOURCES = [
 /**
  * Get all valid top-level JAML keys
  */
-export function getTopLevelKeys(): string[] {
+export function getTopLevelKeys(): Array<string> {
   return ['name', 'author', 'description', 'deck', 'stake', 'layout', 'must', 'should', 'mustNot'];
 }
 
 /**
  * Get all valid clause type keys (what goes after the dash in must:/should:)
  */
-export function getClauseTypeKeys(): string[] {
+export function getClauseTypeKeys(): Array<string> {
   return [
     'joker',
     'soulJoker',

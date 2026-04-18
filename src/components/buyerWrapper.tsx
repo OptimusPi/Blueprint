@@ -16,7 +16,7 @@ import {
 } from "@mantine/core";
 import { useHover, useLongPress } from "@mantine/hooks";
 import { IconArrowCapsule, IconCalculator, IconChevronDown, IconExternalLink, IconFlag, IconLock } from "@tabler/icons-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { LOCATION_TYPES } from "../modules/const.ts";
 import { useCardStore } from "../modules/state/store.ts";
 import type { BuyWrapperProps } from "../modules/const.ts";
@@ -59,11 +59,11 @@ export function BuyWrapper({ children, bottomOffset, metaData, horizontal = fals
         threshold: 500,
     });
 
-    const handleTouchStart = (e: React.TouchEvent) => {
+    const handleTouchStart = (_e: React.TouchEvent) => {
         setIsScrolling(false);
     };
 
-    const handleTouchMove = (e: React.TouchEvent) => {
+    const handleTouchMove = (_e: React.TouchEvent) => {
         setIsScrolling(true);
         if (scrollTimeout) {
             clearTimeout(scrollTimeout);
@@ -74,7 +74,7 @@ export function BuyWrapper({ children, bottomOffset, metaData, horizontal = fals
         setScrollTimeout(timeout);
     };
 
-    const handleMouseDown = (e: React.MouseEvent) => {
+    const handleMouseDown = (_e: React.MouseEvent) => {
         setIsScrolling(false);
     };
 
