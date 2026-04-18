@@ -24,7 +24,7 @@ import { GameCard } from "../../Rendering/cards.tsx";
 import { Boss, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
 import { JamlEditor } from "./JamlEditor.tsx";
 import yaml from "js-yaml";
-import { startJamlSearchWasm, cancelSearchWasm } from "../../../lib/motelyWasm.ts";
+import { startJamlSearch, validateJaml, type SearchHandle } from "../../../lib/motelyWasm.ts";
 import type { Ante, Pack } from "../../../modules/GameEngine/CardEngines/Cards.ts";
 
 // Extract all antes referenced in JAML clauses
@@ -569,7 +569,7 @@ function JamlView() {
     const [wasmStatus, setWasmStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
     const [wasmError, setWasmError] = useState<string | null>(null);
     const [wasmResults, setWasmResults] = useState<Array<{ seed: string; score: number }>>([]);
-    const wasmSearchIdRef = useRef<string | null>(null);
+    const wasmSearchRef = useRef<SearchHandle | null>(null);
     const wasmSeenRef = useRef<Set<string>>(new Set());
     // Progress: direct DOM updates, zero React re-renders
     const wasmSeedsSearchedRef = useRef(0);
@@ -667,6 +667,7 @@ function JamlView() {
             setWasmStatus('error');
             return;
         }
+        if (wasmSearchRef.current) return;
 
         setWasmStatus('running');
         setWasmError(null);
@@ -689,47 +690,44 @@ function JamlView() {
             flushMs: 0,
         };
 
+        const renderStats = (elapsedS: number) => {
+            if (!wasmProgressElRef.current) return;
+            const searched = wasmSeedsSearchedRef.current;
+            const hits = wasmResultCountRef.current;
+            const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
+            const hitsPerSec = elapsedS > 0 ? (hits / elapsedS).toFixed(2) : '0';
+            wasmProgressElRef.current.textContent =
+                `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s`;
+        };
+
         // Direct DOM updates only — zero React re-renders during search
         if (wasmProgressTimerRef.current) clearInterval(wasmProgressTimerRef.current);
         wasmProgressTimerRef.current = setInterval(() => {
             const perf = wasmPerfRef.current;
-            if (wasmProgressElRef.current) {
-                const searched = wasmSeedsSearchedRef.current;
-                const hits = wasmResultCountRef.current;
-                const elapsedS = wasmElapsedMsRef.current / 1000;
-                const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
-                const hitsPerSec = elapsedS > 0 ? (hits / elapsedS).toFixed(2) : '0';
-                
-                wasmProgressElRef.current.textContent = 
-                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s`;
-            }
+            const now = performance.now();
+            const elapsedS = (now - perf.searchStartAt) / 1000;
+            wasmElapsedMsRef.current = now - perf.searchStartAt;
+            renderStats(elapsedS);
             // Flush batched results
             if (wasmResultBatchRef.current.length > 0) {
                 const flushStart = performance.now();
                 const batch = wasmResultBatchRef.current;
                 wasmResultBatchRef.current = [];
-                setWasmResults(prev => {
-                    if (prev.length >= 200) return prev;
-                    return [...batch, ...prev].slice(0, 200);
-                });
-
+                setWasmResults(prev => [...batch, ...prev].slice(0, 200));
                 perf.flushCalls += 1;
                 perf.flushMs += performance.now() - flushStart;
             }
-
             // Periodic perf log (once per ~2s)
-            const now = performance.now();
             if (now - perf.lastLogAt >= 2000) {
                 perf.lastLogAt = now;
                 const searched = wasmSeedsSearchedRef.current;
-                const elapsedS = wasmElapsedMsRef.current / 1000;
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
                 // eslint-disable-next-line no-console
                 console.log('[MotelySearchPerf]', {
                     speedSeedsPerSec: speed,
                     searched,
                     hits: wasmResultCountRef.current,
-                    wasmElapsedMs: wasmElapsedMsRef.current,
+                    wallElapsedMs: Math.round(now - perf.searchStartAt),
                     jsOnProgressCalls: perf.onProgressCalls,
                     jsOnResultCalls: perf.onResultCalls,
                     jsOnProgressMs: Math.round(perf.onProgressMs),
@@ -743,53 +741,55 @@ function JamlView() {
         const jamlText = yaml.dump(jamlConfig, { indent: 2, lineWidth: -1 });
 
         try {
-            const completion = startJamlSearchWasm(
-                jamlText,
-                {
-                    threadCount: navigator.hardwareConcurrency,
-                    batchSize: 3,
-                },
-                {
-                    onProgress: (searchId, totalSeedsSearched, _matchingSeeds, elapsedMs, resultCount) => {
-                        const t0 = performance.now();
-                        if (!wasmSearchIdRef.current) wasmSearchIdRef.current = searchId;
-                        wasmSeedsSearchedRef.current = totalSeedsSearched;
-                        wasmResultCountRef.current = resultCount;
-                        wasmElapsedMsRef.current = elapsedMs;
+            const validation = await validateJaml(jamlText);
+            if (!validation.ok) {
+                if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
+                setWasmStatus('error');
+                setWasmError(validation.error);
+                return;
+            }
 
+            const handle = await startJamlSearch(
+                jamlText,
+                // 1B random seeds: effectively unbounded for mortal runs; cancel-to-stop.
+                { kind: 'random', count: 1_000_000_000 },
+                {
+                    onProgress: (seedsSearched, matchingSeeds) => {
+                        const t0 = performance.now();
+                        wasmSeedsSearchedRef.current = seedsSearched;
+                        wasmResultCountRef.current = matchingSeeds;
                         const perf = wasmPerfRef.current;
                         perf.onProgressCalls += 1;
                         perf.onProgressMs += performance.now() - t0;
                     },
-                    onResult: (searchId, seed, score) => {
+                    onResult: (seed, score) => {
                         const t0 = performance.now();
-                        if (!wasmSearchIdRef.current) wasmSearchIdRef.current = searchId;
                         if (wasmSeenRef.current.has(seed)) return;
                         wasmSeenRef.current.add(seed);
                         wasmResultBatchRef.current.push({ seed, score });
-
                         const perf = wasmPerfRef.current;
                         perf.onResultCalls += 1;
                         perf.onResultMs += performance.now() - t0;
                     },
                 }
             );
+            wasmSearchRef.current = handle;
 
-            const finalStatus = await completion;
+            const completion = await handle.done;
 
             // Final perf log
             {
                 const perf = wasmPerfRef.current;
                 const searched = wasmSeedsSearchedRef.current;
-                const elapsedS = wasmElapsedMsRef.current / 1000;
+                const wall = performance.now() - perf.searchStartAt;
+                const elapsedS = wall / 1000;
                 const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
                 // eslint-disable-next-line no-console
                 console.log('[MotelySearchPerf][final]', {
                     speedSeedsPerSec: speed,
                     searched,
                     hits: wasmResultCountRef.current,
-                    wasmElapsedMs: wasmElapsedMsRef.current,
-                    wallElapsedMs: Math.round(performance.now() - perf.searchStartAt),
+                    wallElapsedMs: Math.round(wall),
                     jsOnProgressCalls: perf.onProgressCalls,
                     jsOnResultCalls: perf.onResultCalls,
                     jsOnProgressMs: Math.round(perf.onProgressMs),
@@ -799,62 +799,40 @@ function JamlView() {
                 });
             }
 
-            // Final flush
+            // Final flush + render
             if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
-            if (wasmProgressElRef.current) {
-                const searched = wasmSeedsSearchedRef.current;
-                const hits = wasmResultCountRef.current;
-                const elapsedS = wasmElapsedMsRef.current / 1000;
-                const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
-                const hitsPerSec = elapsedS > 0 ? (hits / elapsedS).toFixed(2) : '0';
-                wasmProgressElRef.current.textContent = 
-                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s`;
-            }
-            // Flush remaining results
+            const wall = performance.now() - wasmPerfRef.current.searchStartAt;
+            wasmElapsedMsRef.current = wall;
+            renderStats(wall / 1000);
             if (wasmResultBatchRef.current.length > 0) {
                 const batch = wasmResultBatchRef.current;
                 wasmResultBatchRef.current = [];
                 setWasmResults(prev => [...batch, ...prev].slice(0, 200));
             }
-            if (finalStatus.error) {
+            wasmSearchRef.current = null;
+            if (completion.error) {
                 setWasmStatus('error');
-                setWasmError(finalStatus.error);
+                setWasmError(completion.error);
             } else {
                 setWasmStatus('done');
             }
-            if (wasmSearchIdRef.current === finalStatus.searchId) {
-                wasmSearchIdRef.current = null;
-            }
         } catch (err: any) {
             if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
+            wasmSearchRef.current = null;
             setWasmStatus('error');
             setWasmError(err?.message || String(err));
         }
     }, [jamlValid, jamlConfig]);
 
-    const handleWasmStop = useCallback(async () => {
-        if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
-        if (wasmProgressElRef.current) {
-            const searched = wasmSeedsSearchedRef.current;
-            const hits = wasmResultCountRef.current;
-            const elapsedS = wasmElapsedMsRef.current / 1000;
-            const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
-            wasmProgressElRef.current.textContent = 
-                `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s`;
+    const handleWasmStop = useCallback(() => {
+        const handle = wasmSearchRef.current;
+        if (!handle) {
+            if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
+            setWasmStatus('idle');
+            return;
         }
-        // Flush remaining results
-        if (wasmResultBatchRef.current.length > 0) {
-            const batch = wasmResultBatchRef.current;
-            wasmResultBatchRef.current = [];
-            setWasmResults(prev => [...batch, ...prev].slice(0, 200));
-        }
-        const searchId = wasmSearchIdRef.current;
-        if (!searchId) return;
-        try {
-            await cancelSearchWasm(searchId);
-        } catch { /* ignore */ }
-        wasmSearchIdRef.current = null;
-        setWasmStatus('idle');
+        // Trigger cancel; the awaiting handleWasmSearch will run final flush + state reset.
+        handle.cancel();
     }, []);
 
     // Extract antes from JAML config
