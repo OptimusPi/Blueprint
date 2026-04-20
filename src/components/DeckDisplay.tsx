@@ -324,8 +324,8 @@ function DeckBySuit({ cards }: { cards: Array<DeckCard> }) {
         }
     };
 
+    const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
     const cardsBySuit = useMemo(() => {
-        const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
         const rankOrder = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
         const grouped: Record<string, Array<DeckCard>> = {};
         for (const suit of suits) {

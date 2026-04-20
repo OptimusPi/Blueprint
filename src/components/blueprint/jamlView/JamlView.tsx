@@ -1,10 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActionIcon,
-    Badge,
-    Box,
     Button,
-    Collapse,
     Group,
     Modal,
     Paper,
@@ -15,56 +12,149 @@ import {
     useMantineTheme
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconCode, IconSearch, IconUpload } from "@tabler/icons-react";
+import { IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconUpload } from "@tabler/icons-react";
 import { useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
 import { useSeedOptionsContainer } from "../../../modules/state/optionsProvider.tsx";
 import { useCardStore } from "../../../modules/state/store.ts";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
-import { DragScroll } from "../../DragScroller.tsx";
-import { GameCard } from "../../Rendering/cards.tsx";
-import { Boss, Tag as RenderTag, Voucher } from "../../Rendering/gameElements.tsx";
 import yaml from "js-yaml";
-import {  getVersion, startJamlSearch } from "../../../lib/motelyWasm.ts";
+import motely, { MotelyWasm, MotelyWasmEvents } from "motely-wasm";
 import { prefetchSeedAnalysis } from "../../../modules/state/analysisResultProvider.tsx";
-import { JamlEditor } from "./JamlEditor.tsx";
-import type {SearchMode} from "../../../lib/motelyWasm.ts";
-import type { Ante, Pack } from "../../../modules/GameEngine/CardEngines/Cards.ts";
+import { AnalyzerExplorer, JamlIde } from "jaml-ui";
+import type { AnalyzerAnteView, AnalyzerItem } from "jaml-ui";
+import type { Motely } from "motely-wasm";
 
 // JAML filter presets keyed by dropdown value
 const JAML_PRESETS: Record<string, string> = {
-    default: `# Default.jaml
-name: Default JAML file, good for a generic test filter, or for a JAML Map View.
-author: pifreak
-description: A fast SIMD filter for Balatro Seeds.
+    default: `name: Blueprint Copy Engine
+author: jammy
+description: Blueprint rare joker with Brainstorm for joker copying synergy
 deck: Red
 stake: White
 must:
-  # This is literally *always* true in Balatro
-  #   - RULE: The FIRST booster pack in a shop is ALWAYS a 2-joker, $4 bufoon pack.
-  - joker: Any
-    antes: [1]
-    boosterPacks: [0]
+  - rareJoker: Blueprint
+    antes: [1, 2, 3, 4]
 should:
-  - joker: Blueprint
-    antes: [1, 2, 3, 4, 5, 6, 7, 8]
-    boosterPacks: [0, 1, 2, 3, 4, 5]
-    shopItems: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
-seeds:
-  - "PIFREAK"
-  - "LOVESYOU"
+  - rareJoker: Brainstorm
+    score: 80
+  - rareJoker: Baron
+    score: 55
+  - legendaryJoker: Triboulet
+    score: 55
+  - uncommonJoker: OopsAll6s
+    score: 50
+  - legendaryJoker: Perkeo
+    score: 50
+  - uncommonJoker: Showman
+    score: 35
+  - spectral: Hex
+    score: 35
+  - mixedJoker: Any
+    edition: Negative
+    score: 40
+  - tag: NegativeTag
+    score: 35
 `,
-    speedtest: `# Speedtest.jaml
-name: Speedtest
+    crush: `name: Claude's Crush
+author: claude
+description: Hologram + Polychrome early -- the dream infinite scaling duo.
+deck: Blue
+stake: White
+must:
+  - joker: Blueprint
+    antes: [1, 2]
+  - joker: Hologram
+    antes: [1, 2, 3]
+should:
+  - tag: RareTag
+    antes: [1]
+    score: 60
+  - tag: NegativeTag
+    antes: [1, 2]
+    score: 80
+  - rareJoker: Brainstorm
+    score: 55
+  - tag: PolychromeTag
+    antes: [1, 2]
+    score: 65
+  - rareJoker: Baron
+    score: 45
+  - soulJoker: Perkeo
+    score: 45
+  - mixedJoker: Any
+    edition: Negative
+    score: 40
+mustNot:
+  - boss: TheNeedle
+    antes: [1]
+`,
+    flush: `name: Claude's Cozy Flush
+author: claude
+description: Erratic deck flush paradise -- Smeared Joker makes every hand a flush.
+deck: Erratic
+stake: White
+must:
+  - uncommonJoker: SmearedJoker
+    antes: [1, 2]
+  - commonJoker: Splash
+    antes: [1, 2, 3]
+should:
+  - commonJoker: Supernova
+    antes: [1, 2]
+    score: 60
+  - uncommonJoker: FourFingers
+    score: 65
+  - rareJoker: TheTribe
+    score: 50
+  - uncommonJoker: Constellation
+    antes: [1, 2, 3]
+    score: 50
+  - tag: PolychromeTag
+    antes: [1, 2]
+    score: 70
+  - rareJoker: Blueprint
+    score: 40
+  - tag: NegativeTag
+    score: 40
+  - mixedJoker: Any
+    edition: Negative
+    score: 35
+`,
+    canio: `name: Canio Face Destruction
+author: jammy
+description: Canio legendary joker with Hanged Man for face card destruction scaling
+deck: Red
+stake: White
+must:
+  - soulJoker: Canio
+    antes: [1, 2, 3, 4]
+should:
+  - spectral: TheSoul
+    score: 55
+  - tarot: TheHangedMan
+    score: 70
+  - uncommonJoker: GlassJoker
+    score: 55
+  - uncommonJoker: Pareidolia
+    score: 50
+  - spectral: Ankh
+    score: 45
+  - rareJoker: Blueprint
+    score: 35
+  - mixedJoker: Any
+    edition: Negative
+    score: 35
+`,
+    speedtest: `name: Speedtest
 author: pifreak
-description: Minimal benchmark filter - any joker in ante 1. Used for measuring raw search throughput.
+description: Minimal benchmark -- any joker in ante 1. Measures raw search throughput.
 deck: Red
 stake: White
 must:
   - joker: Any
     antes: [1]
 `,
-    __create_new__: `# New Filter
-name: My Filter
+    __create_new__: `name: My Filter
 deck: Red
 stake: White
 must:
@@ -123,7 +213,7 @@ function extractAntesFromJaml(jamlConfig: any): Array<number> {
 
     if (antesSet.size === 0) {
 
-        [1, 2, 3, 4, 5, 6, 7, 8].forEach(a => antesSet.add(a));
+        [0, 1, 2, 3, 4, 5, 6, 7, 8].forEach(a => antesSet.add(a));
 
     }
 
@@ -136,191 +226,6 @@ function extractAntesFromJaml(jamlConfig: any): Array<number> {
 
 
 // Extract sources to show from JAML
-
-function extractSourcesFromJaml(jamlConfig: any): {
-
-    showShop: boolean;
-
-    shopItems: Array<number>;
-
-    showPacks: boolean;
-
-    boosterPacks: Array<number>;
-
-    showVoucher: boolean;
-
-    miscSources: Array<string>;
-
-} {
-
-    const result = {
-
-        showShop: false,
-
-        shopItems: [] as Array<number>,
-
-        showPacks: false,
-
-        boosterPacks: [] as Array<number>,
-
-        showVoucher: false,
-
-        miscSources: [] as Array<string>
-
-    };
-
-
-
-    let foundAnySource = false;
-
-
-
-    const extractFromClauses = (clauses: Array<any>) => {
-
-        if (!clauses) return;
-
-        clauses.forEach(clause => {
-
-            if (!clause) return;
-
-            // Check for voucher clauses
-
-            if (clause.voucher || clause.vouchers) {
-
-                result.showVoucher = true;
-
-                foundAnySource = true;
-
-            }
-
-
-
-            // Check for shopItems at clause level
-
-            if (clause.shopItems && clause.shopItems.length > 0) {
-
-                result.showShop = true;
-
-                foundAnySource = true;
-
-                clause.shopItems.forEach((s: number) => {
-
-                    if (!result.shopItems.includes(s)) result.shopItems.push(s);
-
-                });
-
-            }
-
-
-
-            // Check for boosterPacks at clause level
-
-            if (clause.boosterPacks && clause.boosterPacks.length > 0) {
-
-                result.showPacks = true;
-
-                foundAnySource = true;
-
-                clause.boosterPacks.forEach((s: number) => {
-
-                    if (!result.boosterPacks.includes(s)) result.boosterPacks.push(s);
-
-                });
-
-            }
-
-
-
-            const sources = clause.sources;
-
-            if (sources) {
-
-                if (sources.shopItems && sources.shopItems.length > 0) {
-
-                    result.showShop = true;
-
-                    foundAnySource = true;
-
-                    sources.shopItems.forEach((s: number) => {
-
-                        if (!result.shopItems.includes(s)) result.shopItems.push(s);
-
-                    });
-
-                }
-
-                if (sources.boosterPacks && sources.boosterPacks.length > 0) {
-
-                    result.showPacks = true;
-
-                    foundAnySource = true;
-
-                    sources.boosterPacks.forEach((s: number) => {
-
-                        if (!result.boosterPacks.includes(s)) result.boosterPacks.push(s);
-
-                    });
-
-                }
-
-                const miscKeys = ['judgement', 'riffRaff', 'rareTag', 'uncommonTag', 'emperor', 'seance', 'sixthSense', 'purpleSealOrEightBall'];
-
-                miscKeys.forEach(key => {
-
-                    if (sources[key] && sources[key].length > 0) {
-
-                        foundAnySource = true;
-
-                        if (!result.miscSources.includes(key)) result.miscSources.push(key);
-
-                    }
-
-                });
-
-            }
-
-            if (clause.and) extractFromClauses(clause.and);
-
-            if (clause.or) extractFromClauses(clause.or);
-
-        });
-
-    };
-
-
-
-    extractFromClauses(jamlConfig?.must);
-
-    extractFromClauses(jamlConfig?.should);
-
-    extractFromClauses(jamlConfig?.mustNot);
-
-
-
-    // If no sources specified anywhere, default to showing shop and voucher
-
-    if (!foundAnySource) {
-
-        result.showShop = true;
-
-        result.showVoucher = true;
-
-        result.showPacks = true;
-
-    }
-
-
-
-    result.shopItems.sort((a, b) => a - b);
-
-    result.boosterPacks.sort((a, b) => a - b);
-
-
-
-    return result;
-
-}
-
 
 
 // Check if a card matches a JAML clause
@@ -475,620 +380,6 @@ function getCardGlow(card: any, jamlConfig: any, anteNum: number, slotIndex: num
 
 
 
-// Custom source type for layout
-
-interface CustomSource {
-
-    sourceName: string;
-
-    sourceType: 'misc' | 'voucher' | 'tag' | 'boss' | 'booster';
-
-    ante: number;
-
-    cards: Array<any>;
-
-}
-
-
-
-// Memoized AnteSection component
-
-const AnteSection = React.memo(({
-
-    anteNum,
-
-    anteData,
-
-    sourcesConfig,
-
-    jamlConfig,
-
-    customSources = [],
-
-    cardScale = 0.85
-
-}: {
-
-    anteNum: number;
-
-    anteData: Ante;
-
-    sourcesConfig: ReturnType<typeof extractSourcesFromJaml>;
-
-    jamlConfig: any;
-
-    customSources?: Array<CustomSource>;
-
-    cardScale?: number;
-
-}) => {
-
-    const [collapsed, setCollapsed] = useState(false);
-
-    const theme = useMantineTheme();
-
-
-
-    // Get packs from each blind separately (keys are smallBlind, bigBlind, bossBlind)
-
-    // Ante 0: No blinds shown
-
-    // Ante 1: Small Blind column shows (skip tag only, no packs), Big + Boss have packs
-
-    // Ante 2+: All three blinds have packs
-
-    const showSmallBlindColumn = anteNum >= 1; // Always show column for Ante 1+
-
-    const hasSmallBlindPacks = anteNum >= 2;   // But only has packs for Ante 2+
-
-    const hasBigBlind = anteNum >= 1;
-
-    const hasBossBlind = anteNum >= 1;
-
-
-
-    const smallBlindPacks = hasSmallBlindPacks ? (anteData.blinds?.smallBlind?.packs || []) : [];
-
-    const bigBlindPacks = hasBigBlind ? (anteData.blinds?.bigBlind?.packs || []) : [];
-
-    const bossBlindPacks = hasBossBlind ? (anteData.blinds?.bossBlind?.packs || []) : [];
-
-
-
-    // Show ALL shop cards (full shop), but filter displayed ones
-
-    const allShop = anteData.queue || [];
-
-
-
-    // Show more shop cards in the scrollable carousel
-
-    const shopLimit = anteNum === 1 ? 20 : 30;
-
-    const displayShop = allShop.slice(0, shopLimit);
-
-
-
-    // Total packs for hasContent check
-
-    const totalPacks = smallBlindPacks.length + bigBlindPacks.length + bossBlindPacks.length;
-
-
-
-    // Don't render if nothing to show (but custom sources count!)
-
-    const hasContent = displayShop.length > 0 || totalPacks > 0 || sourcesConfig.showVoucher || sourcesConfig.miscSources.length > 0 || customSources.length > 0;
-
-    if (!hasContent) return null;
-
-
-
-    // Panel colors: use jimboPanel if available (Jaml theme), otherwise inherit from Mantine
-
-    const jimbo = theme.colors.jimboPanel;
-
-    const PANEL_BG = jimbo ? jimbo[3] : 'var(--mantine-color-dark-7)';
-
-
-
-    return (
-
-        <Paper p={6} radius="sm" style={{ backgroundColor: PANEL_BG, border: 'none' }}>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr', gap: '4px', alignItems: 'start' }}>
-
-                {/* LEFT COLUMN: Collapse arrow + Ante label + Voucher (fixed width) */}
-
-                <Stack gap={2} align="center" style={{ width: '50px' }}>
-
-                    <ActionIcon
-
-                        variant="subtle"
-
-                        size="xs"
-
-                        onClick={() => setCollapsed(!collapsed)}
-
-                    >
-
-                        {collapsed ? <IconChevronDown size={14} /> : <IconChevronUp size={14} />}
-
-                    </ActionIcon>
-
-                    <Text size="xs" fw={700} c="dimmed" tt="uppercase" lh={1}>Ante</Text>
-
-                    <Text fw={700} size="xl" lh={1}>{anteNum}</Text>
-
-                    {!collapsed && sourcesConfig.showVoucher && anteData.voucher && (
-
-                        <>
-
-                            <Voucher voucherName={anteData.voucher} />
-
-                            <Text size="9px" fw={600} c="dimmed" ta="center" lh={1}>Voucher</Text>
-
-                        </>
-
-                    )}
-
-                </Stack>
-
-
-
-                {/* RIGHT COLUMN: Shop + Blinds (collapsible) */}
-
-                <Box style={{ minWidth: 0, overflow: 'hidden' }}>
-
-                    <Collapse in={!collapsed}>
-
-                        <Stack gap={4}>
-
-                            {/* Shop row */}
-
-                            {sourcesConfig.showShop && displayShop.length > 0 && (
-
-                                <DragScroll>
-
-                                    <Group wrap="nowrap" gap={3}>
-
-                                        {displayShop.map((card: any, index: number) => {
-
-                                            const isInJamlSlot = sourcesConfig.shopItems.length === 0 || sourcesConfig.shopItems.includes(index);
-
-                                            const glow = getCardGlow(card, jamlConfig, anteNum, index, 'shop');
-
-                                            return (
-
-                                                <Box key={index} style={{ flexShrink: 0, opacity: isInJamlSlot ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-
-                                                    <GameCard card={{ ...card, glow, scale: cardScale }} />
-
-                                                </Box>
-
-                                            );
-
-                                        })}
-
-                                    </Group>
-
-                                </DragScroll>
-
-                            )}
-
-
-
-                            {/* Blind columns */}
-
-                            {sourcesConfig.showPacks && (hasBigBlind || hasBossBlind) && (
-
-                                <Group gap={4} wrap="nowrap" align="stretch" style={{ width: '100%' }}>
-
-                                    {/* SMALL BLIND */}
-
-                                    {showSmallBlindColumn && (
-
-                                        <Stack gap={2} justify="flex-end" style={{ flex: 1 }}>
-
-                                            {smallBlindPacks.length > 0 && (
-
-                                                <Stack gap={4} mb="auto">
-
-                                                    {smallBlindPacks.map((pack: Pack, idx: number) => {
-
-                                                        const isInJamlSlots = sourcesConfig.boosterPacks.length === 0 || sourcesConfig.boosterPacks.includes(idx);
-
-                                                        return (
-
-                                                            <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-
-                                                                <Group gap={3} mb={2} wrap="nowrap">
-
-                                                                    <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
-
-                                                                    <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
-
-                                                                </Group>
-
-                                                                <Group wrap="nowrap" gap={2}>
-
-                                                                    {pack.cards.map((card, cardIdx) => (
-
-                                                                        <GameCard key={cardIdx} card={card} glow={getCardGlow(card, jamlConfig, anteNum, 0, 'pack')} scale={cardScale} />
-
-                                                                    ))}
-
-                                                                </Group>
-
-                                                            </Box>
-
-                                                        );
-
-                                                    })}
-
-                                                </Stack>
-
-                                            )}
-
-                                            <Group gap={4} align="center">
-
-                                                {anteData.tags?.[0] && <RenderTag tagName={anteData.tags[0]} />}
-
-                                                <Text size="xs" fw={600} c="dimmed">Small Blind</Text>
-
-                                            </Group>
-
-                                        </Stack>
-
-                                    )}
-
-
-
-                                    {/* BIG BLIND */}
-
-                                    <Stack gap={2} justify="flex-end" style={{ flex: 1 }}>
-
-                                        {bigBlindPacks.length > 0 && (
-
-                                            <Stack gap={4} mb="auto">
-
-                                                {bigBlindPacks.map((pack: Pack, idx: number) => {
-
-                                                    const isInJamlSlots = sourcesConfig.boosterPacks.length === 0 || sourcesConfig.boosterPacks.includes(idx + 2);
-
-                                                    return (
-
-                                                        <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-
-                                                            <Group gap={3} mb={2} wrap="nowrap">
-
-                                                                <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
-
-                                                                <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
-
-                                                            </Group>
-
-                                                            <Group wrap="nowrap" gap={2}>
-
-                                                                {pack.cards.map((card, cardIdx) => (
-
-                                                                    <GameCard key={cardIdx} card={card} glow={getCardGlow(card, jamlConfig, anteNum, 1, 'pack')} scale={cardScale} />
-
-                                                                ))}
-
-                                                            </Group>
-
-                                                        </Box>
-
-                                                    );
-
-                                                })}
-
-                                            </Stack>
-
-                                        )}
-
-                                        <Group gap={4} align="center">
-
-                                            {anteData.tags?.[1] && <RenderTag tagName={anteData.tags[1]} />}
-
-                                            <Text size="xs" fw={600} c="dimmed">Big Blind</Text>
-
-                                        </Group>
-
-                                    </Stack>
-
-
-
-                                    {/* BOSS BLIND */}
-
-                                    {hasBossBlind && (
-
-                                        <Stack gap={2} justify="flex-end" style={{ flex: 1 }}>
-
-                                            {bossBlindPacks.length > 0 && (
-
-                                                <Stack gap={4} mb="auto">
-
-                                                    {bossBlindPacks.map((pack: Pack, idx: number) => {
-
-                                                        const isInJamlSlots = sourcesConfig.boosterPacks.length === 0 || sourcesConfig.boosterPacks.includes(idx + 4);
-
-                                                        return (
-
-                                                            <Box key={idx} style={{ opacity: isInJamlSlots ? 1 : 0.5, transition: 'opacity 0.2s' }}>
-
-                                                                <Group gap={3} mb={2} wrap="nowrap">
-
-                                                                    <Badge size="xs" variant="filled" color="gray">{pack.name}</Badge>
-
-                                                                    <Badge size="xs" variant="filled" color={pack.choices > 1 ? "green" : "gray"}>Pick {pack.choices}</Badge>
-
-                                                                </Group>
-
-                                                                <Group wrap="nowrap" gap={2}>
-
-                                                                    {pack.cards.map((card, cardIdx) => (
-
-                                                                        <GameCard key={cardIdx} card={card} glow={getCardGlow(card, jamlConfig, anteNum, 2, 'pack')} scale={cardScale} />
-
-                                                                    ))}
-
-                                                                </Group>
-
-                                                            </Box>
-
-                                                        );
-
-                                                    })}
-
-                                                </Stack>
-
-                                            )}
-
-                                            <Group gap={4} align="center">
-
-                                                {anteData.boss && <Boss bossName={anteData.boss} />}
-
-                                                <Text size="xs" fw={600} c="dimmed">Boss Blind</Text>
-
-                                            </Group>
-
-                                        </Stack>
-
-                                    )}
-
-                                </Group>
-
-                            )}
-
-
-
-                            {/* Misc sources from JAML */}
-
-                            {sourcesConfig.miscSources.length > 0 && (
-
-                                <Group gap={4} wrap="nowrap">
-
-                                    {sourcesConfig.miscSources.map(source => (
-
-                                        <Badge key={source} size="xs" variant="outline">{source}</Badge>
-
-                                    ))}
-
-                                </Group>
-
-                            )}
-
-
-
-                            {/* Custom Layout Sources */}
-
-                            {customSources.length > 0 && (
-
-                                <Stack gap={4}>
-
-                                    {customSources.map((source, idx) => (
-
-                                        <Box key={`${source.sourceType}-${source.sourceName}-${idx}`}>
-
-                                            <Badge size="xs" variant="filled" color="blue" mb={2}>
-
-                                                {source.sourceName} ({source.sourceType})
-
-                                            </Badge>
-
-                                            {source.cards && source.cards.length > 0 && (
-
-                                                <DragScroll>
-
-                                                    <Group wrap="nowrap" gap={3}>
-
-                                                        {source.cards.map((card: any, cardIdx: number) => (
-
-                                                            <Box key={cardIdx} style={{ flexShrink: 0 }}>
-
-                                                                <GameCard card={card} scale={cardScale} />
-
-                                                            </Box>
-
-                                                        ))}
-
-                                                    </Group>
-
-                                                </DragScroll>
-
-                                            )}
-
-                                        </Box>
-
-                                    ))}
-
-                                </Stack>
-
-                            )}
-
-                        </Stack>
-
-                    </Collapse>
-
-                </Box>
-
-            </div>
-
-        </Paper>
-
-    );
-
-});
-
-
-
-AnteSection.displayName = 'AnteSection';
-
-
-
-// Ante list view: renders all antes, scrollable. On mobile, supports swipe to jump between antes.
-
-const AntePageView = React.memo(({
-
-    selectedAntesArray,
-
-    pool,
-
-    sourcesConfig,
-
-    jamlConfig,
-
-    customSources,
-
-    touchStartRef,
-
-    goToNextPage,
-
-    goToPrevPage,
-
-}: {
-
-    selectedAntesArray: Array<number>;
-
-    pool: Record<number, Ante>;
-
-    sourcesConfig: ReturnType<typeof extractSourcesFromJaml>;
-
-    jamlConfig: any;
-
-    customSources: Array<CustomSource>;
-
-    touchStartRef: React.MutableRefObject<{ y: number; time: number } | null>;
-
-    goToNextPage: () => void;
-
-    goToPrevPage: () => void;
-
-}) => {
-
-    // Touch swipe handlers (mobile only — desktop just scrolls)
-
-    const handleTouchStart = useCallback((e: React.TouchEvent) => {
-
-        touchStartRef.current = { y: e.touches[0].clientY, time: Date.now() };
-
-    }, [touchStartRef]);
-
-
-
-    const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-
-        if (!touchStartRef.current) return;
-
-        const deltaY = touchStartRef.current.y - e.changedTouches[0].clientY;
-
-        const deltaTime = Date.now() - touchStartRef.current.time;
-
-        touchStartRef.current = null;
-
-
-
-        // Swipe threshold: 50px or fast flick (30px in <300ms)
-
-        if (deltaY > 50 || (deltaY > 30 && deltaTime < 300)) {
-
-            goToNextPage();
-
-        } else if (deltaY < -50 || (deltaY < -30 && deltaTime < 300)) {
-
-            goToPrevPage();
-
-        }
-
-    }, [touchStartRef, goToNextPage, goToPrevPage]);
-
-
-
-    return (
-
-        <Box
-
-            data-ante-scroll
-
-            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', contain: 'layout style' }}
-
-            onTouchStart={handleTouchStart}
-
-            onTouchEnd={handleTouchEnd}
-
-        >
-
-            <Stack gap={8}>
-
-                {selectedAntesArray.map((anteNum) => {
-
-                    const anteData = pool[anteNum];
-
-                    if (!anteData) return null;
-
-                    const anteCustomSources = customSources.filter(s => s.ante === anteNum);
-
-
-
-                    return (
-
-                        <AnteSection
-
-                            key={anteNum}
-
-                            anteNum={anteNum}
-
-                            anteData={anteData}
-
-                            sourcesConfig={sourcesConfig}
-
-                            jamlConfig={jamlConfig}
-
-                            customSources={anteCustomSources}
-
-                            cardScale={0.85}
-
-                        />
-
-                    );
-
-                })}
-
-            </Stack>
-
-        </Box>
-
-    );
-
-});
-
-
-
-AntePageView.displayName = 'AntePageView';
-
-
-
 function JamlView() {
 
     const theme = useMantineTheme();
@@ -1158,8 +449,6 @@ function JamlView() {
 
     // JAML Editor state
 
-    const [editorOpened, { toggle: toggleEditor }] = useDisclosure(false);
-
     const [jamlConfig, setJamlConfig] = useState<any>(null);
 
     const [jamlValid, setJamlValid] = useState<boolean>(false);
@@ -1170,7 +459,10 @@ function JamlView() {
 
     const [wasmResults, setWasmResults] = useState<Array<{ seed: string; score: number }>>([]);
 
-    const wasmSearchIdRef = useRef<string | null>(null);
+    const searchRef = useRef<Motely.IMotelyWasmSearch | null>(null);
+    const cancelledRef = useRef(false);
+    const progressHandlerRef = useRef<((s: bigint, m: bigint) => void) | null>(null);
+    const resultHandlerRef = useRef<((seed: string, score: number, tally: Int32Array) => void) | null>(null);
 
     const wasmSeenRef = useRef<Set<string>>(new Set());
 
@@ -1292,39 +584,6 @@ function JamlView() {
 
 
 
-    useEffect(() => {
-
-        let mounted = true;
-
-        getVersion()
-
-            .then((version) => {
-
-                if (!mounted) return;
-
-                setWasmVersion(version);
-
-                setWasmSimdEnabled(null);
-
-            })
-
-            .catch(() => {
-
-                if (!mounted) return;
-
-                setWasmVersion(null);
-
-                setWasmSimdEnabled(null);
-
-            });
-
-        return () => {
-
-            mounted = false;
-
-        };
-
-    }, []);
 
 
 
@@ -1380,13 +639,21 @@ function JamlView() {
 
     // Handle JAML changes from editor
 
-    const handleJamlChange = useCallback((parsed: any, isValid: boolean) => {
-
-        setJamlConfig(parsed);
-
-        setJamlValid(isValid);
-
+    const handleJamlChange = useCallback((jamlText: string) => {
+        try {
+            const parsed = yaml.load(jamlText);
+            setJamlConfig(parsed);
+            setJamlValid(true);
+        } catch {
+            setJamlValid(false);
+        }
     }, []);
+
+    // Validate initial JAML on mount so search button is enabled
+    useEffect(() => {
+        const initialJaml = selectedFilterKey === '__custom__' ? customJamlText : JAML_PRESETS[selectedFilterKey];
+        if (initialJaml) handleJamlChange(initialJaml);
+    }, [selectedFilterKey, customJamlText, handleJamlChange]);
 
 
 
@@ -1429,6 +696,8 @@ function JamlView() {
         }
 
 
+
+        await motely.boot();
 
         setWasmStatus('running');
 
@@ -1581,48 +850,44 @@ function JamlView() {
 
 
         try {
-            // motely-wasm 11.x+ (NativeAOT-LLVM) works without SharedArrayBuffer
-            // Determine search mode based on user input
-            let mode: SearchMode;
+
+            const progressHandler = (seedsSearched: bigint, matchingSeeds: bigint) => {
+                                const t0 = performance.now();
+                wasmSeedsSearchedRef.current = Number(seedsSearched);
+                wasmResultCountRef.current = Number(matchingSeeds);
+                wasmElapsedMsRef.current = Math.round(performance.now() - wasmPerfRef.current.searchStartAt);
+                const perf = wasmPerfRef.current;
+                perf.onProgressCalls += 1;
+                perf.onProgressMs += performance.now() - t0;
+            };
+            const resultHandler = (seed: string, score: number, _tallyColumns: Int32Array) => {
+                const t0 = performance.now();
+                if (wasmSeenRef.current.has(seed)) return;
+                wasmSeenRef.current.add(seed);
+                wasmResultBatchRef.current.push({ seed, score });
+                const perf = wasmPerfRef.current;
+                perf.onResultCalls += 1;
+                perf.onResultMs += performance.now() - t0;
+            };
+
+            MotelyWasmEvents.onProgress.subscribe(progressHandler);
+            MotelyWasmEvents.onResult.subscribe(resultHandler);
+
+            let search: Motely.IMotelyWasmSearch;
             if (searchMode === 'funny' && funnyMode === 'keyword') {
-                mode = { kind: 'keyword', keywordsCsv: funnyKeywords || '', paddingChars: '' };
-            } else if (searchMode === 'funny' && funnyMode === 'palindrome') {
-                // Palindrome search: use keyword mode with empty keywords (motely v11 doesn't have palindrome mode)
-                mode = { kind: 'random', count: 1000000 };
+                search = MotelyWasm.startKeywordSearch(jamlText, (funnyKeywords || []).join(','), '');
             } else {
-                // Default random search
-                mode = { kind: 'random', count: 1000000 };
+                search = MotelyWasm.startRandomSearch(jamlText, 1000000);
             }
 
-            // Start the new WASM search
-            const searchHandle = await startJamlSearch(jamlText, mode, {
-                onProgress: (totalSeedsSearched: number, matchingSeeds: number) => {
-                    wasmSearchIdRef.current = 'active';
-                    const t0 = performance.now();
-                    wasmSeedsSearchedRef.current = totalSeedsSearched;
-                    wasmResultCountRef.current = matchingSeeds;
-                    wasmElapsedMsRef.current = Math.round(performance.now() - wasmPerfRef.current.searchStartAt);
+            searchRef.current = search;
 
-                    const perf = wasmPerfRef.current;
-                    perf.onProgressCalls += 1;
-                    perf.onProgressMs += performance.now() - t0;
-                },
-                onResult: (seed: string, score: number) => {
-                    const t0 = performance.now();
-                    if (wasmSeenRef.current.has(seed)) return;
-                    wasmSeenRef.current.add(seed);
-                    wasmResultBatchRef.current.push({ seed, score });
+            const completion = await search.waitForCompletion();
 
-                    const perf = wasmPerfRef.current;
-                    perf.onResultCalls += 1;
-                    perf.onResultMs += performance.now() - t0;
-                },
-            });
+            MotelyWasmEvents.onProgress.unsubscribe(progressHandler);
+            MotelyWasmEvents.onResult.unsubscribe(resultHandler);
 
-            wasmSearchIdRef.current = searchHandle;
-
-            // Wait for search completion
-            await searchHandle.done;
+            void completion;
 
             // Final perf log
             {
@@ -1671,14 +936,14 @@ function JamlView() {
                 setWasmResults(prev => [...batch, ...prev].slice(0, 200));
             }
 
-            wasmSearchIdRef.current = null;
+            searchRef.current = null;
             setWasmStatus('done');
 
         } catch (err: any) {
 
             if (wasmProgressTimerRef.current) { clearInterval(wasmProgressTimerRef.current); wasmProgressTimerRef.current = null; }
 
-            wasmSearchIdRef.current = null;
+            searchRef.current = null;
 
             setWasmStatus('error');
 
@@ -1721,10 +986,8 @@ function JamlView() {
         }
 
         // Cancel the running WASM search
-        if (wasmSearchIdRef.current && typeof wasmSearchIdRef.current === 'object' && 'cancel' in wasmSearchIdRef.current) {
-            wasmSearchIdRef.current.cancel();
-        }
-        wasmSearchIdRef.current = null;
+        searchRef.current?.cancel();
+        searchRef.current = null;
 
         setWasmStatus('idle');
 
@@ -1748,33 +1011,6 @@ function JamlView() {
 
 
 
-    // Extract sources from JAML config
-
-    const sourcesConfig = useMemo(() => {
-
-        if (!jamlValid || !jamlConfig) {
-
-            return {
-
-                showShop: true,
-
-                shopItems: [],
-
-                showPacks: true,
-
-                boosterPacks: [],
-
-                showVoucher: true,
-
-                miscSources: []
-
-            };
-
-        }
-
-        return extractSourcesFromJaml(jamlConfig);
-
-    }, [jamlConfig, jamlValid]);
 
 
 
@@ -1846,77 +1082,6 @@ function JamlView() {
 
 
 
-    // Custom layout sources - tracks added sources from misc sources display
-
-    const [customSources, setCustomSources] = useState<Array<CustomSource>>([]);
-
-
-
-    // Listen for custom source add/remove events from misc sources display
-
-    useEffect(() => {
-
-        const handleAddCustomSource = (event: Event) => {
-
-            const detail = (event as CustomEvent).detail;
-
-            const { sourceName, cards, sourceType, ante, action } = detail;
-
-
-
-            setCustomSources(prev => {
-
-                if (action === 'remove') {
-
-                    // Remove source
-
-                    return prev.filter(s => !(s.sourceName === sourceName && s.sourceType === sourceType && s.ante === ante));
-
-                } else {
-
-                    // Add source (avoid duplicates)
-
-                    const exists = prev.some(s => s.sourceName === sourceName && s.sourceType === sourceType && s.ante === ante);
-
-                    if (exists) return prev;
-
-                    return [...prev, { sourceName, sourceType, ante, cards }];
-
-                }
-
-            });
-
-        };
-
-
-
-        window.addEventListener('addCustomSource', handleAddCustomSource);
-
-        return () => window.removeEventListener('addCustomSource', handleAddCustomSource);
-
-    }, []);
-
-
-
-    // Notify aside about added source names so buttons reflect current state
-
-    // Use key without ante to match MiscCardSourcesDisplay's key format
-
-    useEffect(() => {
-
-        const addedNames = new Set(
-
-            customSources.map(s => `${s.sourceType}-${s.sourceName}`)
-
-        );
-
-        window.dispatchEvent(new CustomEvent('customSourcesUpdated', {
-
-            detail: { addedSourceNames: addedNames }
-
-        }));
-
-    }, [customSources]);
 
 
 
@@ -1964,11 +1129,6 @@ function JamlView() {
 
     }, [seeds, setSeed, setStart]);
 
-
-
-    // Touch swipe state (mobile ante navigation)
-
-    const touchStartRef = useRef<{ y: number; time: number } | null>(null);
 
 
 
@@ -2074,6 +1234,37 @@ function JamlView() {
 
     const selectedAntesArray = Array.from(selectedAntes).filter(ante => availableAntes.includes(ante)).sort((a, b) => a - b);
 
+    const analyzerAntes: AnalyzerAnteView[] = selectedAntesArray.flatMap(anteNum => {
+        const anteData = pool[anteNum];
+        if (!anteData) return [];
+        const shop: AnalyzerItem[] = anteData.queue.slice(0, 30).map((card: any, i: number) => {
+            const glow = getCardGlow(card, jamlConfig, anteNum, i, 'shop');
+            return {
+                id: `${anteNum}-shop-${i}`,
+                name: card.name,
+                desired: glow === 'red',
+                badges: glow === 'blue' ? [{ label: 'should', tone: 'accent' as const }] : undefined,
+            };
+        });
+        const packs: string[] = [];
+        for (const blind of ['smallBlind', 'bigBlind', 'bossBlind'] as const) {
+            for (const pack of anteData.blinds?.[blind]?.packs ?? []) {
+                const label = blind === 'smallBlind' ? 'Small' : blind === 'bigBlind' ? 'Big' : 'Boss';
+                packs.push(`${label}: ${pack.name} (Pick ${pack.choices})`);
+            }
+        }
+        const view: AnalyzerAnteView = {
+            ante: anteNum,
+            boss: anteData.boss ?? undefined,
+            voucher: anteData.voucher ?? undefined,
+            smallBlindTag: anteData.tags?.[0],
+            bigBlindTag: anteData.tags?.[1],
+            shop,
+            packs,
+        };
+        return [view];
+    });
+
 
 
     return (
@@ -2096,22 +1287,6 @@ function JamlView() {
 
                         size="compact-xs"
 
-                        leftSection={<IconCode size={14} />}
-
-                        onClick={toggleEditor}
-
-                    >
-
-                        {editorOpened ? 'Hide' : 'Edit'}
-
-                    </Button>
-
-                    <Button
-
-                        variant="subtle"
-
-                        size="compact-xs"
-
                         leftSection={<IconUpload size={14} />}
 
                         onClick={openBulkSeeds}
@@ -2121,46 +1296,6 @@ function JamlView() {
                         Import
 
                     </Button>
-
-                    {/* WASM Motely search */}
-
-                    <Button
-
-                        size="compact-xs"
-
-                        variant={wasmStatus === 'running' ? 'filled' : 'light'}
-
-                        color={wasmStatus === 'running' ? 'red' : 'green'}
-
-                        onClick={wasmStatus === 'running' ? handleWasmStop : handleWasmSearch}
-
-                        disabled={!jamlValid}
-
-                        leftSection={<IconSearch size={12} />}
-
-                    >
-
-                        {wasmStatus === 'running' ? 'Stop' : 'Motely Search'}
-
-                    </Button>
-
-                    <Text size="xs" c={wasmVersion ? 'dimmed' : 'gray'}>
-
-                        {wasmVersion ? `WASM v${wasmVersion}` : 'WASM v?'}
-
-                    </Text>
-
-                    <Text size="xs" c={wasmSimdEnabled === null ? 'gray' : (wasmSimdEnabled ? 'green' : 'red')}>
-
-                        SIMD:{wasmSimdEnabled ? 'on' : 'off'}
-
-                    </Text>
-
-                    <Text size="xs" c="green">
-
-                        NativeAOT (1 thread, no SAB required)
-
-                    </Text>
 
                     <span ref={wasmProgressElRef} style={{ fontSize: '10px', color: 'var(--mantine-color-dimmed)' }} />
 
@@ -2310,19 +1445,14 @@ function JamlView() {
 
             {/* JAML Editor - Collapsible, shares header above */}
 
-            <Collapse in={editorOpened}>
-
-                <Box mb={4}>
-
-                    <JamlEditor
-                        key={selectedFilterKey}
-                        initialJaml={selectedFilterKey === '__custom__' ? customJamlText : JAML_PRESETS[selectedFilterKey]}
-                        onJamlChange={handleJamlChange}
-                    />
-
-                </Box>
-
-            </Collapse>
+            <JamlIde
+                key={selectedFilterKey}
+                jaml={selectedFilterKey === '__custom__' ? customJamlText : JAML_PRESETS[selectedFilterKey]}
+                onChange={handleJamlChange}
+                searchResults={wasmResults}
+                onSearch={wasmStatus === 'running' ? handleWasmStop : handleWasmSearch}
+                isSearching={wasmStatus === 'running'}
+            />
 
 
 
@@ -2408,39 +1538,15 @@ function JamlView() {
 
 
 
-            {/* Paginated ante view with swipe */}
+            {/* Ante view */}
 
-            {selectedAntesArray.length === 0 ? (
-
-                <Box p="md" ta="center">
-
-                    <Text c="dimmed" size="sm">No antes selected. Configure your JAML filter.</Text>
-
-                </Box>
-
-            ) : (
-
-                <AntePageView
-
-                    selectedAntesArray={selectedAntesArray}
-
-                    pool={pool}
-
-                    sourcesConfig={sourcesConfig}
-
-                    jamlConfig={jamlConfig}
-
-                    customSources={customSources}
-
-                    touchStartRef={touchStartRef}
-
-                    goToNextPage={goToNextPage}
-
-                    goToPrevPage={goToPrevPage}
-
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                <AnalyzerExplorer
+                    antes={analyzerAntes}
+                    visibleAntes={selectedAntesArray.length}
+                    totalAntes={availableAntes.length}
                 />
-
-            )}
+            </div>
 
 
 

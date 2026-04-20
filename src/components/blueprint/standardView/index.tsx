@@ -538,11 +538,11 @@ function Main() {
     
     return (
         <AppShell.Main>
-            {!SeedResults && <HomePage />}
+            {!SeedResults && viewMode !== 'jaml' && <HomePage />}
             {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
-            {SeedResults && viewMode === 'jaml' && <JamlView />}
+            {viewMode === 'jaml' && <JamlView />}
             {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && <SnapshotModal />}
         </AppShell.Main>

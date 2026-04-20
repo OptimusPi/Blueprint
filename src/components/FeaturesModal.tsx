@@ -17,7 +17,7 @@ export default function FeaturesModal() {
             onClose={() => closeFeaturesModal()}
             maw={600}
         >
-            <Container fluid data-tour-id="features-modal">
+            <Container fluid>
                 <Accordion variant="separated" defaultValue={null}>
                     <Accordion.Item value="reroll-calculator">
                         <Accordion.Control icon={<IconCalculator size={20} />}>

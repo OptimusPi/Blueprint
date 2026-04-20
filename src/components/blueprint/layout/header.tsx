@@ -13,7 +13,7 @@ export default function Header() {
 
     const outputOpened = useCardStore(state => state.applicationState.asideOpen);
     const toggleOutput = useCardStore(state => state.toggleOutput);
-    // const { startNextStep, closeNextStep } = useNextStep();
+
     return (
         <AppShell.Header>
             <Container fluid h={'100%'}>
@@ -30,10 +30,7 @@ export default function Header() {
                     </Group>
 
                     <Group align={'center'}>
-                        {/* <ActionIcon onClick={() => startNextStep('onboarding-tour')}> */}
-                        {/*     <IconInfoCircle /> */}
-                        {/* </ActionIcon> */}
-                        {width > 600 && start && <Box id="search-input-header"><SearchSeedInput /></Box>}
+{width > 600 && start && <Box id="search-input-header"><SearchSeedInput /></Box>}
                         {width > 700 && start && (
                             <CopyButton value={new URL(window.location.href).toString()}>
                                 {({ copied, copy }) => (
