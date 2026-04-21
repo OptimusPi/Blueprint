@@ -680,12 +680,6 @@ function JamlView() {
 
             }
 
-            setWasmError('Keyword mode is not wired yet (needs Motely CLI keyword pipeline).');
-
-            setWasmStatus('error');
-
-            return;
-
         }
 
 
@@ -865,22 +859,34 @@ function JamlView() {
                 perf.onResultMs += performance.now() - t0;
             };
 
-            MotelyWasmEvents.onProgress.subscribe(progressHandler);
-            MotelyWasmEvents.onResult.subscribe(resultHandler);
+            const completion = await new Promise<{ matchingSeeds: bigint }>((resolve, reject) => {
+                const completeHandler = (_status: string, _total: bigint, matchingSeeds: bigint) => {
+                    MotelyWasmEvents.onProgress.unsubscribe(progressHandler);
+                    MotelyWasmEvents.onResult.unsubscribe(resultHandler);
+                    MotelyWasmEvents.onComplete.unsubscribe(completeHandler);
+                    resolve({ matchingSeeds });
+                };
 
-            let search: Motely.IMotelyWasmSearch;
-            if (searchMode === 'funny' && funnyMode === 'keyword') {
-                search = MotelyWasm.startKeywordSearch(jamlText, (funnyKeywords || []).join(','), '');
-            } else {
-                search = MotelyWasm.startRandomSearch(jamlText, 100);
-            }
+                MotelyWasmEvents.onProgress.subscribe(progressHandler);
+                MotelyWasmEvents.onResult.subscribe(resultHandler);
+                MotelyWasmEvents.onComplete.subscribe(completeHandler);
 
-            searchRef.current = search;
-
-            const completion = await search.waitForCompletion();
-
-            MotelyWasmEvents.onProgress.unsubscribe(progressHandler);
-            MotelyWasmEvents.onResult.unsubscribe(resultHandler);
+                try {
+                    let search: Motely.IMotelyWasmSearch;
+                    if (searchMode === 'funny' && funnyMode === 'keyword') {
+                        const kw = (funnyKeywords || []).map(k => k.trim().toUpperCase()).filter(Boolean).join(',');
+                        search = MotelyWasm.startKeywordSearch(jamlText, kw, '');
+                    } else {
+                        search = MotelyWasm.startRandomSearch(jamlText, 100);
+                    }
+                    searchRef.current = search;
+                } catch (e) {
+                    MotelyWasmEvents.onProgress.unsubscribe(progressHandler);
+                    MotelyWasmEvents.onResult.unsubscribe(resultHandler);
+                    MotelyWasmEvents.onComplete.unsubscribe(completeHandler);
+                    reject(e);
+                }
+            });
 
             if (wasmProgressTimerRef.current) {
                 clearInterval(wasmProgressTimerRef.current);
