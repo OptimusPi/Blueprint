@@ -893,6 +893,17 @@ function JamlView() {
                 wasmProgressTimerRef.current = null;
             }
 
+            // Final DOM update — search may complete synchronously before the interval fires
+            if (wasmProgressElRef.current) {
+                const searched = wasmSeedsSearchedRef.current;
+                const hits = wasmResultCountRef.current;
+                const elapsedS = wasmElapsedMsRef.current / 1000;
+                const speed = elapsedS > 0 ? Math.round(searched / elapsedS) : 0;
+                const hitsPerSec = elapsedS > 0 ? (hits / elapsedS).toFixed(2) : '0';
+                wasmProgressElRef.current.textContent =
+                    `${searched.toLocaleString()} seeds \u2022 ${hits.toLocaleString()} hits (${hitsPerSec} h/s) \u2022 ${speed.toLocaleString()} s/s \u2022 ${elapsedS.toFixed(1)}s \u2022 1t`;
+            }
+
             const allResults = wasmResultBatchRef.current.slice(0, 200);
             wasmResultBatchRef.current = [];
             setWasmResults(allResults);
