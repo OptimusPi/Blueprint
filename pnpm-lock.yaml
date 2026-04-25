@@ -36,8 +36,8 @@ importers:
         specifier: ^10.1.3
         version: 10.2.0
       jaml-ui:
-        specifier: ^0.10.0
-        version: 0.10.0(@monaco-editor/react@4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(monaco-editor@0.55.1)(motely-wasm@12.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.11.1
+        version: 0.11.1(@monaco-editor/react@4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(monaco-editor@0.55.1)(motely-wasm@13.0.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       js-convert-case:
         specifier: ^4.2.0
         version: 4.2.0
@@ -45,8 +45,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       motely-wasm:
-        specifier: ^12.4.0
-        version: 12.4.0
+        specifier: ^13.0.3
+        version: 13.0.3
       motion:
         specifier: ^12.29.2
         version: 12.38.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1727,15 +1727,15 @@ packages:
     resolution: {integrity: sha512-H0dkQoCa3b2VEeKQBOxFph+JAbcrQdE7KC0UkqwpLmv2EC4P41QXP+rqo9wYodACiG5/WM5s9oDApTU8utwj9g==}
     engines: {node: '>= 0.4'}
 
-  jaml-ui@0.10.0:
-    resolution: {integrity: sha512-WwJBBYCrU93V2Sj/BDuomYGaNMgEwtHNGssE64Ccj5AEaSq4GW2NHrtz/cYDInp79WE3l9AmbQtwWFJjI2d0qQ==}
+  jaml-ui@0.11.1:
+    resolution: {integrity: sha512-UqcAishvt4X1DZxj96ED9FO2cLbf41SNgNZA0S9ol1QLMsbu+XVpKdg0B3tONwcB9TMu7Eyc60fXuWRd2Eg1sw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@monaco-editor/react': '>=4.0.0'
       '@react-spring/three': '>=9.0.0'
       '@react-three/fiber': '>=8.0.0'
       monaco-editor: '>=0.50.0'
-      motely-wasm: ^10.2.0 || ^11.0.0 || ^12.0.0
+      motely-wasm: ^10.2.0 || ^11.0.0 || ^12.0.0 || ^13.0.0
       react: ^18.2.0 || ^19.0.0
       react-dom: ^18.2.0 || ^19.0.0
       react-icons: '>=5.0.0'
@@ -1838,8 +1838,8 @@ packages:
   monaco-editor@0.55.1:
     resolution: {integrity: sha512-jz4x+TJNFHwHtwuV9vA9rMujcZRb0CEilTEwG2rRSpe/A7Jdkuj8xPKttCgOh+v/lkHy7HsZ64oj+q3xoAFl9A==}
 
-  motely-wasm@12.4.0:
-    resolution: {integrity: sha512-pKUYzeQYA9dJ8HGe8zFG8V5o1jxuPhTOppBQ+oBXzMyNsDONfAUuHrs5twHxdMRjw8hjx0roRoBpB3Zu1HOcvg==}
+  motely-wasm@13.0.3:
+    resolution: {integrity: sha512-6+PmdJCT33BTu8xIRfQ/KLtG3B+yj+C0wmIIcpA4YhjQldSv/6PY5auUulwYzDdnA/rj1RQpXIxt0qcNQ/JpPw==}
 
   motion-dom@12.38.0:
     resolution: {integrity: sha512-pdkHLD8QYRp8VfiNLb8xIBJis1byQ9gPT3Jnh2jqfFtAsWUA3dEepDlsWe/xMpO8McV+VdpKVcp+E+TGJEtOoA==}
@@ -4333,14 +4333,14 @@ snapshots:
       has-symbols: 1.1.0
       set-function-name: 2.0.2
 
-  jaml-ui@0.10.0(@monaco-editor/react@4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(monaco-editor@0.55.1)(motely-wasm@12.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  jaml-ui@0.11.1(@monaco-editor/react@4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(monaco-editor@0.55.1)(motely-wasm@13.0.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@monaco-editor/react': 4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       monaco-editor: 0.55.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     optionalDependencies:
-      motely-wasm: 12.4.0
+      motely-wasm: 13.0.3
 
   jiti@2.6.1: {}
 
@@ -4417,7 +4417,7 @@ snapshots:
       dompurify: 3.2.7
       marked: 14.0.0
 
-  motely-wasm@12.4.0: {}
+  motely-wasm@13.0.3: {}
 
   motion-dom@12.38.0:
     dependencies:
