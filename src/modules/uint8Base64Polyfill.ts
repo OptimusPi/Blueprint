@@ -2,14 +2,11 @@
 // config.mjs turns into bytes with `Uint8Array.fromBase64`. That method is a
 // very recent TC39 proposal — absent in Node 22 and in most shipping browsers —
 // so without this polyfill `motely.boot()` throws before the search ever starts.
+// Only `fromBase64` is on that boot path, so only `fromBase64` is polyfilled.
 // Guarded so it no-ops wherever the engine's native implementation exists.
 
 interface Uint8ArrayBase64Statics {
     fromBase64?: (input: string) => Uint8Array;
-}
-interface Uint8ArrayBase64Proto {
-    toBase64?: () => string;
-    setFromBase64?: (input: string) => { read: number; written: number };
 }
 
 const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -40,33 +37,6 @@ function decodeBase64(input: string): Uint8Array {
 }
 
 const statics = Uint8Array as unknown as Uint8ArrayBase64Statics;
-const proto = Uint8Array.prototype as unknown as Uint8ArrayBase64Proto;
-
 if (typeof statics.fromBase64 !== "function") {
     statics.fromBase64 = decodeBase64;
-}
-
-if (typeof proto.toBase64 !== "function") {
-    proto.toBase64 = function (this: Uint8Array): string {
-        let str = "";
-        for (let i = 0; i < this.length; i += 3) {
-            const a = this[i];
-            const b = i + 1 < this.length ? this[i + 1] : 0;
-            const c = i + 2 < this.length ? this[i + 2] : 0;
-            str += B64[a >> 2];
-            str += B64[((a & 3) << 4) | (b >> 4)];
-            str += i + 1 < this.length ? B64[((b & 15) << 2) | (c >> 6)] : "=";
-            str += i + 2 < this.length ? B64[c & 63] : "=";
-        }
-        return str;
-    };
-}
-
-if (typeof proto.setFromBase64 !== "function") {
-    proto.setFromBase64 = function (this: Uint8Array, input: string) {
-        const bytes = decodeBase64(input);
-        const written = Math.min(bytes.length, this.length);
-        this.set(bytes.subarray(0, written));
-        return { read: input.length, written };
-    };
 }

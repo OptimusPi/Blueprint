@@ -32,6 +32,13 @@ class SearchCancellationToken {
     }
 }
 
+let bootPromise: Promise<unknown> | null = null;
+function ensureBooted() {
+    if (motely.getStatus() === motely.BootStatus.Booted) return Promise.resolve();
+    if (!bootPromise) bootPromise = motely.boot();
+    return bootPromise;
+}
+
 type Status = "idle" | "booting" | "running" | "done" | "error";
 type ScopeMode = "sequential" | "random";
 
@@ -67,7 +74,15 @@ export default function JamlView() {
     const [randomCount, setRandomCount] = useState<number>(50_000);
     const [stopAfter, setStopAfter] = useState<number>(25);
 
+    const [engineError, setEngineError] = useState<string | null>(null);
     const tokenRef = useRef<SearchCancellationToken | null>(null);
+
+    // Boot the engine once when the view mounts so init errors surface immediately.
+    useEffect(() => {
+        ensureBooted().catch((e) =>
+            setEngineError(e instanceof Error ? e.message : String(e)),
+        );
+    }, []);
 
     const tallyLabels = useMemo(() => {
         try {
@@ -112,17 +127,17 @@ export default function JamlView() {
         Search.onProgress.subscribe(onProgress);
 
         try {
-            if (motely.getStatus() !== motely.BootStatus.Booted) {
-                await motely.boot();
-            }
+            await ensureBooted();
             setStatus("running");
 
+            const sampleCount = Math.max(1, Math.trunc(randomCount));
+            const matchLimit = Math.max(0, Math.trunc(stopAfter));
             let settings = Search.settings(jamlText).withProgressReportIntervalMs(250n);
             settings =
                 scope === "random"
-                    ? settings.withRandomSearch(Math.max(1, randomCount))
+                    ? settings.withRandomSearch(sampleCount)
                     : settings.withSequentialSearch();
-            if (stopAfter > 0) settings = settings.stopAfter(BigInt(stopAfter));
+            if (matchLimit > 0) settings = settings.stopAfter(BigInt(matchLimit));
 
             await settings.start(token);
             setStatus(token.isCancellationRequested ? "idle" : "done");
@@ -179,9 +194,9 @@ export default function JamlView() {
                     {scope === "random" && (
                         <Progress value={stats.percentComplete} animated={isSearching} />
                     )}
-                    {error && (
+                    {(engineError || error) && (
                         <Text size="sm" c="red">
-                            {error}
+                            {engineError ? `Engine failed to boot: ${engineError}` : error}
                         </Text>
                     )}
                 </Stack>
@@ -206,9 +221,10 @@ export default function JamlView() {
                         <NumberInput
                             label="Seeds to sample"
                             value={randomCount}
-                            onChange={(v) => setRandomCount(Number(v) || 0)}
+                            onChange={(v) => setRandomCount(Math.trunc(Number(v) || 0))}
                             min={1}
                             step={10_000}
+                            allowDecimal={false}
                             thousandSeparator
                             disabled={isSearching}
                         />
@@ -216,8 +232,9 @@ export default function JamlView() {
                     <NumberInput
                         label="Stop after N matches (0 = unlimited)"
                         value={stopAfter}
-                        onChange={(v) => setStopAfter(Number(v) || 0)}
+                        onChange={(v) => setStopAfter(Math.trunc(Number(v) || 0))}
                         min={0}
+                        allowDecimal={false}
                         disabled={isSearching}
                     />
                     <Text size="xs" c="dimmed">
