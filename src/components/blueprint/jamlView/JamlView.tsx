@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Badge,
-    Button,
-    Group,
-    NumberInput,
-    Paper,
-    Progress,
-    SegmentedControl,
-    Stack,
-    Text,
-} from "@mantine/core";
-import { JamlIde, parseJaml } from "jaml-ui";
+    JamlIde,
+    JimboBadge,
+    JimboButton,
+    JimboPanel,
+    JimboRow,
+    JimboStack,
+    JimboStatusPill,
+    JimboText,
+    JimboTextInput,
+    parseJaml,
+} from "jaml-ui";
 import motely, { Search } from "motely-wasm";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
-import type { JamlIdeSearchResult } from "jaml-ui";
+import type { JamlIdeSearchResult, JimboStatus } from "jaml-ui";
 import type { MotelyProgress, MotelySeedScore } from "motely-wasm";
 
 // CancellationToken collides at the motely-wasm package root (re-exported from
@@ -177,72 +177,85 @@ export default function JamlView() {
         done: "Search complete",
         error: "Error",
     };
+    const pillStatus: Record<Status, JimboStatus> = {
+        idle: "idle",
+        booting: "running",
+        running: "running",
+        done: "ok",
+        error: "error",
+    };
+    const hitTone = status === "error" ? "red" : status === "done" ? "green" : "blue";
+
+    const parseCount = (v: string) => Math.max(0, Math.trunc(Number(v.replace(/[^\d]/g, "")) || 0));
 
     const sidebar = (
-        <Stack gap="sm">
-            <Paper withBorder p="sm">
-                <Stack gap={4}>
-                    <Group justify="space-between">
-                        <Text fw={600}>{statusLabel[status]}</Text>
-                        <Badge color={status === "error" ? "red" : status === "done" ? "green" : "blue"}>
+        <JimboStack gap="sm">
+            <JimboPanel title="Search" tone="blue">
+                <JimboStack gap="sm">
+                    <JimboRow justify="between" align="center">
+                        <JimboStatusPill status={pillStatus[status]} label={statusLabel[status]} />
+                        <JimboBadge tone={hitTone}>
                             {formatNumber(stats.matchingSeeds || results.length)} hits
-                        </Badge>
-                    </Group>
-                    <Text size="sm" c="dimmed">
+                        </JimboBadge>
+                    </JimboRow>
+                    <JimboText size="sm" tone="grey">
                         {formatNumber(stats.seedsSearched)} searched · {formatNumber(stats.seedsPerSecond)}/s
-                    </Text>
-                    {scope === "random" && (
-                        <Progress value={stats.percentComplete} animated={isSearching} />
-                    )}
+                        {scope === "random" && isSearching ? ` · ${Math.round(stats.percentComplete)}%` : ""}
+                    </JimboText>
                     {(engineError || error) && (
-                        <Text size="sm" c="red">
+                        <JimboText size="sm" tone="red">
                             {engineError ? `Engine failed to boot: ${engineError}` : error}
-                        </Text>
+                        </JimboText>
                     )}
-                </Stack>
-            </Paper>
+                </JimboStack>
+            </JimboPanel>
 
-            <Paper withBorder p="sm">
-                <Stack gap="xs">
-                    <Text size="sm" fw={600}>
-                        Search scope
-                    </Text>
-                    <SegmentedControl
-                        fullWidth
-                        value={scope}
-                        onChange={(v) => setScope(v as ScopeMode)}
-                        disabled={isSearching}
-                        data={[
-                            { label: "Random", value: "random" },
-                            { label: "Sequential", value: "sequential" },
-                        ]}
-                    />
+            <JimboPanel title="Scope" tone="gold">
+                <JimboStack gap="sm">
+                    <JimboRow gap="sm">
+                        <JimboButton
+                            fullWidth
+                            tone={scope === "random" ? "blue" : "grey"}
+                            disabled={isSearching}
+                            onClick={() => setScope("random")}
+                        >
+                            Random
+                        </JimboButton>
+                        <JimboButton
+                            fullWidth
+                            tone={scope === "sequential" ? "blue" : "grey"}
+                            disabled={isSearching}
+                            onClick={() => setScope("sequential")}
+                        >
+                            Sequential
+                        </JimboButton>
+                    </JimboRow>
                     {scope === "random" && (
-                        <NumberInput
-                            label="Seeds to sample"
-                            value={randomCount}
-                            onChange={(v) => setRandomCount(Math.trunc(Number(v) || 0))}
-                            min={1}
-                            step={10_000}
-                            allowDecimal={false}
-                            thousandSeparator
+                        <JimboStack gap="xs">
+                            <JimboText size="xs" tone="grey">Seeds to sample</JimboText>
+                            <JimboTextInput
+                                inputMode="numeric"
+                                value={randomCount}
+                                onChange={(e) => setRandomCount(Math.max(1, parseCount(e.currentTarget.value)))}
+                                disabled={isSearching}
+                            />
+                        </JimboStack>
+                    )}
+                    <JimboStack gap="xs">
+                        <JimboText size="xs" tone="grey">Stop after N matches (0 = unlimited)</JimboText>
+                        <JimboTextInput
+                            inputMode="numeric"
+                            value={stopAfter}
+                            onChange={(e) => setStopAfter(parseCount(e.currentTarget.value))}
                             disabled={isSearching}
                         />
-                    )}
-                    <NumberInput
-                        label="Stop after N matches (0 = unlimited)"
-                        value={stopAfter}
-                        onChange={(v) => setStopAfter(Math.trunc(Number(v) || 0))}
-                        min={0}
-                        allowDecimal={false}
-                        disabled={isSearching}
-                    />
-                    <Text size="xs" c="dimmed">
+                    </JimboStack>
+                    <JimboText size="xs" tone="grey">
                         Deck &amp; stake come from the JAML. Sequential walks the whole seed space; cancel any time.
-                    </Text>
-                </Stack>
-            </Paper>
-        </Stack>
+                    </JimboText>
+                </JimboStack>
+            </JimboPanel>
+        </JimboStack>
     );
 
     return (
@@ -258,15 +271,14 @@ export default function JamlView() {
                     subtitle={statusLabel[status]}
                 />
             </div>
-            <div style={{ width: 260, flexShrink: 0 }}>
-                <Button
+            <div style={{ width: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+                <JimboButton
                     fullWidth
-                    mb="sm"
-                    color={isSearching ? "red" : "blue"}
+                    tone={isSearching ? "red" : "blue"}
                     onClick={handleSearch}
                 >
                     {isSearching ? "Cancel" : "Start Search"}
-                </Button>
+                </JimboButton>
                 {sidebar}
             </div>
         </div>
