@@ -11,38 +11,19 @@ import {
     JimboTextInput,
     parseJaml,
 } from "jaml-ui";
-import motely, { Search } from "motely-wasm";
+import { JamlAesthetic, MotelyDeck, MotelyStake } from "motely-wasm";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import type { JamlIdeSearchResult, JimboStatus } from "jaml-ui";
-import type { MotelyProgress, MotelySeedScore } from "motely-wasm";
-
-// CancellationToken collides at the motely-wasm package root (re-exported from
-// two submodules), so the token contract start() needs is reimplemented here.
-class SearchCancellationToken {
-    isCancellationRequested = false;
-    private handlers = new Set<() => void>();
-    onCancellationRequested = {
-        subscribe: (h: () => void) => this.handlers.add(h),
-        unsubscribe: (h: () => void) => this.handlers.delete(h),
-    };
-    cancel() {
-        if (this.isCancellationRequested) return;
-        this.isCancellationRequested = true;
-        for (const h of this.handlers) h();
-    }
-}
-
-let bootPromise: Promise<unknown> | null = null;
-function ensureBooted() {
-    if (motely.getStatus() === motely.BootStatus.Booted) return Promise.resolve();
-    if (!bootPromise) bootPromise = motely.boot();
-    return bootPromise;
-}
+import type { MotelySeedScore } from "motely-wasm";
+import type {
+    SearchConfig,
+    SearchScope,
+    WorkerRequest,
+    WorkerResponse,
+} from "./searchWorker.ts";
 
 type Status = "idle" | "booting" | "running" | "done" | "error";
-type ScopeMode = "sequential" | "random";
-
-const MAX_RESULTS = 200;
+type ScopeMode = SearchScope["mode"];
 
 interface SearchStats {
     seedsSearched: number;
@@ -58,9 +39,30 @@ const EMPTY_STATS: SearchStats = {
     percentComplete: 0,
 };
 
-function formatNumber(value: number): string {
-    return value.toLocaleString();
+// Enum → [label, value] pairs. TS numeric enums carry a reverse mapping, so keep
+// only the entries whose value is a number.
+function enumOptions(e: Record<string, string | number>): Array<[string, number]> {
+    return Object.entries(e)
+        .filter(([, v]) => typeof v === "number")
+        .map(([k, v]) => [k, v as number]);
 }
+const DECK_OPTS = enumOptions(MotelyDeck);
+const STAKE_OPTS = enumOptions(MotelyStake);
+const AESTHETIC_OPTS = enumOptions(JamlAesthetic);
+
+const formatNumber = (value: number): string => value.toLocaleString();
+const parseCount = (v: string) => Math.max(0, Math.trunc(Number(v.replace(/[^\d]/g, "")) || 0));
+
+const selectStyle: React.CSSProperties = {
+    width: "100%",
+    background: "var(--j-darkest, #1e2b2d)",
+    color: "var(--j-cream, #f4eee0)",
+    border: "1px solid var(--j-line, #38494b)",
+    borderRadius: 6,
+    padding: "6px 8px",
+    fontFamily: "var(--j-font-code, monospace)",
+    fontSize: 13,
+};
 
 export default function JamlView() {
     const { jamlText, setJamlText } = useJamlSearch();
@@ -70,19 +72,84 @@ export default function JamlView() {
     const [results, setResults] = useState<Array<MotelySeedScore>>([]);
     const [stats, setStats] = useState<SearchStats>(EMPTY_STATS);
 
-    const [scope, setScope] = useState<ScopeMode>("random");
-    const [randomCount, setRandomCount] = useState<number>(50_000);
-    const [stopAfter, setStopAfter] = useState<number>(25);
+    // Search source (mutually exclusive engine modes).
+    const [scopeMode, setScopeMode] = useState<ScopeMode>("random");
+    const [randomCount, setRandomCount] = useState<number>(1_000_000);
+    const [keywords, setKeywords] = useState<string>("CLAUDE,HAIKU,SONNET,OPUS,FABLE");
+    const [quickPad, setQuickPad] = useState<boolean>(true);
+    const [aesthetic, setAesthetic] = useState<number>(JamlAesthetic.Palindrome);
+    const [seedList, setSeedList] = useState<string>("");
 
-    const [engineError, setEngineError] = useState<string | null>(null);
-    const tokenRef = useRef<SearchCancellationToken | null>(null);
+    // Overrides & tuning. null = leave to the JAML / engine default.
+    const [deck, setDeck] = useState<number | null>(null);
+    const [stake, setStake] = useState<number | null>(null);
+    const [stopAfter, setStopAfter] = useState<number>(0);
+    const [autoScoreCutoff, setAutoScoreCutoff] = useState<boolean>(false);
+    const [batchCharacterCount, setBatchCharacterCount] = useState<number>(0);
+    const [providerBatchSeedCount, setProviderBatchSeedCount] = useState<number>(0);
+    const [startBatchIndex, setStartBatchIndex] = useState<number>(0);
+    const [endBatchIndex, setEndBatchIndex] = useState<number>(0);
+    const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
-    // Boot the engine once when the view mounts so init errors surface immediately.
-    useEffect(() => {
-        ensureBooted().catch((e) =>
-            setEngineError(e instanceof Error ? e.message : String(e)),
-        );
+    const workerRef = useRef<Worker | null>(null);
+    // Matches accumulate here (push-only, no per-event sort) and flush to state on
+    // progress ticks + on done — so a run that matches a lot of seeds doesn't turn
+    // into an O(n²) sort storm, and there is no artificial cap on how many are kept.
+    const collectedRef = useRef<Array<MotelySeedScore>>([]);
+
+    const flush = useCallback(() => {
+        const sorted = [...collectedRef.current].sort((a, b) => b.score - a.score);
+        setResults(sorted);
     }, []);
+
+    useEffect(() => {
+        const worker = new Worker(new URL("./searchWorker.ts", import.meta.url), {
+            type: "module",
+        });
+        workerRef.current = worker;
+
+        worker.onmessage = (ev: MessageEvent<WorkerResponse>) => {
+            const msg = ev.data;
+            switch (msg.type) {
+                case "booting":
+                    setStatus("booting");
+                    break;
+                case "running":
+                    setStatus("running");
+                    break;
+                case "scored":
+                    collectedRef.current.push(msg.score);
+                    break;
+                case "progress":
+                    setStats({
+                        seedsSearched: Number(msg.progress.seedsSearched),
+                        matchingSeeds: Number(msg.progress.matchingSeeds),
+                        seedsPerSecond: Math.round(msg.progress.seedsPerMillisecond * 1000),
+                        percentComplete: msg.progress.percentComplete,
+                    });
+                    flush();
+                    break;
+                case "done":
+                    flush();
+                    setStatus(msg.cancelled ? "idle" : "done");
+                    break;
+                case "error":
+                    setError(msg.message);
+                    setStatus("error");
+                    break;
+            }
+        };
+        worker.onerror = (e) => {
+            setError(e.message || "Worker crashed");
+            setStatus("error");
+        };
+
+        return () => {
+            worker.postMessage({ type: "cancel" } satisfies WorkerRequest);
+            worker.terminate();
+            workerRef.current = null;
+        };
+    }, [flush]);
 
     const tallyLabels = useMemo(() => {
         try {
@@ -92,70 +159,69 @@ export default function JamlView() {
         }
     }, [jamlText]);
 
-    useEffect(() => {
-        return () => tokenRef.current?.cancel();
-    }, []);
-
     const isSearching = status === "running" || status === "booting";
 
-    const runSearch = useCallback(async () => {
+    const buildScope = useCallback((): SearchScope => {
+        switch (scopeMode) {
+            case "random":
+                return { mode: "random", count: Math.max(1, Math.trunc(randomCount)) };
+            case "sequential":
+                return { mode: "sequential" };
+            case "keyword":
+                return {
+                    mode: "keyword",
+                    keywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
+                    quickPad,
+                };
+            case "aesthetic":
+                return { mode: "aesthetic", aesthetic, quickPad };
+            case "seedList":
+                return {
+                    mode: "seedList",
+                    seeds: seedList.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean),
+                };
+        }
+    }, [scopeMode, randomCount, keywords, quickPad, aesthetic, seedList]);
+
+    const runSearch = useCallback(() => {
         setError(null);
         setResults([]);
         setStats(EMPTY_STATS);
+        collectedRef.current = [];
+
+        const config: SearchConfig = {
+            jaml: jamlText,
+            scope: buildScope(),
+            deck,
+            stake,
+            batchCharacterCount: batchCharacterCount > 0 ? Math.trunc(batchCharacterCount) : null,
+            providerBatchSeedCount:
+                providerBatchSeedCount > 0 ? Math.trunc(providerBatchSeedCount) : null,
+            startBatchIndex: startBatchIndex > 0 ? Math.trunc(startBatchIndex) : null,
+            endBatchIndex: endBatchIndex > 0 ? Math.trunc(endBatchIndex) : null,
+            autoScoreCutoff,
+            stopAfter: Math.max(0, Math.trunc(stopAfter)),
+        };
         setStatus("booting");
-
-        const token = new SearchCancellationToken();
-        tokenRef.current = token;
-
-        const collected: Array<MotelySeedScore> = [];
-        const onScored = (score: MotelySeedScore) => {
-            collected.push(score);
-            collected.sort((a, b) => b.score - a.score);
-            if (collected.length > MAX_RESULTS) collected.length = MAX_RESULTS;
-            setResults([...collected]);
-        };
-        const onProgress = (p: MotelyProgress) => {
-            setStats({
-                seedsSearched: Number(p.seedsSearched),
-                matchingSeeds: Number(p.matchingSeeds),
-                seedsPerSecond: Math.round(p.seedsPerMillisecond * 1000),
-                percentComplete: p.percentComplete,
-            });
-        };
-
-        Search.onScored.subscribe(onScored);
-        Search.onProgress.subscribe(onProgress);
-
-        try {
-            await ensureBooted();
-            setStatus("running");
-
-            const sampleCount = Math.max(1, Math.trunc(randomCount));
-            const matchLimit = Math.max(0, Math.trunc(stopAfter));
-            let settings = Search.settings(jamlText).withProgressReportIntervalMs(250n);
-            settings =
-                scope === "random"
-                    ? settings.withRandomSearch(sampleCount)
-                    : settings.withSequentialSearch();
-            if (matchLimit > 0) settings = settings.stopAfter(BigInt(matchLimit));
-
-            await settings.start(token);
-            setStatus(token.isCancellationRequested ? "idle" : "done");
-        } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
-            setStatus("error");
-        } finally {
-            Search.onScored.unsubscribe(onScored);
-            Search.onProgress.unsubscribe(onProgress);
-            tokenRef.current = null;
-        }
-    }, [jamlText, scope, randomCount, stopAfter]);
+        workerRef.current?.postMessage({ type: "start", config } satisfies WorkerRequest);
+    }, [
+        jamlText,
+        buildScope,
+        deck,
+        stake,
+        batchCharacterCount,
+        providerBatchSeedCount,
+        startBatchIndex,
+        endBatchIndex,
+        autoScoreCutoff,
+        stopAfter,
+    ]);
 
     const handleSearch = useCallback(() => {
         if (isSearching) {
-            tokenRef.current?.cancel();
+            workerRef.current?.postMessage({ type: "cancel" } satisfies WorkerRequest);
         } else {
-            void runSearch();
+            runSearch();
         }
     }, [isSearching, runSearch]);
 
@@ -186,7 +252,31 @@ export default function JamlView() {
     };
     const hitTone = status === "error" ? "red" : status === "done" ? "green" : "blue";
 
-    const parseCount = (v: string) => Math.max(0, Math.trunc(Number(v.replace(/[^\d]/g, "")) || 0));
+    const scopeButtons: Array<[ScopeMode, string]> = [
+        ["random", "Random"],
+        ["sequential", "Sequential"],
+        ["keyword", "Keyword"],
+        ["aesthetic", "Aesthetic"],
+        ["seedList", "Seed list"],
+    ];
+
+    const numberField = (
+        label: string,
+        value: number,
+        onChange: (n: number) => void,
+        hint?: string,
+    ) => (
+        <JimboStack gap="xs">
+            <JimboText size="xs" tone="grey">{label}</JimboText>
+            <JimboTextInput
+                inputMode="numeric"
+                value={value}
+                onChange={(e) => onChange(parseCount(e.currentTarget.value))}
+                disabled={isSearching}
+            />
+            {hint && <JimboText size="xs" tone="grey">{hint}</JimboText>}
+        </JimboStack>
+    );
 
     const sidebar = (
         <JimboStack gap="sm">
@@ -200,59 +290,170 @@ export default function JamlView() {
                     </JimboRow>
                     <JimboText size="sm" tone="grey">
                         {formatNumber(stats.seedsSearched)} searched · {formatNumber(stats.seedsPerSecond)}/s
-                        {scope === "random" && isSearching ? ` · ${Math.round(stats.percentComplete)}%` : ""}
+                        {scopeMode === "random" && isSearching
+                            ? ` · ${Math.round(stats.percentComplete)}%`
+                            : ""}
                     </JimboText>
-                    {(engineError || error) && (
-                        <JimboText size="sm" tone="red">
-                            {engineError ? `Engine failed to boot: ${engineError}` : error}
-                        </JimboText>
-                    )}
+                    {error && <JimboText size="sm" tone="red">{error}</JimboText>}
                 </JimboStack>
             </JimboPanel>
 
-            <JimboPanel title="Scope" tone="gold">
+            <JimboPanel title="Source" tone="gold">
                 <JimboStack gap="sm">
-                    <JimboRow gap="sm">
-                        <JimboButton
-                            fullWidth
-                            tone={scope === "random" ? "blue" : "grey"}
-                            disabled={isSearching}
-                            onClick={() => setScope("random")}
-                        >
-                            Random
-                        </JimboButton>
-                        <JimboButton
-                            fullWidth
-                            tone={scope === "sequential" ? "blue" : "grey"}
-                            disabled={isSearching}
-                            onClick={() => setScope("sequential")}
-                        >
-                            Sequential
-                        </JimboButton>
-                    </JimboRow>
-                    {scope === "random" && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                        {scopeButtons.map(([mode, label]) => (
+                            <JimboButton
+                                key={mode}
+                                fullWidth
+                                tone={scopeMode === mode ? "blue" : "grey"}
+                                disabled={isSearching}
+                                onClick={() => setScopeMode(mode)}
+                            >
+                                {label}
+                            </JimboButton>
+                        ))}
+                    </div>
+
+                    {scopeMode === "random" &&
+                        numberField("Seeds to sample", randomCount, (n) =>
+                            setRandomCount(Math.max(1, n)),
+                        )}
+
+                    {scopeMode === "keyword" && (
                         <JimboStack gap="xs">
-                            <JimboText size="xs" tone="grey">Seeds to sample</JimboText>
+                            <JimboText size="xs" tone="grey">Keywords (comma-separated)</JimboText>
                             <JimboTextInput
-                                inputMode="numeric"
-                                value={randomCount}
-                                onChange={(e) => setRandomCount(Math.max(1, parseCount(e.currentTarget.value)))}
+                                value={keywords}
+                                onChange={(e) => setKeywords(e.currentTarget.value)}
                                 disabled={isSearching}
                             />
                         </JimboStack>
                     )}
-                    <JimboStack gap="xs">
-                        <JimboText size="xs" tone="grey">Stop after N matches (0 = unlimited)</JimboText>
-                        <JimboTextInput
-                            inputMode="numeric"
-                            value={stopAfter}
-                            onChange={(e) => setStopAfter(parseCount(e.currentTarget.value))}
+
+                    {scopeMode === "aesthetic" && (
+                        <JimboStack gap="xs">
+                            <JimboText size="xs" tone="grey">Aesthetic</JimboText>
+                            <select
+                                style={selectStyle}
+                                value={aesthetic}
+                                disabled={isSearching}
+                                onChange={(e) => setAesthetic(Number(e.currentTarget.value))}
+                            >
+                                {AESTHETIC_OPTS.map(([label, v]) => (
+                                    <option key={v} value={v}>{label}</option>
+                                ))}
+                            </select>
+                        </JimboStack>
+                    )}
+
+                    {(scopeMode === "keyword" || scopeMode === "aesthetic") && (
+                        <JimboButton
+                            fullWidth
+                            tone={quickPad ? "blue" : "grey"}
                             disabled={isSearching}
-                        />
+                            onClick={() => setQuickPad((q) => !q)}
+                        >
+                            Quick pad: {quickPad ? "on" : "off"}
+                        </JimboButton>
+                    )}
+
+                    {scopeMode === "seedList" && (
+                        <JimboStack gap="xs">
+                            <JimboText size="xs" tone="grey">Seeds (space/comma-separated)</JimboText>
+                            <JimboTextInput
+                                value={seedList}
+                                onChange={(e) => setSeedList(e.currentTarget.value)}
+                                disabled={isSearching}
+                            />
+                        </JimboStack>
+                    )}
+
+                    {numberField(
+                        "Stop after N matches (0 = unlimited)",
+                        stopAfter,
+                        setStopAfter,
+                    )}
+                </JimboStack>
+            </JimboPanel>
+
+            <JimboPanel title="Overrides" tone="green">
+                <JimboStack gap="sm">
+                    <JimboStack gap="xs">
+                        <JimboText size="xs" tone="grey">Deck (JAML default if unset)</JimboText>
+                        <select
+                            style={selectStyle}
+                            value={deck ?? ""}
+                            disabled={isSearching}
+                            onChange={(e) =>
+                                setDeck(e.currentTarget.value === "" ? null : Number(e.currentTarget.value))
+                            }
+                        >
+                            <option value="">— JAML default —</option>
+                            {DECK_OPTS.map(([label, v]) => (
+                                <option key={v} value={v}>{label}</option>
+                            ))}
+                        </select>
                     </JimboStack>
-                    <JimboText size="xs" tone="grey">
-                        Deck &amp; stake come from the JAML. Sequential walks the whole seed space; cancel any time.
-                    </JimboText>
+                    <JimboStack gap="xs">
+                        <JimboText size="xs" tone="grey">Stake (JAML default if unset)</JimboText>
+                        <select
+                            style={selectStyle}
+                            value={stake ?? ""}
+                            disabled={isSearching}
+                            onChange={(e) =>
+                                setStake(e.currentTarget.value === "" ? null : Number(e.currentTarget.value))
+                            }
+                        >
+                            <option value="">— JAML default —</option>
+                            {STAKE_OPTS.map(([label, v]) => (
+                                <option key={v} value={v}>{label}</option>
+                            ))}
+                        </select>
+                    </JimboStack>
+                    <JimboButton
+                        fullWidth
+                        tone={autoScoreCutoff ? "blue" : "grey"}
+                        disabled={isSearching}
+                        onClick={() => setAutoScoreCutoff((v) => !v)}
+                    >
+                        Auto score cutoff: {autoScoreCutoff ? "on" : "off"}
+                    </JimboButton>
+                </JimboStack>
+            </JimboPanel>
+
+            <JimboPanel title="Batching" tone="grey">
+                <JimboStack gap="sm">
+                    <JimboButton
+                        fullWidth
+                        tone="grey"
+                        onClick={() => setShowAdvanced((v) => !v)}
+                    >
+                        {showAdvanced ? "Hide" : "Show"} batch controls
+                    </JimboButton>
+                    {showAdvanced && (
+                        <JimboStack gap="sm">
+                            {numberField(
+                                "Batch character count (0 = auto)",
+                                batchCharacterCount,
+                                setBatchCharacterCount,
+                            )}
+                            {numberField(
+                                "Provider batch seed count (0 = auto)",
+                                providerBatchSeedCount,
+                                setProviderBatchSeedCount,
+                            )}
+                            {numberField(
+                                "Start batch index (0 = start)",
+                                startBatchIndex,
+                                setStartBatchIndex,
+                            )}
+                            {numberField(
+                                "End batch index (0 = end)",
+                                endBatchIndex,
+                                setEndBatchIndex,
+                            )}
+                        </JimboStack>
+                    )}
                 </JimboStack>
             </JimboPanel>
         </JimboStack>
@@ -271,7 +472,7 @@ export default function JamlView() {
                     subtitle={statusLabel[status]}
                 />
             </div>
-            <div style={{ width: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12 }}>
                 <JimboButton
                     fullWidth
                     tone={isSearching ? "red" : "blue"}
