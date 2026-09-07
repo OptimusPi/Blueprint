@@ -2,6 +2,8 @@ import "@mantine/core/styles.css";
 import '@mantine/code-highlight/styles.css';
 import '@mantine/carousel/styles.css';
 import '@mantine/spotlight/styles.css';
+import "jaml-ui/fonts.css";
+import "jaml-ui/jimbo.css";
 
 
 import { MantineProvider } from "@mantine/core";
@@ -12,9 +14,6 @@ import { SeedOptionsProvider } from "./modules/state/optionsProvider.tsx";
 import { DownloadSeedResultProvider } from "./modules/state/downloadProvider.tsx";
 import { BlueprintThemeProvider, useBlueprintTheme } from "./modules/state/themeProvider.tsx";
 import { JamlSearchProvider } from "./modules/state/jamlSearchContext.tsx";
-import { setJamlAssetBaseUrl } from "jaml-ui";
-
-setJamlAssetBaseUrl("./images");
 
 const queryClient = new QueryClient()
 
