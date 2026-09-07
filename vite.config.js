@@ -29,6 +29,9 @@ export default defineConfig({
     exclude: ['motely-wasm'],
   },
   assetsInclude: ['**/*.wasm'],
+  worker: {
+    format: 'es',
+  },
   build: {
     target: 'esnext',
   },
