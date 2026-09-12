@@ -16,6 +16,7 @@ import {
     parseJaml,
 } from "jaml-ui";
 import { JamlAesthetic, MotelyDeck, MotelyStake } from "motely-wasm";
+import { Severity, getDiagnostics } from "jaml-lang";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import type { JamlIdeSearchResult, JimboStatus } from "jaml-ui";
 import type { MotelySeedScore } from "motely-wasm";
@@ -164,7 +165,15 @@ export default function JamlView() {
         }
     }, [jamlText]);
 
+    const jamlErrors = useMemo(
+        () => getDiagnostics(jamlText)
+            .filter((d) => d.severity === Severity.Error)
+            .map((d) => `line ${d.range.start.line + 1}: ${d.message}`),
+        [jamlText],
+    );
+
     const isSearching = status === "running" || status === "booting";
+    const startBlocked = !isSearching && jamlErrors.length > 0;
 
     const estimate = useMemo(() => {
         try {
@@ -252,10 +261,10 @@ export default function JamlView() {
     const handleSearch = useCallback(() => {
         if (isSearching) {
             workerRef.current?.postMessage({ type: "cancel" } satisfies WorkerRequest);
-        } else {
+        } else if (jamlErrors.length === 0) {
             runSearch();
         }
-    }, [isSearching, runSearch]);
+    }, [isSearching, jamlErrors, runSearch]);
 
     const ideResults: Array<JamlIdeSearchResult> = useMemo(
         () =>
@@ -326,6 +335,7 @@ export default function JamlView() {
                             ? ` · ${Math.round(stats.percentComplete)}%`
                             : ""}
                     </JimboText>
+                    {jamlErrors.map((line) => <JimboText key={line} size="sm" tone="red">{line}</JimboText>)}
                     {error && <JimboText size="sm" tone="red">{error}</JimboText>}
                 </JimboStack>
             </JimboPanel>
@@ -537,6 +547,7 @@ export default function JamlView() {
                 <JimboButton
                     fullWidth
                     tone={isSearching ? "red" : "blue"}
+                    disabled={startBlocked}
                     onClick={handleSearch}
                 >
                     {isSearching ? "Cancel" : "Start Search"}

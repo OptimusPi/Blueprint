@@ -31,6 +31,42 @@ import { SeedQueuePanel } from "../../SeedQueue.tsx";
 import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
 import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
 
+export const viewModeOptions = [
+    {
+        value: 'blueprint',
+        label: (
+            <Group gap="xs" wrap="nowrap">
+                <IconLayout size={16} />
+                <Text>Blueprint</Text>
+            </Group>
+        )
+    },
+    {
+        value: 'jaml',
+        label: (
+            <Group gap={4} wrap="nowrap" align="center">
+                <Image
+                    src={`${import.meta.env.BASE_URL}images/JAML.ico`}
+                    alt="JAML"
+                    w={18}
+                    h={18}
+                    fit="contain"
+                />
+                <Text size="sm" style={{ whiteSpace: 'nowrap' }}>JAML</Text>
+            </Group>
+        )
+    },
+    {
+        value: 'bp-settings',
+        label: (
+            <Group gap={4} wrap="nowrap" align="center">
+                <IconSettings size={12} />
+                <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Settings</Text>
+            </Group>
+        )
+    }
+];
+
 export default function Navbar() {
     const theme = useMantineTheme();
     const viewMode = useCardStore(state => state.applicationState.viewMode);
@@ -83,41 +119,7 @@ export default function Navbar() {
                     fullWidth
                     value={viewMode}
                     onChange={(value: string) => setViewMode(value)}
-                    data={[
-                        {
-                            value: 'blueprint',
-                            label: (
-                                <Group gap="xs">
-                                    <IconLayout size={16} />
-                                    <Text>Blueprint</Text>
-                                </Group>
-                            )
-                        },
-                        {
-                            value: 'jaml',
-                            label: (
-                                <Group gap={4} wrap="nowrap" align="center">
-                                    <Image
-                                        src={`${import.meta.env.BASE_URL}images/JAML.ico`}
-                                        alt="JAML"
-                                        w={18}
-                                        h={18}
-                                        fit="contain"
-                                    />
-                                    <Text size="sm" style={{ whiteSpace: 'nowrap' }}>JAML</Text>
-                                </Group>
-                            )
-                        },
-                        {
-                            value: 'bp-settings',
-                            label: (
-                                <Group gap={4} wrap="nowrap" align="center">
-                                    <IconSettings size={12} />
-                                    <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Settings</Text>
-                                </Group>
-                            )
-                        }
-                    ]}
+                    data={viewModeOptions}
                     mb="sm"
                 />
                 <Divider mb='md' />

@@ -21,6 +21,7 @@
     "@tanstack/react-query": "^5.85.9",
     "embla-carousel-react": "^8.6.0",
     "immer": "^10.1.3",
+    "jaml-lang": "^3.14.2",
     "jaml-ui": "^4.6.0",
     "js-convert-case": "^4.2.0",
     "js-yaml": "^4.1.1",

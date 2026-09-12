@@ -11,14 +11,19 @@ export function SeedQueueHotkeys() {
     const seeds = useCardStore(state => state.seedQueue.seeds);
     const index = useCardStore(state => state.seedQueue.index);
     const engineState = useCardStore(state => state.engineState);
+    const viewMode = useCardStore(state => state.applicationState.viewMode);
     const stepSeedQueue = useCardStore(state => state.stepSeedQueue);
     const jumpSeedQueue = useCardStore(state => state.jumpSeedQueue);
 
+    const guarded = (fn: () => void) => () => {
+        if (viewMode !== 'jaml') fn();
+    };
+
     useHotkeys([
-        ["ArrowRight", () => stepSeedQueue(1)],
-        ["ArrowLeft", () => stepSeedQueue(-1)],
-        ["Home", () => jumpSeedQueue(0)],
-        ["End", () => jumpSeedQueue(seeds.length - 1)],
+        ["ArrowRight", guarded(() => stepSeedQueue(1))],
+        ["ArrowLeft", guarded(() => stepSeedQueue(-1))],
+        ["Home", guarded(() => jumpSeedQueue(0))],
+        ["End", guarded(() => jumpSeedQueue(seeds.length - 1))],
     ]);
 
     useEffect(() => {

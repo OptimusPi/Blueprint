@@ -23,7 +23,7 @@ interface JamlSearchContextType extends JamlSearchState {
 
 const JamlSearchContext = createContext<JamlSearchContextType | undefined>(undefined);
 
-const DEFAULT_JAML = `name: Blueprint Copy Engine
+export const DEFAULT_JAML = `name: Blueprint Copy Engine
 author: jammy
 description: Blueprint rare joker with Brainstorm for joker copying synergy
 deck: Red
@@ -44,9 +44,9 @@ should:
     score: 50
   - uncommonJoker: Showman
     score: 35
-  - spectral: Hex
+  - spectralCard: Hex
     score: 35
-  - mixedJoker: Any
+  - joker: Any
     edition: Negative
     score: 40
   - tag: NegativeTag

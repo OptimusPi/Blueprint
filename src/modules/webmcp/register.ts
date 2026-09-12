@@ -34,6 +34,7 @@ async function publish() {
     controller = new AbortController();
     const { signal } = controller;
     for (const tool of listTools()) {
+        if (signal.aborted) return;
         try {
             await ctx.registerTool(
                 {
@@ -46,6 +47,7 @@ async function publish() {
                 { signal },
             );
         } catch (error) {
+            if (signal.aborted) return;
             console.warn(`WebMCP: could not register ${tool.name}`, error);
         }
     }
