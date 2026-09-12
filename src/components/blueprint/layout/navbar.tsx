@@ -27,6 +27,7 @@ import { GaEvent } from "../../../modules/useGA.ts";
 import SeedInputAutoComplete from "../../SeedInputAutoComplete.tsx";
 import UnlocksModal from "../../unlocksModal.tsx";
 import FeaturesModal from "../../FeaturesModal.tsx";
+import { SeedQueuePanel } from "../../SeedQueue.tsx";
 import { DrawSimulatorModal } from "../../DrawSimulatorModal.tsx";
 import { RerollCalculatorModal } from "../../RerollCalculatorModal.tsx";
 
@@ -43,7 +44,8 @@ export default function Navbar() {
     const setUseCardPeek = useCardStore(state => state.setUseCardPeek);
     const maxMiscCardSource = useCardStore(state => state.applicationState.maxMiscCardSource);
     const setMiscMaxSource = useCardStore(state => state.setMiscMaxSource);
-    const maxAnte = useCardStore(state => state.applicationState.selectedAnte ?? 8);
+    const maxAnte = useCardStore(state => state.engineState.maxAnte);
+    const setMaxAnte = useCardStore(state => state.setMaxAnte);
 
     const setSeed = useCardStore(state => state.setSeed);
     const setDeck = useCardStore(state => state.setDeck);
@@ -59,7 +61,6 @@ export default function Navbar() {
     const rerollCalculatorMetadata = useCardStore(state => state.applicationState.rerollCalculatorMetadata);
     const closeRerollCalculatorModal = useCardStore(state => state.closeRerollCalculatorModal);
     const reset = useCardStore(state => state.reset);
-    const setSelectedAnte = useCardStore(state => state.setSelectedAnte);
 
     const handleAnalyzeClick = () => {
         setStart(true);
@@ -135,7 +136,7 @@ export default function Navbar() {
                                     value={maxAnte}
                                     onChange={(val) => {
                                         const n = Number(val) || 8;
-                                        setSelectedAnte(Math.max(1, Math.min(n, 39)));
+                                        setMaxAnte(Math.max(1, Math.min(n, 39)));
                                     }}
                                     min={1}
                                     max={39}
@@ -187,6 +188,7 @@ export default function Navbar() {
                                 ]}
                             />
                         </Group>
+                        <SeedQueuePanel />
                         <InputLabel>Cards per Ante</InputLabel>
                         <Button.Group w={'100%'} mb="xs">
                             <Button variant="default" size="sm" onClick={() => setCardsPerAnte(50)}>50</Button>

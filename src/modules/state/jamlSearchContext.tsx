@@ -1,4 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { registerTools } from '../webmcp/registry.ts';
+import { useCardStore } from './store.ts';
 import type { ReactNode } from 'react';
 
 interface JamlSearchState {
@@ -58,6 +60,36 @@ export function JamlSearchProvider({ children }: { children: ReactNode }) {
     const [jamlText, setJamlText] = useState<string>(DEFAULT_JAML);
     const [selectedFilterKey, setSelectedFilterKey] = useState<string>('default');
     const [customJamlText, setCustomJamlText] = useState<string>('');
+
+    const jamlRef = useRef(jamlText);
+    useEffect(() => {
+        jamlRef.current = jamlText;
+    }, [jamlText]);
+
+    useEffect(() => registerTools([
+        {
+            name: 'get_jaml_filter',
+            description: 'Read the JAML filter currently in the JAML search editor.',
+            inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+            execute: () => ({ jaml: jamlRef.current }),
+        },
+        {
+            name: 'set_jaml_filter',
+            description: 'Replace the JAML filter in the JAML search editor and switch to the JAML view. JAML is Jimbo\'s Ante Markup Language: name/deck/stake plus must/should/mustNot clause lists.',
+            inputSchema: {
+                type: 'object',
+                properties: { jaml: { type: 'string', minLength: 1 } },
+                required: ['jaml'],
+                additionalProperties: false,
+            },
+            execute: (input) => {
+                const jaml = String(input.jaml ?? '');
+                setJamlText(jaml);
+                useCardStore.getState().setViewMode('jaml');
+                return { lines: jaml.split('\n').length };
+            },
+        },
+    ]), []);
 
     return (
         <JamlSearchContext.Provider value={{

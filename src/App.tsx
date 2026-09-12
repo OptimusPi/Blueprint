@@ -14,6 +14,11 @@ import { SeedOptionsProvider } from "./modules/state/optionsProvider.tsx";
 import { DownloadSeedResultProvider } from "./modules/state/downloadProvider.tsx";
 import { BlueprintThemeProvider, useBlueprintTheme } from "./modules/state/themeProvider.tsx";
 import { JamlSearchProvider } from "./modules/state/jamlSearchContext.tsx";
+import AssistantDrawer from "./components/AssistantDrawer.tsx";
+import { SeedQueueHotkeys } from "./components/SeedQueue.tsx";
+import { startWebMcp } from "./modules/webmcp/register.ts";
+
+startWebMcp();
 
 const queryClient = new QueryClient()
 
@@ -42,6 +47,8 @@ export default function App() {
             <JamlSearchProvider>
                 <ProviderContainer>
                     <Blueprint/>
+                    <AssistantDrawer/>
+                    <SeedQueueHotkeys/>
                 </ProviderContainer>
             </JamlSearchProvider>
         </BlueprintThemeProvider>
