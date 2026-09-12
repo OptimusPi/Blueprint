@@ -14,10 +14,10 @@ function analyze(seed: string, antes = 3) {
 describe("seed summaries", () => {
     it("summarizes every generated ante in order", () => {
         const summary = summarizeSeed("WEEJOKER", analyze("WEEJOKER", 4), 5);
-        expect(summary.antes.map((a) => a.ante)).toEqual([1, 2, 3, 4]);
+        expect(summary.antes.map((a) => a.ante)).toEqual([0, 1, 2, 3, 4]);
         for (const ante of summary.antes) {
             expect(ante.shop.length).toBeLessThanOrEqual(5);
-            expect(ante.shopSize).toBe(20);
+            expect(ante.shopSize).toBeGreaterThan(0);
             expect(typeof ante.boss).toBe("string");
             expect(ante.packs.length).toBeGreaterThan(0);
         }
@@ -42,8 +42,18 @@ describe("parseSeedList", () => {
         expect(parseSeedList("aleeb\nPIROCKS weejoker\naleeb")).toEqual(["ALEEB", "PIROCKS", "WEEJOKER"]);
     });
 
-    it("takes the first column of CSV rows and skips a seed header", () => {
+    it("takes the first column of CSV rows, skips numeric tally columns and a seed header", () => {
         expect(parseSeedList("seed,score\nFAJK8SAR, 11, 1, 0\n16661,2")).toEqual(["FAJK8SAR", "16661"]);
+    });
+
+    it("keeps every seed of a comma-separated list", () => {
+        expect(parseSeedList("ALEEB,PIROCKS, WEEJOKER;16661\tABC1")).toEqual(["ALEEB", "PIROCKS", "WEEJOKER", "ABC1"]);
+    });
+
+    it("includes ante 0 in item searches", () => {
+        const results = analyze("WEEJOKER", 2);
+        const name = describeAnte(results.antes[0]).shop[0].item.replace(/ \(.*\)$/, "");
+        expect(findItems(results, [name])[name].some((h) => h.ante === 0)).toBe(true);
     });
 
     it("sanitizes zeros and junk", () => {

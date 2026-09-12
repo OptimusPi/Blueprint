@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo } from "react";
 
 
 import { analyzeSeed } from "../GameEngine/index.ts";
-import { useCardStore } from "./store.ts";
+import { startingDeckCards, useCardStore } from "./store.ts";
 import { useSeedOptionsContainer } from "./optionsProvider.tsx";
 import type { AnalyzeOptions } from "../GameEngine/index.ts";
 import type { InitialState } from "./store.ts";
@@ -53,15 +53,22 @@ function optionsFromStore(): AnalyzeOptions {
     };
 }
 
+function optionsForSeed(seed: string, state: EngineState): AnalyzeOptions {
+    const options = optionsFromStore();
+    if (seed === state.seed) return options;
+    return { ...options, buys: {}, sells: {}, customDeck: startingDeckCards(seed, state) };
+}
+
 export function analyzeSeedFromStore(seed?: string, overrides?: Partial<EngineState>) {
     const state = { ...useCardStore.getState().engineState, ...overrides };
     const target = seed ?? state.seed;
     if (!target) return undefined;
-    return runAnalysis(state, optionsFromStore(), target);
+    return runAnalysis(state, optionsForSeed(target, state), target);
 }
 
 export function prefetchSeedAnalysis(seed: string) {
-    runAnalysis(useCardStore.getState().engineState, optionsFromStore(), seed);
+    const state = useCardStore.getState().engineState;
+    runAnalysis(state, optionsForSeed(seed, state), seed);
 }
 
 export function SeedResultProvider({ children }: { children: React.ReactNode }) {

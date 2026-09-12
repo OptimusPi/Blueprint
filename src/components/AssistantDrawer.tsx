@@ -191,6 +191,12 @@ export default function AssistantDrawer() {
                 return next;
             });
 
+        const dropEmptyAssistant = () =>
+            setTurns((prev) => {
+                const last = prev[prev.length - 1];
+                return last?.role === "assistant" && !last.text && last.tools.length === 0 ? prev.slice(0, -1) : prev;
+            });
+
         const controller = new AbortController();
         abortRef.current = controller;
         const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -241,6 +247,7 @@ export default function AssistantDrawer() {
                 setError(err instanceof Error ? err.message : String(err));
             }
         } finally {
+            dropEmptyAssistant();
             abortRef.current = null;
             setBusy(false);
         }

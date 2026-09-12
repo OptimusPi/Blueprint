@@ -24,9 +24,7 @@ function label(card: Stringifies | CardTuple | undefined): string {
 }
 
 function sortedAntes(results: SeedResultsContainer): Array<Ante> {
-    return Object.values(results.antes)
-        .filter((ante) => ante.ante > 0)
-        .sort((a, b) => a.ante - b.ante);
+    return Object.values(results.antes).sort((a, b) => a.ante - b.ante);
 }
 
 export function summarizeSeed(seed: string, results: SeedResultsContainer, shopLimit = 12) {

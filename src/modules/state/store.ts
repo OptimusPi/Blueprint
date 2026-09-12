@@ -176,6 +176,16 @@ function saveSeedQueue(queue: InitialState['seedQueue']) {
     }
 }
 
+export function startingDeckCards(seed: string, engine: Pick<InitialState['engineState'], 'deck' | 'stake' | 'showmanOwned' | 'gameVersion'>): Array<DeckCard> {
+    const params = new InstanceParams(
+        new Deck(deckMap[engine.deck]),
+        new Stake(stakeMap[engine.stake]),
+        engine.showmanOwned,
+        Number(engine.gameVersion)
+    );
+    return new Game(seed, params).initDeck().map((card, i) => convertGameCardToDeckCard(card, i));
+}
+
 export function parseSeedList(text: string): Array<string> {
     const seen = new Set<string>();
     const seeds: Array<string> = [];
@@ -190,8 +200,10 @@ export function parseSeedList(text: string): Array<string> {
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith('#')) continue;
         if (/[,;|\t]/.test(trimmed)) {
-            const first = trimmed.split(/[,;|\t]/)[0].trim();
-            if (first.toLowerCase() !== 'seed') push(first);
+            const [first, ...rest] = trimmed.split(/[,;|\t]/).map((field) => field.trim());
+            if (first.toLowerCase() === 'seed') continue;
+            push(first);
+            rest.filter((field) => /[a-z]/i.test(field)).forEach(push);
         } else {
             trimmed.split(/\s+/).forEach(push);
         }
@@ -364,17 +376,7 @@ export const useCardStore = create<CardStore>()(
                         prev.searchState = initialState.searchState;
                         prev.applicationState.hasSettingsChanged = true;
 
-                        const deckType = deckMap[prev.engineState.deck];
-                        const stakeType = stakeMap[prev.engineState.stake];
-                        const params = new InstanceParams(
-                            new Deck(deckType),
-                            new Stake(stakeType),
-                            prev.engineState.showmanOwned,
-                            Number(prev.engineState.gameVersion)
-                        );
-                        const game = new Game(prev.engineState.seed, params);
-                        const gameCards = game.initDeck();
-                        prev.deckState.cards = gameCards.map((card, i) => convertGameCardToDeckCard(card, i));
+                        prev.deckState.cards = startingDeckCards(prev.engineState.seed, prev.engineState);
                         prev.deckState.isInitialized = true;
                     }, undefined, 'Global/SetSeed'),
                     setDeck: (deck: string) => set((prev) => {
@@ -384,18 +386,7 @@ export const useCardStore = create<CardStore>()(
                         // Create Game instance for deck initialization
                         // Only if we have a seed, otherwise use standard generation
                         if (prev.engineState.seed) {
-                            const deckType = deckMap[deck];
-                            const stakeType = stakeMap[prev.engineState.stake];
-                            const params = new InstanceParams(
-                                new Deck(deckType),
-                                new Stake(stakeType),
-                                prev.engineState.showmanOwned,
-                                Number(prev.engineState.gameVersion)
-                            );
-                            const game = new Game(prev.engineState.seed, params);
-
-                            const gameCards = game.initDeck();
-                            prev.deckState.cards = gameCards.map((card, i) => convertGameCardToDeckCard(card, i));
+                            prev.deckState.cards = startingDeckCards(prev.engineState.seed, prev.engineState);
                         } else {
                             const starterDeck = generateStartingDeck(deck);
                             prev.deckState.cards = starterDeck;

@@ -40,7 +40,7 @@ async function publish() {
                     name: tool.name,
                     description: tool.description,
                     inputSchema: tool.inputSchema,
-                    annotations: { readOnlyHint: READ_ONLY.has(tool.name), consequentialHint: false },
+                    annotations: { readOnlyHint: READ_ONLY.has(tool.name), consequentialHint: !READ_ONLY.has(tool.name) },
                     execute: async (input) => JSON.stringify(await tool.execute(input ?? {})),
                 },
                 { signal },
