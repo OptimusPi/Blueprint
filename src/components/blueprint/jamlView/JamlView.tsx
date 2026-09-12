@@ -75,6 +75,7 @@ export default function JamlView() {
     const [error, setError] = useState<string | null>(null);
     const [results, setResults] = useState<Array<MotelySeedScore>>([]);
     const [stats, setStats] = useState<SearchStats>(EMPTY_STATS);
+    const [searchedJaml, setSearchedJaml] = useState<string | null>(null);
 
     // Search source (mutually exclusive engine modes).
     const [scopeMode, setScopeMode] = useState<ScopeMode>("random");
@@ -173,12 +174,16 @@ export default function JamlView() {
         }
     }, [jamlText]);
     const hits = stats.matchingSeeds || results.length;
-    const measured = hits > 0 && stats.seedsSearched > 0;
+    const measured = hits > 0 && stats.seedsSearched > 0 && searchedJaml === jamlText;
     const estimatedP = estimate?.combined.oneIn ? estimate.combined.pPerSeed : 0;
     const pPerSeed = measured ? hits / stats.seedsSearched : estimatedP;
     const calculus = pPerSeed > 0
         ? {
-            source: measured ? `measured: ${formatNumber(hits)} ÷ ${formatNumber(stats.seedsSearched)}` : "estimated from the filter, ±10x",
+            source: measured
+                ? `measured: ${formatNumber(hits)} ÷ ${formatNumber(stats.seedsSearched)}`
+                : searchedJaml !== null && searchedJaml !== jamlText
+                    ? "estimated from the edited filter, ±10x (search stats belong to the previous filter)"
+                    : "estimated from the filter, ±10x",
             oneIn: formatOneIn(1 / pPerSeed),
             expected: 1 / pPerSeed,
             coinFlip: Math.LN2 / pPerSeed,
@@ -213,6 +218,7 @@ export default function JamlView() {
         setError(null);
         setResults([]);
         setStats(EMPTY_STATS);
+        setSearchedJaml(jamlText);
         collectedRef.current = [];
 
         const config: SearchConfig = {
