@@ -497,9 +497,6 @@ export const useCardStore = create<CardStore>()(
                         set((prev) => {
                             prev.seedQueue.index = clamped;
                             prev.applicationState.start = true;
-                            prev.applicationState.viewMode = prev.applicationState.viewMode === 'jaml'
-                                ? 'blueprint'
-                                : prev.applicationState.viewMode;
                             saveSeedQueue(prev.seedQueue);
                         }, undefined, 'SeedQueue/Jump');
                     },

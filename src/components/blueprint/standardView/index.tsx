@@ -558,6 +558,7 @@ export function Blueprint() {
     const { width } = useViewportSize();
     const settingsOpened = useCardStore(state => state.applicationState.settingsOpen);
     const outputOpened = useCardStore(state => state.applicationState.asideOpen);
+    const viewMode = useCardStore(state => state.applicationState.viewMode);
     const download = useDownloadSeedResults()
     useEffect(() => {
         if(typeof window !== 'undefined' && !!download) {
@@ -579,10 +580,12 @@ export function Blueprint() {
             navbar={{
                 width: { base: '100%', md: 400, lg: 400 },
                 breakpoint: 'sm',
-                collapsed: {
-                    desktop: !(width > 1000) && !settingsOpened,
-                    mobile: !settingsOpened
-                },
+                collapsed: viewMode === 'jaml'
+                    ? { desktop: true, mobile: true }
+                    : {
+                        desktop: !(width > 1000) && !settingsOpened,
+                        mobile: !settingsOpened
+                    },
             }}
             padding="md"
         >

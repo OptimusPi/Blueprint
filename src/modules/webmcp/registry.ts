@@ -31,8 +31,14 @@ export function registerTool(tool: BlueprintTool): () => void {
 }
 
 export function registerTools(list: Array<BlueprintTool>): () => void {
-    const unregister = list.map(registerTool);
-    return () => unregister.forEach((fn) => fn());
+    for (const tool of list) tools.set(tool.name, tool);
+    notify();
+    return () => {
+        for (const tool of list) {
+            if (tools.get(tool.name) === tool) tools.delete(tool.name);
+        }
+        notify();
+    };
 }
 
 export function listTools(): Array<BlueprintTool> {
