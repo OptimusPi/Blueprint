@@ -543,7 +543,6 @@ function Main() {
             {SeedResults && viewMode === 'text' && <Index />}
             {SeedResults && viewMode === 'simple' && <Simple />}
             {viewMode === 'jaml' && <JamlView />}
-            {SeedResults && viewMode === 'blueprint' && <SeedExplorer />}
             {SeedResults && <SnapshotModal />}
         </AppShell.Main>
     )

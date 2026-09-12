@@ -9,6 +9,10 @@ import {
     JimboStatusPill,
     JimboText,
     JimboTextInput,
+    estimateEtaSeconds,
+    estimateJamlRarity,
+    formatEta,
+    formatOneIn,
     parseJaml,
 } from "jaml-ui";
 import { JamlAesthetic, MotelyDeck, MotelyStake } from "motely-wasm";
@@ -71,6 +75,7 @@ export default function JamlView() {
     const [error, setError] = useState<string | null>(null);
     const [results, setResults] = useState<Array<MotelySeedScore>>([]);
     const [stats, setStats] = useState<SearchStats>(EMPTY_STATS);
+    const [searchedJaml, setSearchedJaml] = useState<string | null>(null);
 
     // Search source (mutually exclusive engine modes).
     const [scopeMode, setScopeMode] = useState<ScopeMode>("random");
@@ -161,6 +166,32 @@ export default function JamlView() {
 
     const isSearching = status === "running" || status === "booting";
 
+    const estimate = useMemo(() => {
+        try {
+            return estimateJamlRarity(jamlText);
+        } catch {
+            return null;
+        }
+    }, [jamlText]);
+    const hits = stats.matchingSeeds || results.length;
+    const measured = hits > 0 && stats.seedsSearched > 0 && searchedJaml === jamlText;
+    const estimatedP = estimate?.combined.oneIn ? estimate.combined.pPerSeed : 0;
+    const pPerSeed = measured ? hits / stats.seedsSearched : estimatedP;
+    const calculus = pPerSeed > 0
+        ? {
+            source: measured
+                ? `measured: ${formatNumber(hits)} ÷ ${formatNumber(stats.seedsSearched)}`
+                : searchedJaml !== null && searchedJaml !== jamlText
+                    ? "estimated from the edited filter, ±10x (search stats belong to the previous filter)"
+                    : "estimated from the filter, ±10x",
+            oneIn: formatOneIn(1 / pPerSeed),
+            expected: 1 / pPerSeed,
+            coinFlip: Math.LN2 / pPerSeed,
+            almostCertain: Math.log(20) / pPerSeed,
+            eta: (seeds: number) => stats.seedsPerSecond > 0 ? formatEta(estimateEtaSeconds(1 / seeds, stats.seedsPerSecond)) : "—",
+        }
+        : null;
+
     const buildScope = useCallback((): SearchScope => {
         switch (scopeMode) {
             case "random":
@@ -187,6 +218,7 @@ export default function JamlView() {
         setError(null);
         setResults([]);
         setStats(EMPTY_STATS);
+        setSearchedJaml(jamlText);
         collectedRef.current = [];
 
         const config: SearchConfig = {
@@ -296,6 +328,35 @@ export default function JamlView() {
                     </JimboText>
                     {error && <JimboText size="sm" tone="red">{error}</JimboText>}
                 </JimboStack>
+            </JimboPanel>
+
+            <JimboPanel title="Calculus" tone="grey">
+                {calculus ? (
+                    <JimboStack gap="xs">
+                        <JimboRow justify="between">
+                            <JimboText size="xs" tone="grey">Rarity</JimboText>
+                            <JimboText size="sm">{calculus.oneIn}</JimboText>
+                        </JimboRow>
+                        <JimboText size="xs" tone="grey">{calculus.source}</JimboText>
+                        <JimboRow justify="between">
+                            <JimboText size="xs" tone="grey">Expected wait (1/p)</JimboText>
+                            <JimboText size="sm">{formatNumber(Math.round(calculus.expected))} · {calculus.eta(calculus.expected)}</JimboText>
+                        </JimboRow>
+                        <JimboRow justify="between">
+                            <JimboText size="xs" tone="grey">Coin flip (ln 2/p)</JimboText>
+                            <JimboText size="sm">{formatNumber(Math.round(calculus.coinFlip))} · {calculus.eta(calculus.coinFlip)}</JimboText>
+                        </JimboRow>
+                        <JimboRow justify="between">
+                            <JimboText size="xs" tone="grey">95% (ln 20/p)</JimboText>
+                            <JimboText size="sm">{formatNumber(Math.round(calculus.almostCertain))} · {calculus.eta(calculus.almostCertain)}</JimboText>
+                        </JimboRow>
+                        {stats.seedsPerSecond === 0 && (
+                            <JimboText size="xs" tone="grey">Times appear once the rig speed is measured.</JimboText>
+                        )}
+                    </JimboStack>
+                ) : (
+                    <JimboText size="xs" tone="grey">No estimate for this filter yet; rarity is measured once the search has hits.</JimboText>
+                )}
             </JimboPanel>
 
             <JimboPanel title="Source" tone="gold">

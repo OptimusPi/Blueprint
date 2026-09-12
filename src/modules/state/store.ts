@@ -51,6 +51,11 @@ export interface InitialState {
         rerollStartIndex: number;
         conversionSourceId: string | null;
         apiEndpoint: string;
+        assistantOpen: boolean;
+    };
+    seedQueue: {
+        seeds: Array<string>;
+        index: number;
     };
     searchState: {
         searchTerm: string;
@@ -105,6 +110,11 @@ interface StoreActions {
     setSelectedBlind: (selectedBlind: Blinds) => void;
     toggleSettings: () => void;
     toggleOutput: () => void;
+    toggleAssistant: () => void;
+    setSeedQueue: (seeds: Array<string>) => void;
+    jumpSeedQueue: (index: number) => void;
+    stepSeedQueue: (delta: number) => void;
+    clearSeedQueue: () => void;
     setApiEndpoint: (apiEndpoint: string) => void;
     setMiscSource: (source: string) => void;
     setAsideTab: (tab: string) => void;
@@ -139,6 +149,68 @@ interface StoreActions {
     reset: () => void;
 }
 export interface CardStore extends InitialState, StoreActions { }
+
+const SEED_QUEUE_KEY = 'blueprint-seed-queue';
+
+function loadSeedQueue(): InitialState['seedQueue'] {
+    try {
+        const raw = localStorage.getItem(SEED_QUEUE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.seeds)) {
+                const index = Math.min(Math.max(0, Number(parsed.index) || 0), Math.max(0, parsed.seeds.length - 1));
+                return { seeds: parsed.seeds.filter((s: unknown) => typeof s === 'string'), index };
+            }
+        }
+    } catch {
+        return { seeds: [], index: 0 };
+    }
+    return { seeds: [], index: 0 };
+}
+
+function saveSeedQueue(queue: InitialState['seedQueue']) {
+    try {
+        localStorage.setItem(SEED_QUEUE_KEY, JSON.stringify(queue));
+    } catch {
+        return;
+    }
+}
+
+export function startingDeckCards(seed: string, engine: Pick<InitialState['engineState'], 'deck' | 'stake' | 'showmanOwned' | 'gameVersion'>): Array<DeckCard> {
+    const params = new InstanceParams(
+        new Deck(deckMap[engine.deck]),
+        new Stake(stakeMap[engine.stake]),
+        engine.showmanOwned,
+        Number(engine.gameVersion)
+    );
+    return new Game(seed, params).initDeck().map((card, i) => convertGameCardToDeckCard(card, i));
+}
+
+export function parseSeedList(text: string): Array<string> {
+    const seen = new Set<string>();
+    const seeds: Array<string> = [];
+    const push = (token: string) => {
+        const seed = sanitizeSeed(token);
+        if (seed && !seen.has(seed)) {
+            seen.add(seed);
+            seeds.push(seed);
+        }
+    };
+    for (const line of text.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        if (/[,;|\t]/.test(trimmed)) {
+            const [first, ...rest] = trimmed.split(/[,;|\t]/).map((field) => field.trim());
+            if (first.toLowerCase() === 'seed') continue;
+            push(first);
+            rest.filter((field) => /[a-z]/i.test(field)).forEach(push);
+        } else {
+            trimmed.split(/\s+/).forEach(push);
+        }
+    }
+    return seeds;
+}
+
 const initialState: InitialState = {
     engineState: {
         seed: '',
@@ -175,8 +247,10 @@ const initialState: InitialState = {
         rerollStartIndex: 0,
         drawSimulatorModalOpen: false,
         conversionSourceId: null,
-        apiEndpoint: 'https://motelyjaml-pi.8pi.me'
+        apiEndpoint: 'https://motelyjaml-pi.8pi.me',
+        assistantOpen: false,
     },
+    seedQueue: loadSeedQueue(),
     searchState: {
         searchTerm: '',
         searchResults: [],
@@ -302,17 +376,7 @@ export const useCardStore = create<CardStore>()(
                         prev.searchState = initialState.searchState;
                         prev.applicationState.hasSettingsChanged = true;
 
-                        const deckType = deckMap[prev.engineState.deck];
-                        const stakeType = stakeMap[prev.engineState.stake];
-                        const params = new InstanceParams(
-                            new Deck(deckType),
-                            new Stake(stakeType),
-                            prev.engineState.showmanOwned,
-                            Number(prev.engineState.gameVersion)
-                        );
-                        const game = new Game(prev.engineState.seed, params);
-                        const gameCards = game.initDeck();
-                        prev.deckState.cards = gameCards.map((card, i) => convertGameCardToDeckCard(card, i));
+                        prev.deckState.cards = startingDeckCards(prev.engineState.seed, prev.engineState);
                         prev.deckState.isInitialized = true;
                     }, undefined, 'Global/SetSeed'),
                     setDeck: (deck: string) => set((prev) => {
@@ -322,18 +386,7 @@ export const useCardStore = create<CardStore>()(
                         // Create Game instance for deck initialization
                         // Only if we have a seed, otherwise use standard generation
                         if (prev.engineState.seed) {
-                            const deckType = deckMap[deck];
-                            const stakeType = stakeMap[prev.engineState.stake];
-                            const params = new InstanceParams(
-                                new Deck(deckType),
-                                new Stake(stakeType),
-                                prev.engineState.showmanOwned,
-                                Number(prev.engineState.gameVersion)
-                            );
-                            const game = new Game(prev.engineState.seed, params);
-
-                            const gameCards = game.initDeck();
-                            prev.deckState.cards = gameCards.map((card, i) => convertGameCardToDeckCard(card, i));
+                            prev.deckState.cards = startingDeckCards(prev.engineState.seed, prev.engineState);
                         } else {
                             const starterDeck = generateStartingDeck(deck);
                             prev.deckState.cards = starterDeck;
@@ -426,6 +479,37 @@ export const useCardStore = create<CardStore>()(
                     toggleOutput: () => set((prev) => {
                         prev.applicationState.asideOpen = !prev.applicationState.asideOpen;
                     }, undefined, 'Global/ToggleOutput'),
+                    toggleAssistant: () => set((prev) => {
+                        prev.applicationState.assistantOpen = !prev.applicationState.assistantOpen;
+                    }, undefined, 'Global/ToggleAssistant'),
+                    setSeedQueue: (seeds) => {
+                        set((prev) => {
+                            prev.seedQueue = { seeds, index: 0 };
+                            saveSeedQueue(prev.seedQueue);
+                        }, undefined, 'SeedQueue/Set');
+                        if (seeds.length > 0) get().jumpSeedQueue(0);
+                    },
+                    jumpSeedQueue: (index) => {
+                        const { seeds } = get().seedQueue;
+                        if (seeds.length === 0) return;
+                        const clamped = Math.min(Math.max(0, Math.trunc(index)), seeds.length - 1);
+                        get().setSeed(seeds[clamped]);
+                        set((prev) => {
+                            prev.seedQueue.index = clamped;
+                            prev.applicationState.start = true;
+                            prev.applicationState.viewMode = prev.applicationState.viewMode === 'jaml'
+                                ? 'blueprint'
+                                : prev.applicationState.viewMode;
+                            saveSeedQueue(prev.seedQueue);
+                        }, undefined, 'SeedQueue/Jump');
+                    },
+                    stepSeedQueue: (delta) => {
+                        get().jumpSeedQueue(get().seedQueue.index + delta);
+                    },
+                    clearSeedQueue: () => set((prev) => {
+                        prev.seedQueue = { seeds: [], index: 0 };
+                        saveSeedQueue(prev.seedQueue);
+                    }, undefined, 'SeedQueue/Clear'),
                     setApiEndpoint: (apiEndpoint) => set((prev) => {
                         prev.applicationState.apiEndpoint = apiEndpoint;
                     }, undefined, 'Global/SetApiEndpoint'),
@@ -629,7 +713,7 @@ export const useCardStore = create<CardStore>()(
                         buys: state.shoppingState.buys,
                         sells: state.shoppingState.sells
                     },
-                    applicationState: state.applicationState,
+                    applicationState: { ...state.applicationState, assistantOpen: false },
                     searchState: state.searchState,
                     deckState: state.deckState
                 }),

@@ -2,8 +2,12 @@ import React, { createContext, useContext, useMemo } from "react";
 
 
 import { analyzeSeed } from "../GameEngine/index.ts";
-import { useCardStore } from "./store.ts";
+import { startingDeckCards, useCardStore } from "./store.ts";
 import { useSeedOptionsContainer } from "./optionsProvider.tsx";
+import type { AnalyzeOptions } from "../GameEngine/index.ts";
+import type { InitialState } from "./store.ts";
+import type { OptionsProviderProps } from "./optionsProvider.tsx";
+import type { DeckCard } from "../deckUtils.ts";
 import type { SeedResultsContainer } from "../GameEngine/CardEngines/Cards.ts";
 
 export const SeedResultContext = createContext<SeedResultsContainer | null | undefined>(null);
@@ -16,15 +20,55 @@ export function useSeedResultsContainer() {
     return context;
 }
 
-
-// Simple in-memory cache
 const resultCache = new Map<string, SeedResultsContainer>();
 
-// Helper to generate a cache key from all influential state
-function getCacheKey(state: any, options: any, seed: string) {
-    // We exclude seed from the base state object and append it explicitly
+type EngineState = InitialState['engineState'];
+
+function getCacheKey(state: EngineState, options: AnalyzeOptions, seed: string) {
     const { seed: _seed, ...restState } = state;
     return JSON.stringify({ ...restState, options, seed });
+}
+
+function runAnalysis(state: EngineState, options: AnalyzeOptions, seed: string) {
+    const cacheKey = getCacheKey(state, options, seed);
+    const cached = resultCache.get(cacheKey);
+    if (cached) return cached;
+    const result = analyzeSeed({ ...state, seed, antes: state.maxAnte }, options);
+    if (result) resultCache.set(cacheKey, result);
+    return result;
+}
+
+function optionsFromStore(): AnalyzeOptions {
+    const s = useCardStore.getState();
+    return {
+        maxMiscCardSource: s.applicationState.maxMiscCardSource,
+        showCardSpoilers: s.applicationState.showCardSpoilers,
+        unlocks: s.engineState.selectedOptions,
+        events: s.eventState.events,
+        updates: [],
+        buys: s.shoppingState.buys,
+        sells: s.shoppingState.sells,
+        lockedCards: s.lockState.lockedCards,
+        customDeck: s.deckState.cards,
+    };
+}
+
+function optionsForSeed(seed: string, state: EngineState): AnalyzeOptions {
+    const options = optionsFromStore();
+    if (seed === state.seed) return options;
+    return { ...options, buys: {}, sells: {}, customDeck: startingDeckCards(seed, state) };
+}
+
+export function analyzeSeedFromStore(seed?: string, overrides?: Partial<EngineState>) {
+    const state = { ...useCardStore.getState().engineState, ...overrides };
+    const target = seed ?? state.seed;
+    if (!target) return undefined;
+    return runAnalysis(state, optionsForSeed(target, state), target);
+}
+
+export function prefetchSeedAnalysis(seed: string) {
+    const state = useCardStore.getState().engineState;
+    runAnalysis(state, optionsForSeed(seed, state), seed);
 }
 
 export function SeedResultProvider({ children }: { children: React.ReactNode }) {
@@ -37,28 +81,8 @@ export function SeedResultProvider({ children }: { children: React.ReactNode }) 
         if (!start) {
             return undefined;
         }
-
-        const cacheKey = getCacheKey(analyzeState, options, analyzeState.seed);
-
-        if (resultCache.has(cacheKey)) {
-            return resultCache.get(cacheKey);
-        }
-
-        // Analyze and cache
-        const result = analyzeSeed(analyzeState, {
-            ...options,
-            customDeck: deckCards
-        });
-        if (result) {
-            resultCache.set(cacheKey, result);
-        }
-        return result;
+        return runAnalysis(analyzeState, toAnalyzeOptions(options, deckCards), analyzeState.seed);
     }, [analyzeState, deckCards, options, start]);
-
-    // Expose a way to pre-warm the cache from other components
-    // We attach this to the window or export a hook, but for now, 
-    // passing it via context or just exporting a function that reads the store might be cleaner.
-    // For simplicity in this specialized app, we'll keep the cache global.
 
     return (
         <SeedResultContext.Provider value={seedResult}>
@@ -67,14 +91,6 @@ export function SeedResultProvider({ children }: { children: React.ReactNode }) 
     )
 }
 
-export function prefetchSeedAnalysis(seed: string, state: any, options: any) {
-    const cacheKey = getCacheKey(state, options, seed);
-    if (resultCache.has(cacheKey)) return; // Already cached
-
-    // Create a version of state with the new seed
-    const newState = { ...state, seed };
-    const result = analyzeSeed(newState, options);
-    if (result) {
-        resultCache.set(cacheKey, result);
-    }
+function toAnalyzeOptions(options: OptionsProviderProps, customDeck: Array<DeckCard>): AnalyzeOptions {
+    return { ...options, customDeck };
 }

@@ -1,6 +1,8 @@
 import React from "react";
 import {useViewportSize} from "@mantine/hooks";
-import {AppShell, Box, Burger, Button, Center, Container, CopyButton, Group, Title} from "@mantine/core";
+import {ActionIcon, AppShell, Box, Burger, Button, Center, Container, CopyButton, Group, Title, Tooltip} from "@mantine/core";
+import {IconMessageChatbot} from "@tabler/icons-react";
+import {SeedQueueControls} from "../../SeedQueue.tsx";
 import {useCardStore} from "../../../modules/state/store.ts";
 import SearchSeedInput from "../../searchInput.tsx";
 import {GaEvent} from "../../../modules/useGA.ts";
@@ -13,6 +15,8 @@ export default function Header() {
 
     const outputOpened = useCardStore(state => state.applicationState.asideOpen);
     const toggleOutput = useCardStore(state => state.toggleOutput);
+    const assistantOpened = useCardStore(state => state.applicationState.assistantOpen);
+    const toggleAssistant = useCardStore(state => state.toggleAssistant);
 
     return (
         <AppShell.Header>
@@ -30,7 +34,8 @@ export default function Header() {
                     </Group>
 
                     <Group align={'center'}>
-{width > 600 && start && <Box id="search-input-header"><SearchSeedInput /></Box>}
+                        {width > 900 && <SeedQueueControls />}
+                        {width > 600 && start && <Box id="search-input-header"><SearchSeedInput /></Box>}
                         {width > 700 && start && (
                             <CopyButton value={new URL(window.location.href).toString()}>
                                 {({ copied, copy }) => (
@@ -40,6 +45,17 @@ export default function Header() {
                                 )}
                             </CopyButton>
                         )}
+                        <Tooltip label="Chat with the Blueprint assistant">
+                            <ActionIcon
+                                id="assistant-toggle"
+                                variant={assistantOpened ? 'filled' : 'default'}
+                                size="lg"
+                                aria-label="Open assistant"
+                                onClick={toggleAssistant}
+                            >
+                                <IconMessageChatbot size={20} />
+                            </ActionIcon>
+                        </Tooltip>
                         <Burger id="side-panel-toggle" opened={outputOpened} onClick={() => {
                             GaEvent('side_panel_toggled')
                             toggleOutput()
