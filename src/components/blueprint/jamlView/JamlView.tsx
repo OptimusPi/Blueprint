@@ -174,7 +174,8 @@ export default function JamlView() {
     }, [jamlText]);
     const hits = stats.matchingSeeds || results.length;
     const measured = hits > 0 && stats.seedsSearched > 0;
-    const pPerSeed = measured ? hits / stats.seedsSearched : estimate?.combined.pPerSeed ?? 0;
+    const estimatedP = estimate?.combined.oneIn ? estimate.combined.pPerSeed : 0;
+    const pPerSeed = measured ? hits / stats.seedsSearched : estimatedP;
     const calculus = pPerSeed > 0
         ? {
             source: measured ? `measured: ${formatNumber(hits)} ÷ ${formatNumber(stats.seedsSearched)}` : "estimated from the filter, ±10x",
@@ -348,7 +349,7 @@ export default function JamlView() {
                         )}
                     </JimboStack>
                 ) : (
-                    <JimboText size="xs" tone="grey">No must clauses to estimate from yet.</JimboText>
+                    <JimboText size="xs" tone="grey">No estimate for this filter yet; rarity is measured once the search has hits.</JimboText>
                 )}
             </JimboPanel>
 
