@@ -30,7 +30,7 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-error-boundary": "^5.0.0",
-    "vitest": "^3.2.4",
+    "vitest": "^5.0.1",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
