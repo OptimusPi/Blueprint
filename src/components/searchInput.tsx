@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Spotlight, closeSpotlight, openSpotlight } from "@mantine/spotlight";
 import { toHeaderCase } from "js-convert-case";
 import {
@@ -32,7 +32,9 @@ function evaluatePokerHand(cards: Array<StandardCard_Final>): string | null {
     if (!cards || cards.length === 0) return null;
 
     // Filter to only standard playing cards
-    const playingCards = cards.filter(card => card instanceof StandardCard_Final && card.rank && card.suit);
+    const playingCards = cards.filter((card): card is StandardCard_Final & { rank: string, suit: string } =>
+        card instanceof StandardCard_Final && !!card.rank && !!card.suit
+    );
     if (playingCards.length < 2) return null;
 
     // Get rank values (Ace high)
@@ -212,7 +214,7 @@ export default function SearchSeedInput() {
                     if (deck && deck.length > 0) {
                         // Filter to only StandardCard_Final cards
                         const standardCards = deck.filter((card): card is StandardCard_Final =>
-                            card instanceof StandardCard_Final && card.rank && card.suit
+                            card instanceof StandardCard_Final && !!card.rank && !!card.suit
                         );
 
                         if (standardCards.length >= 2) {

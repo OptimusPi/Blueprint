@@ -9,8 +9,7 @@ function getAnte2BossArcanaSpoilerJokers(cardsPerAnte: number): string[] {
     deck: "Plasma Deck",
     stake: "White Stake",
     gameVersion: "10106",
-    minAnte: 1,
-    maxAnte: 2,
+    antes: 2,
     cardsPerAnte,
   };
   const analyzeOptions: AnalyzeOptions = {

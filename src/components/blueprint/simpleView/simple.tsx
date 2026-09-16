@@ -352,7 +352,6 @@ function Simple() {
     const [loadingNextAnte, setLoadingNextAnte] = useState<number | null>(2);
     const lockedCards = useCardStore(state => state.lockState.lockedCards);
     const clearLockedCards = useCardStore(state => state.clearLockedCards);
-    const analyzeSeed = useCardStore(state => state.analyzeSeed)
     const hasLockedCards = Object.keys(lockedCards).length > 0;
     if (!SeedResults) return null;
 
@@ -393,10 +392,7 @@ function Simple() {
                             variant="light"
                             color="yellow"
                             leftSection={<IconLockOpen size={16} />}
-                            onClick={() => {
-                                clearLockedCards();
-                                analyzeSeed()
-                            }}
+                            onClick={clearLockedCards}
                         >
                             Clear Locked Cards ({Object.keys(lockedCards).length})
                         </Button>

@@ -1,3 +1,4 @@
+import type { Ante } from "./Ante";
 import type { Queries } from "./Queries";
 
 export interface Run extends Queries {

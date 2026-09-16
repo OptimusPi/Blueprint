@@ -7,14 +7,11 @@ import {
     IconUser
 } from '@tabler/icons-react';
 import { Container, Paper, SimpleGrid, Space, Stack, Text, ThemeIcon, Title } from '@mantine/core';
-import React from "react";
 import { QuickAnalyze } from "../../SeedInputAutoComplete.tsx";
 import classes from './Homepage.module.css';
 import HeroClasses from "./Hero.module.scss"
-import type {
-    Icon,
-    IconProps
-} from '@tabler/icons-react';
+import type { ReactNode } from "react";
+import type { TablerIcon } from '@tabler/icons-react';
 
 export const Features = [
     {
@@ -56,9 +53,9 @@ export const Features = [
 ];
 
 interface FeatureProps {
-    icon: React.ForwardRefExoticComponent<IconProps & React.RefAttributes<Icon>>;
-    title: React.ReactNode;
-    description: React.ReactNode;
+    icon: TablerIcon;
+    title: ReactNode;
+    description: ReactNode;
 }
 
 export function Feature({ icon: Icon, title, description }: FeatureProps) {

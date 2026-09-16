@@ -38,7 +38,7 @@ export function BuyWrapper({ children, bottomOffset, metaData, horizontal = fals
     const cardId = `ante_${metaData?.ante}_${metaData?.location?.toLowerCase()}_${metaData?.index}`
     const isLocked = cardId in lockedCards;
     const [isScrolling, setIsScrolling] = useState(false);
-    const [scrollTimeout, setScrollTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [scrollTimeout, setScrollTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         return () => {

@@ -1,4 +1,3 @@
-import * as React from 'react';
 
 interface DeckSpriteProps {
     deck: string;

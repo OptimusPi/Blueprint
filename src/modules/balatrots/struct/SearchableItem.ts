@@ -4,7 +4,7 @@ import type { EditionItem } from '../enum/Edition';
 export class SearchableItem {
     constructor(
         private readonly item: ItemImpl,
-        private readonly edition?: ItemImpl
+        private readonly edition?: EditionItem
     ) { }
 
     hasSticker(): boolean {
@@ -12,7 +12,7 @@ export class SearchableItem {
     }
 
     hasEdition(edition: EditionItem): boolean {
-        return this.edition !== undefined && this.edition.eq(edition);
+        return this.edition !== undefined && this.edition.name === edition.name;
     }
 
     equals(_item: ItemImpl): boolean {
@@ -29,7 +29,7 @@ export class SearchableItem {
         return this.item;
     }
 
-    getEdition(): ItemImpl | undefined {
+    getEdition(): EditionItem | undefined {
         return this.edition;
     }
 }

@@ -1,4 +1,3 @@
-import React from "react";
 import { CardEngineWrapper } from "../../../modules/GameEngine";
 import { useSeedResultsContainer } from "../../../modules/state/analysisResultProvider.tsx";
 

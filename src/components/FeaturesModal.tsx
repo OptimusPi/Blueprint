@@ -1,4 +1,3 @@
-import React from "react";
 import { Accordion, Container, List, Modal, Stack, Text } from "@mantine/core";
 import { IconCalculator, IconCamera, IconCards, IconEye, IconLock, IconRefresh } from "@tabler/icons-react";
 import { useCardStore } from "../modules/state/store.ts";
