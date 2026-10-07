@@ -16,6 +16,7 @@ import { BlueprintThemeProvider, useBlueprintTheme } from "./modules/state/theme
 import { JamlSearchProvider } from "./modules/state/jamlSearchContext.tsx";
 import AssistantDrawer from "./components/AssistantDrawer.tsx";
 import { SeedQueueHotkeys } from "./components/SeedQueue.tsx";
+import { SeedQueueBootstrap } from "./components/SeedQueueBootstrap.tsx";
 import { startWebMcp } from "./modules/webmcp/register.ts";
 
 startWebMcp();
@@ -49,6 +50,7 @@ export default function App() {
                     <Blueprint/>
                     <AssistantDrawer/>
                     <SeedQueueHotkeys/>
+                    <SeedQueueBootstrap/>
                 </ProviderContainer>
             </JamlSearchProvider>
         </BlueprintThemeProvider>

@@ -19,6 +19,7 @@ export default function Header() {
     const toggleAssistant = useCardStore(state => state.toggleAssistant);
     const viewMode = useCardStore(state => state.applicationState.viewMode);
     const setViewMode = useCardStore(state => state.setViewMode);
+    const queuedSeeds = useCardStore(state => state.seedQueue.seeds.length);
 
     return (
         <AppShell.Header>
@@ -44,7 +45,7 @@ export default function Header() {
                     </Group>
 
                     <Group align={'center'}>
-                        {viewMode !== 'jaml' && width > 600 && <SeedQueueControls />}
+                        {(viewMode !== 'jaml' || queuedSeeds > 0) && width > 600 && <SeedQueueControls />}
                         {width > 600 && start && <Box id="search-input-header"><SearchSeedInput /></Box>}
                         {width > 700 && start && (
                             <CopyButton value={new URL(window.location.href).toString()}>
