@@ -7,6 +7,7 @@
 // rule). The worker boundary is a thread, not an abstraction: it still calls
 // Search.settings(jaml).with…().start(token) with no layer in between.
 import "../../../modules/uint8Base64Polyfill.ts";
+import { parseJamlDocument } from "../../../modules/jamlDocumentParse.ts";
 import motely, {
     JamlAesthetic,
     MotelyDeck,
@@ -51,9 +52,18 @@ export interface SearchConfig {
     stopAfter: number;
 }
 
+export type ParsedJamlDocumentMessage = {
+    filterJaml: string;
+    seeds: Array<string>;
+    deck: string | null;
+    stake: string | null;
+    name: string | null;
+};
+
 export type WorkerRequest =
     | { type: "start"; config: SearchConfig }
-    | { type: "cancel" };
+    | { type: "cancel" }
+    | { type: "parseDocument"; text: string };
 
 export type WorkerResponse =
     | { type: "booting" }
@@ -61,7 +71,8 @@ export type WorkerResponse =
     | { type: "scored"; score: MotelySeedScore }
     | { type: "progress"; progress: MotelyProgress }
     | { type: "done"; cancelled: boolean }
-    | { type: "error"; message: string };
+    | { type: "error"; message: string }
+    | { type: "documentParsed"; document: ParsedJamlDocumentMessage };
 
 let bootPromise: Promise<unknown> | null = null;
 function ensureBooted() {
@@ -136,4 +147,11 @@ self.onmessage = (ev: MessageEvent<WorkerRequest>) => {
     const msg = ev.data;
     if (msg.type === "start") void run(msg.config);
     else if (msg.type === "cancel") activeToken?.cancel();
+    else if (msg.type === "parseDocument") {
+        try {
+            post({ type: "documentParsed", document: parseJamlDocument(msg.text) });
+        } catch (e) {
+            post({ type: "error", message: e instanceof Error ? e.message : String(e) });
+        }
+    }
 };

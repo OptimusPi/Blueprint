@@ -2,6 +2,7 @@ import { create } from "zustand/index";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { LOCATIONS, LOCATION_TYPES, options } from "../const.ts";
+import { documentLooksLikeSeedBundle, parseJamlDocument } from "../jamlDocumentParse.ts";
 import { sanitizeSeed } from "../utils.ts";
 import { convertGameCardToDeckCard, convertToDeckCard, generateStartingDeck } from "../deckUtils.ts";
 import { Game } from "../balatrots/Game.ts";
@@ -151,8 +152,9 @@ interface StoreActions {
 export interface CardStore extends InitialState, StoreActions { }
 
 const SEED_QUEUE_KEY = 'blueprint-seed-queue';
+const MAX_URL_SEEDS_CHARS = 1800;
 
-function loadSeedQueue(): InitialState['seedQueue'] {
+function loadSeedQueueFromStorage(): InitialState['seedQueue'] {
     try {
         const raw = localStorage.getItem(SEED_QUEUE_KEY);
         if (raw) {
@@ -168,12 +170,56 @@ function loadSeedQueue(): InitialState['seedQueue'] {
     return { seeds: [], index: 0 };
 }
 
+export function readSeedQueueFromUrl(): InitialState['seedQueue'] | null {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('seeds');
+    if (!raw) return null;
+    const seeds = parseSeedList(raw.replace(/,/g, '\n'));
+    if (seeds.length === 0) return null;
+    let index = parseInt(params.get('seedIndex') ?? '0', 10);
+    if (!Number.isFinite(index)) index = 0;
+    index = Math.min(Math.max(0, index), seeds.length - 1);
+    const urlSeed = params.get('seed');
+    if (urlSeed) {
+        const match = seeds.indexOf(sanitizeSeed(urlSeed));
+        if (match >= 0) index = match;
+    }
+    return { seeds, index };
+}
+
+function loadSeedQueue(): InitialState['seedQueue'] {
+    return readSeedQueueFromUrl() ?? loadSeedQueueFromStorage();
+}
+
+function syncSeedQueueToUrl(queue: InitialState['seedQueue']) {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const payload = queue.seeds.join(',');
+    if (queue.seeds.length === 0) {
+        params.delete('seeds');
+        params.delete('seedIndex');
+    } else if (payload.length <= MAX_URL_SEEDS_CHARS) {
+        params.set('seeds', payload);
+        params.set('seedIndex', String(queue.index));
+    } else {
+        params.delete('seeds');
+        params.set('seedIndex', String(queue.index));
+    }
+    window.history.replaceState(
+        {},
+        '',
+        `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+    );
+}
+
 function saveSeedQueue(queue: InitialState['seedQueue']) {
     try {
         localStorage.setItem(SEED_QUEUE_KEY, JSON.stringify(queue));
     } catch {
         return;
     }
+    syncSeedQueueToUrl(queue);
 }
 
 export function startingDeckCards(seed: string, engine: Pick<InitialState['engineState'], 'deck' | 'stake' | 'showmanOwned' | 'gameVersion'>): Array<DeckCard> {
@@ -187,6 +233,9 @@ export function startingDeckCards(seed: string, engine: Pick<InitialState['engin
 }
 
 export function parseSeedList(text: string): Array<string> {
+    if (documentLooksLikeSeedBundle(text)) {
+        return parseJamlDocument(text).seeds;
+    }
     const seen = new Set<string>();
     const seeds: Array<string> = [];
     const push = (token: string) => {
@@ -280,7 +329,13 @@ const initialState: InitialState = {
 const blueprintStorage: StateStorage = {
     // @ts-ignore
     getItem: (): string => {
-        const engineState = getEngineStateFromUrl();
+        let engineState = getEngineStateFromUrl();
+        const queueFromUrl = readSeedQueueFromUrl();
+        if (queueFromUrl && queueFromUrl.seeds.length > 0) {
+            if (!engineState.seed) {
+                engineState = { ...engineState, seed: queueFromUrl.seeds[queueFromUrl.index] };
+            }
+        }
         const hasSeed = !!engineState.seed;
 
         // Also read viewMode and selectedAnte from URL
@@ -375,6 +430,12 @@ export const useCardStore = create<CardStore>()(
                         prev.shoppingState = initialState.shoppingState
                         prev.searchState = initialState.searchState;
                         prev.applicationState.hasSettingsChanged = true;
+
+                        const queueIndex = prev.seedQueue.seeds.indexOf(sanitized);
+                        if (queueIndex >= 0 && queueIndex !== prev.seedQueue.index) {
+                            prev.seedQueue.index = queueIndex;
+                            saveSeedQueue(prev.seedQueue);
+                        }
 
                         prev.deckState.cards = startingDeckCards(prev.engineState.seed, prev.engineState);
                         prev.deckState.isInitialized = true;
