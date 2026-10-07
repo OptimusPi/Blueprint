@@ -21,7 +21,6 @@
     "@tanstack/react-query": "^5.85.9",
     "embla-carousel-react": "^8.6.0",
     "immer": "^10.1.3",
-    "jaml-lang": "^3.14.2",
     "jaml-ui": "^4.6.0",
     "js-convert-case": "^4.2.0",
     "js-yaml": "^4.1.1",
@@ -32,6 +31,9 @@
     "react-error-boundary": "^5.0.0",
     "vitest": "^5.0.1",
     "zustand": "^5.0.8"
+  },
+  "overrides": {
+    "jaml-lang": "npm:empty-npm-package@1.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
