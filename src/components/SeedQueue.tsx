@@ -98,7 +98,7 @@ export function SeedQueuePanel() {
             <Textarea
                 id="seed-queue-input"
                 label="Seed list"
-                description="Paste seeds (one per line, comma or space separated, or a CSV with seeds in the first column). Arrow keys step through them."
+                description="Paste seeds (one per line, comma or space separated, a CSV first column, or a JAML document with a seeds: list). Arrow keys step through them."
                 placeholder={"ALEEB\nPIROCKS\nWEEJOKER"}
                 autosize
                 minRows={2}
