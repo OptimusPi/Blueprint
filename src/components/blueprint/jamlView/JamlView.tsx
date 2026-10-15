@@ -302,7 +302,9 @@ export default function JamlView() {
         runDocumentSearch(doc.filterJaml, doc.seeds, deckOverride, stakeOverride);
     }, [runDocumentSearch, setJamlText, setSeedQueue, setStoreDeck, setStoreStake]);
 
-    applyParsedDocumentRef.current = applyParsedDocument;
+    useEffect(() => {
+        applyParsedDocumentRef.current = applyParsedDocument;
+    }, [applyParsedDocument]);
 
     useEffect(() => {
         const worker = new Worker(new URL("./searchWorker.ts", import.meta.url), {

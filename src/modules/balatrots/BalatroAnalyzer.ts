@@ -330,7 +330,7 @@ export class BalatroAnalyzer {
                 return joker
             }
             options.add(new Option(card as ItemImpl, new ItemImpl(Edition.NO_EDITION)));
-            return card as Card;
+            return card;
 
         }
 

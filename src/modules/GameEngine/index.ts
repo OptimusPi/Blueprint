@@ -153,7 +153,7 @@ export class CardEngineWrapper implements EngineWrapper {
                     isEternal: card.stickers.eternal,
                     isPerishable: card.stickers.perishable,
                     isRental: card.stickers.rental,
-                } as Card_Final)
+                })
             case instanceOfTarot:
                 return new Tarot_Final({
                     name: card.name,
@@ -204,7 +204,7 @@ export class CardEngineWrapper implements EngineWrapper {
                 isEternal: card.jokerData?.stickers?.eternal,
                 isPerishable: card.jokerData?.stickers?.perishable,
                 isRental: card.jokerData?.stickers?.rental
-            } as Card_Final)
+            })
         } else if (cardType === "Tarot") {
             return new Tarot_Final({
                 name: card.item,

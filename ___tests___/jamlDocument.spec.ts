@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseJamlDocument } from "../src/modules/jamlDocumentParse";
 import { parseSeedList } from "../src/modules/state/store";
@@ -39,8 +38,13 @@ seeds:
 
 describe("simpleCola fixture", () => {
     it("loads 46,210 seeds without keeping them in the filter body", () => {
-        const path = "/home/ubuntu/.cursor/projects/workspace/uploads/631263591f57422b350d78aa82bdc1b6db8b70585aef96e639441a59d7b5c475_e5ad.jaml";
-        const text = readFileSync(path, "utf8");
+        const alphabet = "123456789ABCDEFGHIJKLMNPQRSTUVWXYZ";
+        const seeds = Array.from({ length: 46210 }, (_, i) => {
+            let n = i, out = "";
+            for (let k = 0; k < 8; k++) { out += alphabet[n % alphabet.length]; n = Math.floor(n / alphabet.length); }
+            return out;
+        });
+        const text = `name: simpleCola\ndeck: Ghost\nstake: White\nmust:\n  - joker: DietCola\n    antes: [1, 2]\nseeds:\n${seeds.map((x) => `  - ${x}`).join("\n")}\n`;
         const started = performance.now();
         const doc = parseJamlDocument(text);
         const elapsed = performance.now() - started;

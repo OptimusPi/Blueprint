@@ -7,13 +7,13 @@
 // rule). The worker boundary is a thread, not an abstraction: it still calls
 // Search.settings(jaml).with…().start(token) with no layer in between.
 import "../../../modules/uint8Base64Polyfill.ts";
-import { parseJamlDocument } from "../../../modules/jamlDocumentParse.ts";
 import motely, {
     JamlAesthetic,
     MotelyDeck,
     MotelyStake,
     Search,
 } from "motely-wasm";
+import { parseJamlDocument } from "../../../modules/jamlDocumentParse.ts";
 import type { MotelyProgress, MotelySeedScore } from "motely-wasm";
 
 // CancellationToken collides at the motely-wasm package root (re-exported from

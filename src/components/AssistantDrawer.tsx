@@ -112,7 +112,7 @@ function runnableTools(tools: Array<BlueprintTool>, onCall: (name: string, ok: b
             inputSchema: tool.inputSchema as Parameters<typeof betaTool>[0]["inputSchema"],
             run: async (args) => {
                 try {
-                    const result = await tool.execute((args ?? {}) as Record<string, unknown>);
+                    const result = await tool.execute((args ?? {}));
                     onCall(tool.name, true);
                     return JSON.stringify(result);
                 } catch (error) {
@@ -232,10 +232,10 @@ export default function AssistantDrawer() {
                     setError(message.stop_details?.explanation ?? "The model declined this request.");
                 }
             }
-            persist(runner.params.messages as History);
+            persist(runner.params.messages);
         } catch (err) {
             if (controller.signal.aborted) {
-                persist(runner.params.messages as History);
+                persist(runner.params.messages);
             } else if (err instanceof Anthropic.AuthenticationError) {
                 setError("Anthropic rejected the API key.");
                 setShowSettings(true);
