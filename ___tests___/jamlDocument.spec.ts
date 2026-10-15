@@ -1,3 +1,4 @@
+import { load } from "js-yaml";
 import { describe, expect, it } from "vitest";
 import { parseJamlDocument } from "../src/modules/jamlDocumentParse";
 import { parseSeedList } from "../src/modules/state/store";
@@ -54,5 +55,17 @@ describe("simpleCola fixture", () => {
         expect(doc.filterJaml).toContain("simpleCola");
         expect(doc.filterJaml).not.toMatch(/^seeds:/m);
         expect(elapsed).toBeLessThan(5000);
+    });
+});
+
+describe("JSON filter", () => {
+    it("reads seeds, deck and stake off a JSON document and keeps the rest as the filter", () => {
+        const text = JSON.stringify({ name: "cola", deck: "Ghost", stake: "White", must: [{ joker: "DietCola", antes: [1] }], seeds: ["WEEJOKER", "aleeb"] });
+        const doc = parseJamlDocument(text);
+        expect(doc.seeds).toEqual(["WEEJOKER", "ALEEB"]);
+        expect(doc.deck).toBe("Ghost");
+        expect(doc.stake).toBe("White");
+        expect(doc.name).toBe("cola");
+        expect(load(doc.filterJaml)).toEqual({ name: "cola", deck: "Ghost", stake: "White", must: [{ joker: "DietCola", antes: [1] }] });
     });
 });

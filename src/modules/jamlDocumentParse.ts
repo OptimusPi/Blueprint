@@ -1,3 +1,4 @@
+import { dump } from "js-yaml";
 import { sanitizeSeed } from "./utils.ts";
 
 export interface ParsedJamlDocument {
@@ -50,7 +51,31 @@ function parseInlineSeeds(rest: string, seeds: Array<string>, seen: Set<string>)
     }
 }
 
+// A filter can be JSON. motely-wasm 26 only loads block YAML, so the rest of
+// the object is dumped back to YAML; seeds, deck, stake and name come off it.
+function parseJsonDocument(text: string): ParsedJamlDocument | null {
+    let obj: unknown;
+    try { obj = JSON.parse(text); } catch { return null; }
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return null;
+    const { seeds: rawSeeds, ...filter } = obj as Record<string, unknown>;
+    const seeds: Array<string> = [];
+    const seen = new Set<string>();
+    if (Array.isArray(rawSeeds)) for (const t of rawSeeds) pushSeed(seeds, seen, String(t));
+    const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+    return {
+        filterJaml: dump(filter, { flowLevel: 3 }),
+        seeds,
+        deck: str(filter.deck),
+        stake: str(filter.stake),
+        name: str(filter.name),
+    };
+}
+
 export function parseJamlDocument(text: string): ParsedJamlDocument {
+    if (text.trimStart().startsWith("{")) {
+        const json = parseJsonDocument(text);
+        if (json) return json;
+    }
     const lines = text.split(/\r?\n/);
     const deck = readScalar(lines, "deck");
     const stake = readScalar(lines, "stake");

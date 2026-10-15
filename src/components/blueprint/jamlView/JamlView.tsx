@@ -659,13 +659,13 @@ export default function JamlView() {
                 <JimboStack gap="xs" style={{ marginBottom: 8 }}>
                     <JimboRow justify="between" align="center">
                         <JimboText size="sm" tone="grey">
-                            Paste or upload a full JAML file (filter + <code>seeds:</code> list).
+                            Paste or upload a filter as YAML or JSON (filter + <code>seeds:</code> list).
                         </JimboText>
                         <JimboButton
                             tone="grey"
                             onClick={() => fileInputRef.current?.click()}
                         >
-                            Upload .jaml
+                            Upload YAML / JSON
                         </JimboButton>
                     </JimboRow>
                     {documentStatus && (
@@ -674,7 +674,7 @@ export default function JamlView() {
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".jaml,.yaml,.yml,.txt"
+                        accept=".yaml,.yml,.json,.jaml,.txt"
                         hidden
                         onChange={(e) => {
                             handleJamlFile(e.currentTarget.files?.[0] ?? null);
