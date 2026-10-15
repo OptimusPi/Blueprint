@@ -113,13 +113,12 @@ function AntePanel({ ante, tabName, timeTravelVoucherOffset }: {
     return (
         <Tabs.Panel w={'100%'} value={tabName}>
             <Paper id="shop-results" withBorder h={'100%'} p={'sm'}>
-                <Group preventGrowOverflow mb={'sm'}>
-                    <Fieldset flex={1} legend={'Shop'}>
+                <Flex direction={{ base: 'column', sm: 'row' }} gap={'sm'} mb={'sm'}>
+                    <Fieldset flex={1} miw={0} legend={`Shop · ${queue.length} in the stream`}>
                         <QueueCarousel queue={queue} tabName={tabName} />
                     </Fieldset>
                     <Fieldset legend={'Voucher'}>
-                        <Flex h={192} direction={'column'} align={'space-between'}>
-                            <Text ta={'center'} c={'dimmed'} fz={'md'}> Voucher </Text>
+                        <Flex h={192} direction={'column'} align={'center'} justify={'space-between'}>
                             <BuyWrapper
                                 bottomOffset={40}
                                 topOffset={40}
@@ -141,7 +140,7 @@ function AntePanel({ ante, tabName, timeTravelVoucherOffset }: {
                             <Text ta={'center'} fz={'md'}>  {ante.voucher} </Text>
                         </Flex>
                     </Fieldset>
-                </Group>
+                </Flex>
 
                 <Accordion
                     key={`${tabName}-${selectedBlind}`}
