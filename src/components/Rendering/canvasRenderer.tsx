@@ -230,10 +230,8 @@ export function RenderImagesWithCanvas({layers, invert = false, spacing = false}
                     })
             }))
 
-        if (invert) {
-            canvas.style.filter = 'invert(0.94)';
-        }
-    }, [layers, elapsed, forceUpdate]);
+        canvas.style.filter = invert ? 'invert(0.94)' : 'none';
+    }, [layers, invert, elapsed, forceUpdate]);
 
     const {hovered, ref: hoverRef} = useHover();
     const {ref: mouseRef, x: mouseX, y: mouseY} = useMouse();
