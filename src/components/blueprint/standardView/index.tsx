@@ -556,6 +556,7 @@ declare global {
 export function Blueprint() {
     const { width } = useViewportSize();
     const settingsOpened = useCardStore(state => state.applicationState.settingsOpen);
+    const navbarHidden = useCardStore(state => state.applicationState.navbarHidden);
     const outputOpened = useCardStore(state => state.applicationState.asideOpen);
     const viewMode = useCardStore(state => state.applicationState.viewMode);
     const download = useDownloadSeedResults()
@@ -582,7 +583,7 @@ export function Blueprint() {
                 collapsed: viewMode === 'jaml'
                     ? { desktop: true, mobile: true }
                     : {
-                        desktop: !(width > 1000) && !settingsOpened,
+                        desktop: width > 1000 ? navbarHidden : !settingsOpened,
                         mobile: !settingsOpened
                     },
             }}

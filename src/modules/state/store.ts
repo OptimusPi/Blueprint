@@ -31,6 +31,7 @@ export interface InitialState {
         viewMode: string
         start: boolean;
         settingsOpen: boolean;
+        navbarHidden: boolean;
         asideOpen: boolean;
         selectOptionsModalOpen: boolean;
         featuresModalOpen: boolean;
@@ -110,6 +111,7 @@ interface StoreActions {
     setSelectedAnte: (selectedAnte: number) => void;
     setSelectedBlind: (selectedBlind: Blinds) => void;
     toggleSettings: () => void;
+    toggleNavbar: () => void;
     toggleOutput: () => void;
     toggleAssistant: () => void;
     setSeedQueue: (seeds: Array<string>) => void;
@@ -276,6 +278,7 @@ const initialState: InitialState = {
         viewMode: 'blueprint',
         start: false,
         settingsOpen: false,
+        navbarHidden: false,
         asideOpen: false,
         selectOptionsModalOpen: false,
         featuresModalOpen: false,
@@ -537,6 +540,9 @@ export const useCardStore = create<CardStore>()(
                     toggleSettings: () => set((prev) => {
                         prev.applicationState.settingsOpen = !prev.applicationState.settingsOpen;
                     }, undefined, 'Global/ToggleSettings'),
+                    toggleNavbar: () => set((prev) => {
+                        prev.applicationState.navbarHidden = !prev.applicationState.navbarHidden;
+                    }, undefined, 'Global/ToggleNavbar'),
                     toggleOutput: () => set((prev) => {
                         prev.applicationState.asideOpen = !prev.applicationState.asideOpen;
                     }, undefined, 'Global/ToggleOutput'),

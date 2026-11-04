@@ -12,6 +12,9 @@ export default function Header() {
     const start = useCardStore(state => state.applicationState.start)
     const settingsOpened = useCardStore(state => state.applicationState.settingsOpen);
     const toggleSettings = useCardStore(state => state.toggleSettings);
+    const navbarHidden = useCardStore(state => state.applicationState.navbarHidden);
+    const toggleNavbar = useCardStore(state => state.toggleNavbar);
+    const wide = width > 1000;
 
     const outputOpened = useCardStore(state => state.applicationState.asideOpen);
     const toggleOutput = useCardStore(state => state.toggleOutput);
@@ -27,6 +30,17 @@ export default function Header() {
                 <Group h={'100%'} justify={'space-between'}>
                     <Group flex={1}>
                         {viewMode !== 'jaml' && <Burger opened={settingsOpened} onClick={toggleSettings} hiddenFrom={'md'} size="sm" />}
+                        {viewMode !== 'jaml' && (
+                            <Tooltip label={(wide ? navbarHidden : !settingsOpened) ? 'Show settings' : 'Hide settings'}>
+                                <Burger
+                                    id="settings-panel-toggle"
+                                    opened={wide ? !navbarHidden : settingsOpened}
+                                    onClick={wide ? toggleNavbar : toggleSettings}
+                                    visibleFrom={'md'}
+                                    size="sm"
+                                />
+                            </Tooltip>
+                        )}
                         <Center h={'100%'}>
                             <Group grow>
                                 <Box flex={1}>
