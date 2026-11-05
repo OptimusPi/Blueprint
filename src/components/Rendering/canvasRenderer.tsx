@@ -230,7 +230,11 @@ export function RenderImagesWithCanvas({layers, invert = false, spacing = false}
                     })
             }))
 
-        canvas.style.filter = invert ? 'invert(0.94)' : 'none';
+        if (invert) {
+            canvas.style.filter = 'invert(0.94)';
+        } else {
+            canvas.style.filter = 'none';
+        }
     }, [layers, invert, elapsed, forceUpdate]);
 
     const {hovered, ref: hoverRef} = useHover();
