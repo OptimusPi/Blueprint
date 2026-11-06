@@ -142,5 +142,6 @@ export function parseJamlDocument(text: string): ParsedJamlDocument {
 }
 
 export function documentLooksLikeSeedBundle(text: string): boolean {
-    return /^seeds:\s*$/im.test(text) || /^seeds:\s*\[/im.test(text) || /^seeds:\s*\n\s*-/im.test(text);
+    return /^seeds:\s*$/im.test(text) || /^seeds:\s*\[/im.test(text) || /^seeds:\s*\n\s*-/im.test(text)
+        || /"seeds"\s*:\s*\[/.test(text);
 }

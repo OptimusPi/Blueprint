@@ -1,6 +1,6 @@
 import { load } from "js-yaml";
 import { describe, expect, it } from "vitest";
-import { parseJamlDocument } from "../src/modules/jamlDocumentParse";
+import { documentLooksLikeSeedBundle, parseJamlDocument } from "../src/modules/jamlDocumentParse";
 import { parseSeedList } from "../src/modules/state/store";
 
 describe("parseJamlDocument", () => {
@@ -67,5 +67,10 @@ describe("JSON filter", () => {
         expect(doc.stake).toBe("White");
         expect(doc.name).toBe("cola");
         expect(load(doc.filterJaml)).toEqual({ name: "cola", deck: "Ghost", stake: "White", must: [{ joker: "DietCola", antes: [1] }] });
+    });
+
+    it("is detected as a seed bundle", () => {
+        expect(documentLooksLikeSeedBundle(JSON.stringify({ must: [], seeds: ["ALEEB"] }))).toBe(true);
+        expect(documentLooksLikeSeedBundle(JSON.stringify({ must: [{ joker: "Blueprint" }] }))).toBe(false);
     });
 });
