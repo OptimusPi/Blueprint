@@ -9,7 +9,7 @@ import {
     jamlStakeToBlueprint,
 } from "../../../modules/jamlDocumentParse.ts";
 import type { JamlIdeSearchResult } from "jaml-ui";
-import type { MotelyScoredSeedResult } from "motely-wasm";
+import type { MotelySeedScore } from "motely-wasm";
 import type {
     ParsedJamlDocumentMessage,
     SearchConfig,
@@ -85,7 +85,7 @@ export default function JamlView() {
     const [status, setStatus] = useState<Status>("idle");
     const [error, setError] = useState<string | null>(null);
     const [documentStatus, setDocumentStatus] = useState<string | null>(null);
-    const [results, setResults] = useState<Array<MotelyScoredSeedResult>>([]);
+    const [results, setResults] = useState<Array<MotelySeedScore>>([]);
     const [stats, setStats] = useState<SearchStats>(EMPTY_STATS);
     const [randomCount, setRandomCount] = useState<number>(1_000_000);
     const [documentSeeds, setDocumentSeeds] = useState<Array<string>>([]);
@@ -97,7 +97,7 @@ export default function JamlView() {
     const lastParsedFingerprintRef = useRef<string>("");
     // Matches accumulate here and flush to state on progress ticks and on done,
     // so a run with many matches doesn't re-sort on every event.
-    const collectedRef = useRef<Array<MotelyScoredSeedResult>>([]);
+    const collectedRef = useRef<Array<MotelySeedScore>>([]);
     const applyParsedDocumentRef = useRef<(doc: ParsedJamlDocumentMessage) => void>(() => {});
 
     const isSearching = status === "running" || status === "booting";
@@ -121,6 +121,12 @@ export default function JamlView() {
             scope,
             deck: deckValue,
             stake: stakeValue,
+            batchCharacterCount: null,
+            providerBatchSeedCount: null,
+            startBatchIndex: null,
+            endBatchIndex: null,
+            autoScoreCutoff: false,
+            stopAfter: 0,
         };
         setStatus("booting");
         workerRef.current?.postMessage({ type: "start", config } satisfies WorkerRequest);
@@ -268,7 +274,7 @@ export default function JamlView() {
             results.map((r) => ({
                 seed: r.seed,
                 score: r.score,
-                tallyColumns: Array.from(r.tallies),
+                tallyColumns: Array.from(r.tally),
                 tallyLabels,
             })),
         [results, tallyLabels],
