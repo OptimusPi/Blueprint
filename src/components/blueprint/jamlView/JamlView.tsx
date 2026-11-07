@@ -1,22 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { JamlIde, JimboButton, JimboRow, JimboText, JimboTextInput, parseJaml } from "jaml-ui";
+import { JamlIde, JimboRow, JimboText, JimboTextInput } from "jaml-ui";
 import { MotelyDeck, MotelyStake } from "motely-wasm";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import { useCardStore } from "../../../modules/state/store.ts";
-import {
-    documentLooksLikeSeedBundle,
-    jamlDeckToBlueprint,
-    jamlStakeToBlueprint,
-} from "../../../modules/jamlDocumentParse.ts";
 import type { JamlIdeSearchResult } from "jaml-ui";
-import type { MotelySeedScore } from "motely-wasm";
-import type {
-    ParsedJamlDocumentMessage,
-    SearchConfig,
-    SearchScope,
-    WorkerRequest,
-    WorkerResponse,
-} from "./searchWorker.ts";
+import type { MotelyScoredSeedResult } from "motely-wasm";
+import type { LoadedFilter, WorkerRequest, WorkerResponse } from "./searchWorker.ts";
 
 type Status = "idle" | "booting" | "running" | "done" | "error";
 
@@ -27,12 +16,7 @@ interface SearchStats {
     percentComplete: number;
 }
 
-const EMPTY_STATS: SearchStats = {
-    seedsSearched: 0,
-    matchingSeeds: 0,
-    seedsPerSecond: 0,
-    percentComplete: 0,
-};
+const EMPTY_STATS: SearchStats = { seedsSearched: 0, matchingSeeds: 0, seedsPerSecond: 0, percentComplete: 0 };
 
 const STATUS_LABEL: Record<Status, string> = {
     idle: "Ready",
@@ -54,18 +38,6 @@ const STAKE_OPTS = enumOptions(MotelyStake);
 const formatNumber = (value: number): string => value.toLocaleString();
 const parseCount = (v: string) => Math.max(0, Math.trunc(Number(v.replace(/[^\d]/g, "")) || 0));
 
-function motelyDeckFromJaml(deck: string | null): number | null {
-    if (!deck) return null;
-    const value = MotelyDeck[deck.replace(/\s+Deck$/i, "").trim() as keyof typeof MotelyDeck];
-    return typeof value === "number" ? value : null;
-}
-
-function motelyStakeFromJaml(stake: string | null): number | null {
-    if (!stake) return null;
-    const value = MotelyStake[stake.replace(/\s+Stake$/i, "").trim() as keyof typeof MotelyStake];
-    return typeof value === "number" ? value : null;
-}
-
 const selectStyle: React.CSSProperties = {
     background: "var(--j-darkest, #1e2b2d)",
     color: "var(--j-cream, #f4eee0)",
@@ -84,103 +56,47 @@ export default function JamlView() {
 
     const [status, setStatus] = useState<Status>("idle");
     const [error, setError] = useState<string | null>(null);
-    const [documentStatus, setDocumentStatus] = useState<string | null>(null);
-    const [results, setResults] = useState<Array<MotelySeedScore>>([]);
+    const [loaded, setLoaded] = useState<LoadedFilter | null>(null);
+    const [results, setResults] = useState<Array<MotelyScoredSeedResult>>([]);
     const [stats, setStats] = useState<SearchStats>(EMPTY_STATS);
     const [randomCount, setRandomCount] = useState<number>(1_000_000);
-    const [documentSeeds, setDocumentSeeds] = useState<Array<string>>([]);
     const [deck, setDeck] = useState<number | null>(null);
     const [stake, setStake] = useState<number | null>(null);
 
     const workerRef = useRef<Worker | null>(null);
-    const suppressDocumentParseRef = useRef(false);
-    const lastParsedFingerprintRef = useRef<string>("");
     // Matches accumulate here and flush to state on progress ticks and on done,
     // so a run with many matches doesn't re-sort on every event.
-    const collectedRef = useRef<Array<MotelySeedScore>>([]);
-    const applyParsedDocumentRef = useRef<(doc: ParsedJamlDocumentMessage) => void>(() => {});
+    const collectedRef = useRef<Array<MotelyScoredSeedResult>>([]);
+    const onLoadedRef = useRef<(filter: LoadedFilter) => void>(() => {});
 
     const isSearching = status === "running" || status === "booting";
 
-    const flush = useCallback(() => {
-        setResults([...collectedRef.current].sort((a, b) => b.score - a.score));
-    }, []);
-
-    const startSearch = useCallback((
-        jaml: string,
-        scope: SearchScope,
-        deckValue: number | null,
-        stakeValue: number | null,
-    ) => {
-        setError(null);
-        setResults([]);
-        setStats(EMPTY_STATS);
-        collectedRef.current = [];
-        const config: SearchConfig = {
-            jaml,
-            scope,
-            deck: deckValue,
-            stake: stakeValue,
-            batchCharacterCount: null,
-            providerBatchSeedCount: null,
-            startBatchIndex: null,
-            endBatchIndex: null,
-            autoScoreCutoff: false,
-            stopAfter: 0,
-        };
-        setStatus("booting");
-        workerRef.current?.postMessage({ type: "start", config } satisfies WorkerRequest);
-    }, []);
-
-    const applyParsedDocument = useCallback((doc: ParsedJamlDocumentMessage) => {
-        const fingerprint = `${doc.seeds.length}:${doc.seeds[0] ?? ""}:${doc.seeds.at(-1) ?? ""}:${doc.filterJaml.length}`;
-        if (fingerprint === lastParsedFingerprintRef.current) {
-            setDocumentStatus(null);
-            return;
-        }
-        lastParsedFingerprintRef.current = fingerprint;
-
-        const deckOverride = motelyDeckFromJaml(doc.deck);
-        const stakeOverride = motelyStakeFromJaml(doc.stake);
-        if (doc.deck) setStoreDeck(jamlDeckToBlueprint(doc.deck));
-        if (doc.stake) setStoreStake(jamlStakeToBlueprint(doc.stake));
-        setDeck(deckOverride);
-        setStake(stakeOverride);
-        setDocumentSeeds(doc.seeds);
-        suppressDocumentParseRef.current = true;
-        setJamlText(doc.filterJaml);
-        setSeedQueue(doc.seeds);
-        queueMicrotask(() => {
-            suppressDocumentParseRef.current = false;
-        });
-
-        setDocumentStatus(
-            doc.name
-                ? `${doc.name}: ${formatNumber(doc.seeds.length)} seeds · ${doc.deck ?? "Red"} / ${doc.stake ?? "White"}`
-                : `${formatNumber(doc.seeds.length)} seeds loaded`,
-        );
-
-        startSearch(doc.filterJaml, { mode: "seedList", seeds: doc.seeds }, deckOverride, stakeOverride);
-    }, [startSearch, setJamlText, setSeedQueue, setStoreDeck, setStoreStake]);
+    const onLoaded = useCallback((filter: LoadedFilter) => {
+        setLoaded(filter);
+        if (filter.seeds.length === 0) return;
+        setStoreDeck(`${filter.deck} Deck`);
+        setStoreStake(`${filter.stake} Stake`);
+        setSeedQueue(filter.seeds);
+    }, [setSeedQueue, setStoreDeck, setStoreStake]);
 
     useEffect(() => {
-        applyParsedDocumentRef.current = applyParsedDocument;
-    }, [applyParsedDocument]);
+        onLoadedRef.current = onLoaded;
+    }, [onLoaded]);
 
     useEffect(() => {
-        const worker = new Worker(new URL("./searchWorker.ts", import.meta.url), {
-            type: "module",
-        });
+        const worker = new Worker(new URL("./searchWorker.ts", import.meta.url), { type: "module" });
         workerRef.current = worker;
+        const flush = () => setResults([...collectedRef.current].sort((a, b) => b.score - a.score));
 
         worker.onmessage = (ev: MessageEvent<WorkerResponse>) => {
             const msg = ev.data;
             switch (msg.type) {
                 case "booting":
-                    setStatus("booting");
-                    break;
                 case "running":
-                    setStatus("running");
+                    setStatus(msg.type);
+                    break;
+                case "loaded":
+                    onLoadedRef.current(msg.filter);
                     break;
                 case "scored":
                     collectedRef.current.push(msg.score);
@@ -197,15 +113,10 @@ export default function JamlView() {
                 case "done":
                     flush();
                     setStatus(msg.cancelled ? "idle" : "done");
-                    setDocumentStatus(null);
                     break;
                 case "error":
                     setError(msg.message);
                     setStatus("error");
-                    setDocumentStatus(null);
-                    break;
-                case "documentParsed":
-                    applyParsedDocumentRef.current(msg.document);
                     break;
             }
         };
@@ -219,96 +130,70 @@ export default function JamlView() {
             worker.terminate();
             workerRef.current = null;
         };
-    }, [flush]);
+    }, []);
 
-    useEffect(() => {
-        if (suppressDocumentParseRef.current) return;
-        if (!documentLooksLikeSeedBundle(jamlText)) return;
-        const timer = setTimeout(() => {
-            setDocumentStatus("Parsing JAML document in worker…");
-            workerRef.current?.postMessage({ type: "parseDocument", text: jamlText } satisfies WorkerRequest);
-        }, 450);
-        return () => clearTimeout(timer);
-    }, [jamlText]);
+    const startSearch = (jaml: string) => {
+        setError(null);
+        setResults([]);
+        setStats(EMPTY_STATS);
+        collectedRef.current = [];
+        setStatus("booting");
+        workerRef.current?.postMessage({
+            type: "start",
+            config: { jaml, randomCount: Math.max(1, randomCount), deck, stake },
+        } satisfies WorkerRequest);
+    };
 
     const handleSearch = () => {
-        if (isSearching) {
-            workerRef.current?.postMessage({ type: "cancel" } satisfies WorkerRequest);
-            return;
-        }
-        const scope: SearchScope = documentSeeds.length > 0
-            ? { mode: "seedList", seeds: documentSeeds }
-            : { mode: "random", count: Math.max(1, randomCount) };
-        startSearch(jamlText, scope, deck, stake);
+        if (isSearching) workerRef.current?.postMessage({ type: "cancel" } satisfies WorkerRequest);
+        else startSearch(jamlText);
     };
 
     const loadFile = () => new Promise<string | null>((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = ".yaml,.yml,.json,.jaml,.txt";
+        input.accept = ".jaml,.yaml,.yml,.json,.txt";
         input.oncancel = () => resolve(null);
         input.onchange = () => {
             const file = input.files?.[0];
             if (!file) return resolve(null);
-            lastParsedFingerprintRef.current = "";
-            file.text().then(resolve, () => resolve(null));
+            file.text().then((text) => {
+                resolve(text);
+                startSearch(text);
+            }, () => resolve(null));
         };
         input.click();
     });
 
-    const clearDocumentSeeds = () => {
-        setDocumentSeeds([]);
-        lastParsedFingerprintRef.current = "";
-    };
-
-    const tallyLabels = useMemo(() => {
-        try {
-            return parseJaml(jamlText).should.map((clause) => clause.label);
-        } catch {
-            return [];
-        }
-    }, [jamlText]);
-
     const ideResults: Array<JamlIdeSearchResult> = useMemo(
-        () =>
-            results.map((r) => ({
-                seed: r.seed,
-                score: r.score,
-                tallyColumns: Array.from(r.tally),
-                tallyLabels,
-            })),
-        [results, tallyLabels],
+        () => results.map((r) => ({ seed: r.seed, score: r.score, tallyColumns: Array.from(r.tallies), tallyLabels: [] })),
+        [results],
     );
 
     const hits = stats.matchingSeeds || results.length;
-    const progress = isSearching && documentSeeds.length === 0 && stats.percentComplete > 0
+    const seedCount = loaded?.seeds.length ?? 0;
+    const progress = isSearching && seedCount === 0 && stats.percentComplete > 0
         ? ` · ${Math.round(stats.percentComplete)}%`
         : "";
     const subtitle = (
         <>
             {STATUS_LABEL[status]} · {formatNumber(hits)} hits · {formatNumber(stats.seedsSearched)} searched · {formatNumber(stats.seedsPerSecond)}/s{progress}
-            {documentStatus && <JimboText size="sm" tone="blue"> · {documentStatus}</JimboText>}
+            {seedCount > 0 && <JimboText size="sm" tone="blue"> · {loaded?.name ? `${loaded.name}: ` : ""}{formatNumber(seedCount)} seeds from the filter</JimboText>}
             {error && <JimboText size="sm" tone="red"> · {error}</JimboText>}
         </>
     );
 
     const actions = (
         <JimboRow gap="xs" align="center" wrap>
-            {documentSeeds.length > 0 ? (
-                <JimboButton tone="grey" disabled={isSearching} onClick={clearDocumentSeeds}>
-                    {formatNumber(documentSeeds.length)} seeds from file ✕
-                </JimboButton>
-            ) : (
-                <JimboTextInput
-                    aria-label="Random seeds to sample"
-                    title="Random seeds to sample"
-                    inputMode="numeric"
-                    style={{ width: 120 }}
-                    value={formatNumber(randomCount)}
-                    disabled={isSearching}
-                    onChange={(e) => setRandomCount(Math.max(1, parseCount(e.currentTarget.value)))}
-                />
-            )}
+            <JimboTextInput
+                aria-label="Random seeds to sample"
+                title="Random seeds to sample (used when the filter has no seeds: list)"
+                inputMode="numeric"
+                style={{ width: 120 }}
+                value={formatNumber(randomCount)}
+                disabled={isSearching}
+                onChange={(e) => setRandomCount(Math.max(1, parseCount(e.currentTarget.value)))}
+            />
             <select
                 aria-label="Deck"
                 style={selectStyle}
