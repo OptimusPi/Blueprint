@@ -21,7 +21,6 @@ import { IconPlayerStop, IconSend, IconSettings, IconTrash } from "@tabler/icons
 import { useCardStore } from "../modules/state/store.ts";
 import { listTools } from "../modules/webmcp/registry.ts";
 import { listMemory } from "../modules/webmcp/memory.ts";
-import { BALATRO_KNOWLEDGE } from "../modules/webmcp/knowledge.ts";
 import type { BlueprintTool } from "../modules/webmcp/registry.ts";
 
 const KEY_STORAGE = "blueprint-anthropic-key";
@@ -210,7 +209,7 @@ export default function AssistantDrawer() {
                 fallbacks: "default",
                 output_config: { effort: "medium" },
                 system: [
-                    { type: "text", text: `${SYSTEM_PROMPT}\n\n${BALATRO_KNOWLEDGE}`, cache_control: { type: "ephemeral" } },
+                    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
                     { type: "text", text: contextBlock() },
                 ],
                 tools: runnableTools(listTools(), (name, ok) =>
