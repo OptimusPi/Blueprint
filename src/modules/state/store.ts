@@ -2,7 +2,6 @@ import { create } from "zustand/index";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { LOCATIONS, LOCATION_TYPES, options } from "../const.ts";
-import { documentLooksLikeSeedBundle, parseJamlDocument } from "../jamlDocumentParse.ts";
 import { sanitizeSeed } from "../utils.ts";
 import { convertGameCardToDeckCard, convertToDeckCard, generateStartingDeck } from "../deckUtils.ts";
 import { Game } from "../balatrots/Game.ts";
@@ -235,9 +234,6 @@ export function startingDeckCards(seed: string, engine: Pick<InitialState['engin
 }
 
 export function parseSeedList(text: string): Array<string> {
-    if (documentLooksLikeSeedBundle(text)) {
-        return parseJamlDocument(text).seeds;
-    }
     const seen = new Set<string>();
     const seeds: Array<string> = [];
     const push = (token: string) => {
