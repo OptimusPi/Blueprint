@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { JamlIde, JimboRow, JimboText, JimboTextInput } from "jaml-ui";
+import { JamlIde, JimboRow, JimboText } from "jaml-ui";
+import { JimboTextInput } from "jaml-ui/ui";
 import { MotelyDeck, MotelyStake } from "motely-wasm";
 import { useJamlSearch } from "../../../modules/state/jamlSearchContext.tsx";
 import { useCardStore } from "../../../modules/state/store.ts";
