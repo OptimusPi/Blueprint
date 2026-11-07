@@ -17,7 +17,6 @@
 ## motely-wasm
 - v11+ is NativeAOT-LLVM, single-threaded, no SharedArrayBuffer needed, no COI serviceworker.
 - Boot once on mount. Don't boot again.
-- Import directly: `import motely, { MotelyWasm, MotelyWasmEvents } from "motely-wasm"`
 
 ## React
 - Modern React patterns only. No unnecessary refs, useCallback chains, or setState-in-effects.
