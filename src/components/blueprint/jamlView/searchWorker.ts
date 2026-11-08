@@ -23,6 +23,7 @@ export interface LoadedFilter {
     deck: string;
     stake: string;
     seeds: Array<string>;
+    tallyLabels: Array<string>;
 }
 
 export type WorkerRequest =
@@ -74,6 +75,7 @@ async function run(config: SearchConfig) {
                 deck: MotelyDeck[filter.deck],
                 stake: MotelyStake[filter.stake],
                 seeds: [...filter.seeds],
+                tallyLabels: filter.should.map((clause, i) => clause.label ?? `Tally ${i + 1}`),
             },
         });
         post({ type: "running" });

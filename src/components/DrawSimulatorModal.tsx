@@ -199,6 +199,7 @@ export function DrawSimulatorModal() {
     const stake = useCardStore(state => state.engineState.stake);
     const gameVersion = useCardStore(state => state.engineState.gameVersion);
     const showmanOwned = useCardStore(state => state.engineState.showmanOwned);
+    const maxAnte = useCardStore(state => state.engineState.maxAnte);
     const customDeck = useCardStore(state => state.deckState.cards);
 
     // Simulation State
@@ -377,7 +378,7 @@ export function DrawSimulatorModal() {
                 <Group align="flex-end">
                     <Select
                         label="Ante"
-                        data={Array.from({ length: 8 }, (_, i) => (i + 1).toString())}
+                        data={Array.from({ length: Math.max(8, maxAnte) + 1 }, (_, i) => i.toString())}
                         value={ante}
                         onChange={(val) => val && setAnte(val)}
                         w={80}

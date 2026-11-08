@@ -190,7 +190,19 @@ export function readSeedQueueFromUrl(): InitialState['seedQueue'] | null {
 }
 
 function loadSeedQueue(): InitialState['seedQueue'] {
-    return readSeedQueueFromUrl() ?? loadSeedQueueFromStorage();
+    const fromUrl = readSeedQueueFromUrl();
+    if (fromUrl) return fromUrl;
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const urlSeed = sanitizeSeed(params.get('seed') ?? '');
+        if (urlSeed && !params.has('seeds')) {
+            const stored = loadSeedQueueFromStorage();
+            const match = stored.seeds.indexOf(urlSeed);
+            if (match >= 0) return { seeds: stored.seeds, index: match };
+            return { seeds: [], index: 0 };
+        }
+    }
+    return loadSeedQueueFromStorage();
 }
 
 function syncSeedQueueToUrl(queue: InitialState['seedQueue']) {
@@ -224,11 +236,14 @@ function saveSeedQueue(queue: InitialState['seedQueue']) {
 }
 
 export function startingDeckCards(seed: string, engine: Pick<InitialState['engineState'], 'deck' | 'stake' | 'showmanOwned' | 'gameVersion'>): Array<DeckCard> {
+    const deckType = deckMap[engine.deck] ?? deckMap['Ghost Deck'];
+    const stakeType = stakeMap[engine.stake] ?? stakeMap['White Stake'];
+    const version = Number(engine.gameVersion) || 10106;
     const params = new InstanceParams(
-        new Deck(deckMap[engine.deck]),
-        new Stake(stakeMap[engine.stake]),
+        new Deck(deckType),
+        new Stake(stakeType),
         engine.showmanOwned,
-        Number(engine.gameVersion)
+        version
     );
     return new Game(seed, params).initDeck().map((card, i) => convertGameCardToDeckCard(card, i));
 }
@@ -335,29 +350,45 @@ const blueprintStorage: StateStorage = {
                 engineState = { ...engineState, seed: queueFromUrl.seeds[queueFromUrl.index] };
             }
         }
-        const hasSeed = !!engineState.seed;
+        const fullEngineState = {
+            ...initialState.engineState,
+            ...engineState
+        };
+        const hasSeed = !!fullEngineState.seed;
 
         // Also read viewMode and selectedAnte from URL
         const params = new URLSearchParams(window.location.search);
         const viewMode = params.get('view') || initialState.applicationState.viewMode;
-        const selectedAnte = parseInt(params.get('ante') || '1');
+        const parsedAnte = parseInt(params.get('ante') ?? '1', 10);
+        const selectedAnte = Number.isFinite(parsedAnte)
+            ? Math.min(Math.max(0, parsedAnte), fullEngineState.maxAnte)
+            : 1;
+        const selectedBlind: Blinds = selectedAnte === 1 ? 'bigBlind' : 'smallBlind';
+        const deckState = hasSeed
+            ? {
+                cards: startingDeckCards(fullEngineState.seed, fullEngineState),
+                isInitialized: true,
+                past: [],
+                future: []
+            }
+            : initialState.deckState;
         const results = {
             state: {
-                engineState: {
-                    ...initialState.engineState,
-                    ...engineState
-                },
+                engineState: fullEngineState,
                 applicationState: {
                     ...initialState.applicationState,
                     start: hasSeed,
                     settingsOpen: !hasSeed,
                     viewMode,
                     selectedAnte,
+                    selectedBlind,
                 },
+                seedQueue: queueFromUrl ?? loadSeedQueue(),
                 shoppingState: {
                     ...initialState.shoppingState,
                     // buys: getBuysFromHash(),
                 },
+                deckState,
             }
         }
         return JSON.stringify(results)
@@ -377,7 +408,7 @@ const blueprintStorage: StateStorage = {
         if (parsedValue.state.applicationState?.viewMode) {
             params.set('view', parsedValue.state.applicationState.viewMode);
         }
-        if (parsedValue.state.applicationState?.selectedAnte) {
+        if (parsedValue.state.applicationState?.selectedAnte !== undefined && parsedValue.state.applicationState?.selectedAnte !== null) {
             params.set('ante', String(parsedValue.state.applicationState.selectedAnte));
         }
 
@@ -393,20 +424,31 @@ function getEngineStateFromUrl() {
     const params = new URLSearchParams(window.location.search);
     // Backward compatibility: if old 'antes' param exists, use it as maxAnte with minAnte=0
     const oldAntes = params.get('antes');
-    const minAnte = oldAntes
+    const rawMinAnte = oldAntes
         ? 0
-        : parseInt(params.get('minAnte') ?? initialState.engineState.minAnte.toString());
-    const maxAnte = oldAntes
-        ? parseInt(oldAntes)
-        : parseInt(params.get('maxAnte') ?? initialState.engineState.maxAnte.toString());
+        : parseInt(params.get('minAnte') ?? initialState.engineState.minAnte.toString(), 10);
+    const rawMaxAnte = oldAntes
+        ? parseInt(oldAntes, 10)
+        : parseInt(params.get('maxAnte') ?? initialState.engineState.maxAnte.toString(), 10);
+    const rawCardsPerAnte = parseInt(params.get('cardsPerAnte') ?? initialState.engineState.cardsPerAnte.toString(), 10);
+
+    const minAnte = Number.isFinite(rawMinAnte) ? Math.max(0, rawMinAnte) : initialState.engineState.minAnte;
+    const maxAnte = Number.isFinite(rawMaxAnte) ? Math.min(Math.max(1, rawMaxAnte), 39) : initialState.engineState.maxAnte;
+    const cardsPerAnte = Number.isFinite(rawCardsPerAnte) ? Math.min(Math.max(1, rawCardsPerAnte), 1000) : initialState.engineState.cardsPerAnte;
+    const rawSeed = params.get('seed');
+    const seed = rawSeed ? sanitizeSeed(rawSeed) : initialState.engineState.seed;
+    const rawDeck = params.get('deck');
+    const deck = rawDeck && rawDeck in deckMap ? rawDeck : initialState.engineState.deck;
+    const rawStake = params.get('stake');
+    const stake = rawStake && rawStake in stakeMap ? rawStake : initialState.engineState.stake;
 
     return {
-        seed: params.get('seed') || initialState.engineState.seed,
-        deck: params.get('deck') || initialState.engineState.deck,
-        cardsPerAnte: parseInt(params.get('cardsPerAnte') || initialState.engineState.cardsPerAnte.toString()),
+        seed,
+        deck,
+        cardsPerAnte,
         minAnte,
         maxAnte,
-        stake: params.get('stake') || initialState.engineState.stake,
+        stake,
         gameVersion: params.get('gameVersion') || initialState.engineState.gameVersion
     };
 }
@@ -466,7 +508,12 @@ export const useCardStore = create<CardStore>()(
                         prev.applicationState.hasSettingsChanged = true;
                     }, undefined, 'Global/SetMinAnte'),
                     setMaxAnte: (maxAnte: number) => set((prev) => {
-                        prev.engineState.maxAnte = maxAnte;
+                        const clamped = Math.min(Math.max(1, Math.trunc(Number(maxAnte) || 8)), 39);
+                        prev.engineState.maxAnte = clamped;
+                        if (prev.applicationState.selectedAnte > clamped) {
+                            prev.applicationState.selectedAnte = clamped;
+                            prev.applicationState.selectedBlind = clamped === 1 ? 'bigBlind' : 'smallBlind';
+                        }
                         prev.applicationState.hasSettingsChanged = true;
                     }, undefined, 'Global/SetMaxAnte'),
                     setStake: (stake) => set((prev) => {
@@ -526,8 +573,10 @@ export const useCardStore = create<CardStore>()(
                         prev.applicationState.drawSimulatorModalOpen = false
                     }, undefined, 'Global/CloseDrawSimulatorModal'),
                     setSelectedAnte: (selectedAnte) => set((prev) => {
-                        prev.applicationState.selectedAnte = selectedAnte
-                        prev.applicationState.selectedBlind = prev.applicationState.selectedAnte === 1 ? 'bigBlind' : 'smallBlind'
+                        const parsed = Math.trunc(Number(selectedAnte));
+                        const nextAnte = Number.isFinite(parsed) ? Math.min(Math.max(0, parsed), prev.engineState.maxAnte) : 1;
+                        prev.applicationState.selectedAnte = nextAnte;
+                        prev.applicationState.selectedBlind = nextAnte === 1 ? 'bigBlind' : 'smallBlind';
                         prev.searchState.selectedSearchResult = null;
                     }, undefined, 'Global/SetSelectedAnte'),
                     setSelectedBlind: (selectedBlind) => set((prev) => {
@@ -774,6 +823,7 @@ export const useCardStore = create<CardStore>()(
                         sells: state.shoppingState.sells
                     },
                     applicationState: { ...state.applicationState, assistantOpen: false },
+                    seedQueue: state.seedQueue,
                     searchState: state.searchState,
                     deckState: state.deckState
                 }),

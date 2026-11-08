@@ -8,12 +8,14 @@ export function SeedQueueBootstrap() {
         if (seeds.length === 0) return;
         const expected = seeds[index];
         if (!expected) return;
-        if (state.engineState.seed !== expected) {
-            state.jumpSeedQueue(index);
-            return;
-        }
-        if (!state.applicationState.start) {
-            state.setStart(true);
+        if (!state.engineState.seed || seeds.includes(state.engineState.seed)) {
+            if (state.engineState.seed !== expected) {
+                state.jumpSeedQueue(index);
+                return;
+            }
+            if (!state.applicationState.start) {
+                state.setStart(true);
+            }
         }
     }, []);
 

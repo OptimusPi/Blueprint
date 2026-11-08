@@ -166,10 +166,10 @@ export default function JamlView() {
         input.click();
     });
 
-    const ideResults: Array<JamlIdeSearchResult> = useMemo(
-        () => results.map((r) => ({ seed: r.seed, score: r.score, tallyColumns: Array.from(r.tallies), tallyLabels: [] })),
-        [results],
-    );
+    const ideResults: Array<JamlIdeSearchResult> = useMemo(() => {
+        const tallyLabels = loaded?.tallyLabels ?? [];
+        return results.map((r) => ({ seed: r.seed, score: r.score, tallyColumns: Array.from(r.tallies), tallyLabels }));
+    }, [results, loaded]);
 
     const hits = stats.matchingSeeds || results.length;
     const seedCount = loaded?.seeds.length ?? 0;

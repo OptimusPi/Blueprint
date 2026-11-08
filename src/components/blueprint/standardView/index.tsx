@@ -436,7 +436,12 @@ function SeedExplorer() {
 
 
     const pool = SeedResults.antes
-    const itemPool = selectedAnte
+    const itemPool = pool[selectedAnte] ? selectedAnte : 1
+    const activeAnte = pool[itemPool]
+
+    if (!activeAnte) {
+        return null;
+    }
 
     return (
         <>
@@ -444,7 +449,7 @@ function SeedExplorer() {
                 <NativeSelect
                     mb={'sm'}
                     hiddenFrom="sm"
-                    value={selectedAnte}
+                    value={itemPool}
                     onChange={(e) => setSelectedAnte(Number(e.currentTarget.value))}
                     data={Object.keys(SeedResults.antes).map((ante: string) => ({
                         label: `Ante ${ante}`,
@@ -464,7 +469,7 @@ function SeedExplorer() {
                         label: <Group justify={'center'}>
                             {blind}
                             {i < 2 && (
-                                <TagDisplay tag={pool[itemPool].tags[i] as Tag} ante={pool[itemPool]} />
+                                <TagDisplay tag={activeAnte.tags[i] as Tag} ante={activeAnte} />
                             )
                             }
                             {
@@ -472,12 +477,12 @@ function SeedExplorer() {
                                 <Popover>
                                     <Popover.Target>
                                         <Box>
-                                            <Boss bossName={pool[itemPool].boss ?? ''} />
+                                            <Boss bossName={activeAnte.boss ?? ''} />
                                         </Box>
                                     </Popover.Target>
                                     <Popover.Dropdown>
                                         <Box>
-                                            <Text>{pool[itemPool].boss}</Text>
+                                            <Text>{activeAnte.boss}</Text>
                                         </Box>
                                     </Popover.Dropdown>
                                 </Popover>
@@ -494,7 +499,7 @@ function SeedExplorer() {
                 orientation={"vertical"}
                 defaultValue={'1'}
                 keepMounted={false}
-                value={String(selectedAnte)}
+                value={String(itemPool)}
                 onChange={(value) => {
                     setSelectedAnte(Number(value));
                 }}
@@ -517,8 +522,8 @@ function SeedExplorer() {
                 </Box>
                 {
                     Object.entries(SeedResults.antes).map(([ante, anteData]: [string, Ante], i: number) => {
-                        const currentAnte = String(ante) === String(selectedAnte);
-                        const panelData = currentAnte ? pool[itemPool] : anteData;
+                        const currentAnte = String(ante) === String(itemPool);
+                        const panelData = currentAnte ? activeAnte : anteData;
                         return (
                             <AntePanel key={i} tabName={ante} ante={panelData}
                                 timeTravelVoucherOffset={timeTravelVoucherOffset} />
